@@ -76,7 +76,7 @@ Kết quả tại lần bàn giao này: 28 tests pass, lint pass, dependency che
 
 ## 6. Ghép việc qua GitHub
 
-Hiện đã init Git local, chưa có commit/remote. Lưu source, lock, configs, docs, fixture và báo cáo tổng hợp. `/data/`, `/artifacts/`, `.venv/`, cache và `results/local/` được ignore; `src/recsysedu/data/` vẫn phải có trong Git.
+Hiện đã init Git local và có commit baseline; chưa có remote GitHub. Lưu source, lock, configs, docs, fixture và báo cáo tổng hợp. `/data/`, `/artifacts/`, `.venv/`, cache và `results/local/` được ignore; `src/recsysedu/data/` vẫn phải có trong Git.
 
 ```powershell
 git status --short --untracked-files=all

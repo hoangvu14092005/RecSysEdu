@@ -65,4 +65,4 @@ Việc theo ngày ở [lịch 30 ngày](tasks/six_week_schedule.md); tiêu chí 
 
 Một repo, nhánh theo task và PR nhỏ. Git lưu source/config/lock/docs/fixture nhỏ; raw/processed/checkpoint lớn lưu ngoài Git kèm manifest và cách lấy. Nhận một task có đầu ra/điều kiện xong theo [CONTRIBUTING](CONTRIBUTING.md).
 
-Root đã init Git và có package/CLI/app; chưa có commit hoặc remote GitHub. Raw, `.venv` và báo cáo local được `.gitignore` loại khỏi Git. Các lệnh prepare/split/train/evaluate trong kế hoạch vẫn là phần sẽ xây. [Bằng chứng base](results/base_verification.md) ghi rõ phần đã thử và phần còn thiếu.
+Root đã init Git và có commit baseline chứa package/CLI/app; hiện chưa có remote GitHub. Raw, `.venv` và báo cáo local được `.gitignore` loại khỏi Git. Các lệnh prepare/split/train/evaluate trong kế hoạch vẫn là phần sẽ xây. [Bằng chứng base](results/base_verification.md) ghi rõ phần đã thử và phần còn thiếu.
