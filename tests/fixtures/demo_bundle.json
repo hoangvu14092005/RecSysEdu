@@ -1,0 +1,388 @@
+{
+  "meta": {
+    "schema_version": 1,
+    "snapshot_id": "synthetic-ui-v1",
+    "data_mode": "synthetic",
+    "dataset_version": "synthetic-v1",
+    "dataset_hash": "4c85a1e9e79c72317a29ebf19ab7c4958e46314050ac3aae66cfe0983c1da539",
+    "split_hash": "524b2ba11b839eebf1a88424bdb165b9eb21ca992c6d3fea343bd3e12040b410",
+    "protocol_id": "synthetic-ui-contract-v1",
+    "history_mode": "demo",
+    "generated_at": "2026-10-09T00:00:00+00:00"
+  },
+  "users": [
+    {
+      "user_id": "U_demo_python",
+      "display_name": "Hồ sơ lập trình",
+      "observed_course_ids": [
+        "C_demo_python",
+        "C_demo_db"
+      ],
+      "profile_course_ids": [
+        "C_demo_python",
+        "C_demo_db"
+      ]
+    },
+    {
+      "user_id": "U_demo_data",
+      "display_name": "Hồ sơ dữ liệu",
+      "observed_course_ids": [
+        "C_demo_stats"
+      ],
+      "profile_course_ids": [
+        "C_demo_stats"
+      ]
+    },
+    {
+      "user_id": "U_demo_new",
+      "display_name": "Người mới",
+      "observed_course_ids": [],
+      "profile_course_ids": []
+    }
+  ],
+  "courses": [
+    {
+      "course_id": "C_demo_python",
+      "name": "Python cơ bản",
+      "fields": [
+        "Lập trình"
+      ]
+    },
+    {
+      "course_id": "C_demo_db",
+      "name": "Cơ sở dữ liệu",
+      "fields": [
+        "Lập trình"
+      ]
+    },
+    {
+      "course_id": "C_demo_stats",
+      "name": "Xác suất thống kê",
+      "fields": [
+        "Toán"
+      ]
+    },
+    {
+      "course_id": "C_demo_ml",
+      "name": "Nhập môn Machine Learning",
+      "fields": [
+        "Dữ liệu"
+      ]
+    },
+    {
+      "course_id": "C_demo_viz",
+      "name": "Trực quan hóa dữ liệu",
+      "fields": [
+        "Dữ liệu"
+      ]
+    },
+    {
+      "course_id": "C_demo_algo",
+      "name": "Cấu trúc dữ liệu",
+      "fields": [
+        "Lập trình"
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "run_id": "synthetic-popularity",
+      "model_id": "popularity",
+      "dataset_hash": "4c85a1e9e79c72317a29ebf19ab7c4958e46314050ac3aae66cfe0983c1da539",
+      "split_hash": "524b2ba11b839eebf1a88424bdb165b9eb21ca992c6d3fea343bd3e12040b410",
+      "protocol_id": "synthetic-ui-contract-v1",
+      "evaluation_split": "demo",
+      "cohort": "synthetic-ui-profiles",
+      "cohort_size": 3,
+      "candidate_policy": "synthetic-catalog",
+      "seen_policy": "exclude-observed",
+      "seed": null,
+      "config_hash": "912bcd23d515727c53c50037ee93e324ec0f9e87eb24a39d84502bcfd19f6298",
+      "metric_status": "not_available",
+      "metrics": null
+    },
+    {
+      "run_id": "synthetic-content",
+      "model_id": "content",
+      "dataset_hash": "4c85a1e9e79c72317a29ebf19ab7c4958e46314050ac3aae66cfe0983c1da539",
+      "split_hash": "524b2ba11b839eebf1a88424bdb165b9eb21ca992c6d3fea343bd3e12040b410",
+      "protocol_id": "synthetic-ui-contract-v1",
+      "evaluation_split": "demo",
+      "cohort": "synthetic-ui-profiles",
+      "cohort_size": 3,
+      "candidate_policy": "synthetic-catalog",
+      "seen_policy": "exclude-observed",
+      "seed": null,
+      "config_hash": "6129f345c1ee79490b35dc8e728836e4761bed17551d906187ada7e5af61bf38",
+      "metric_status": "not_available",
+      "metrics": null
+    }
+  ],
+  "recommendations": [
+    {
+      "user_id": "U_demo_python",
+      "model_id": "popularity",
+      "run_id": "synthetic-popularity",
+      "fallback_status": "none",
+      "items": [
+        {
+          "course_id": "C_demo_stats",
+          "rank": 1,
+          "score": 0.8,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        },
+        {
+          "course_id": "C_demo_ml",
+          "rank": 2,
+          "score": 0.7,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        },
+        {
+          "course_id": "C_demo_viz",
+          "rank": 3,
+          "score": 0.6,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        }
+      ]
+    },
+    {
+      "user_id": "U_demo_data",
+      "model_id": "popularity",
+      "run_id": "synthetic-popularity",
+      "fallback_status": "none",
+      "items": [
+        {
+          "course_id": "C_demo_python",
+          "rank": 1,
+          "score": 0.8,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        },
+        {
+          "course_id": "C_demo_db",
+          "rank": 2,
+          "score": 0.7,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        },
+        {
+          "course_id": "C_demo_ml",
+          "rank": 3,
+          "score": 0.6,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        }
+      ]
+    },
+    {
+      "user_id": "U_demo_new",
+      "model_id": "popularity",
+      "run_id": "synthetic-popularity",
+      "fallback_status": "synthetic-popularity-example",
+      "items": [
+        {
+          "course_id": "C_demo_python",
+          "rank": 1,
+          "score": 0.8,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        },
+        {
+          "course_id": "C_demo_db",
+          "rank": 2,
+          "score": 0.7,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        },
+        {
+          "course_id": "C_demo_stats",
+          "rank": 3,
+          "score": 0.6,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        }
+      ]
+    },
+    {
+      "user_id": "U_demo_python",
+      "model_id": "content",
+      "run_id": "synthetic-content",
+      "fallback_status": "none",
+      "items": [
+        {
+          "course_id": "C_demo_algo",
+          "rank": 1,
+          "score": 0.8,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        },
+        {
+          "course_id": "C_demo_viz",
+          "rank": 2,
+          "score": 0.7,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        },
+        {
+          "course_id": "C_demo_ml",
+          "rank": 3,
+          "score": 0.6,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        }
+      ]
+    },
+    {
+      "user_id": "U_demo_data",
+      "model_id": "content",
+      "run_id": "synthetic-content",
+      "fallback_status": "none",
+      "items": [
+        {
+          "course_id": "C_demo_algo",
+          "rank": 1,
+          "score": 0.8,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        },
+        {
+          "course_id": "C_demo_viz",
+          "rank": 2,
+          "score": 0.7,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        },
+        {
+          "course_id": "C_demo_ml",
+          "rank": 3,
+          "score": 0.6,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        }
+      ]
+    },
+    {
+      "user_id": "U_demo_new",
+      "model_id": "content",
+      "run_id": "synthetic-content",
+      "fallback_status": "synthetic-popularity-example",
+      "items": [
+        {
+          "course_id": "C_demo_algo",
+          "rank": 1,
+          "score": 0.8,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        },
+        {
+          "course_id": "C_demo_viz",
+          "rank": 2,
+          "score": 0.7,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        },
+        {
+          "course_id": "C_demo_ml",
+          "rank": 3,
+          "score": 0.6,
+          "reason_codes": [
+            "synthetic_example"
+          ],
+          "evidence": [
+            "Lý do minh họa để dựng UI; chưa được sinh từ mô hình huấn luyện."
+          ],
+          "prerequisite_status": "unknown"
+        }
+      ]
+    }
+  ],
+  "paths": []
+}

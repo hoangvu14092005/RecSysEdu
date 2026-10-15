@@ -1,0 +1,17 @@
+{
+  "checked_on": "2026-10-09",
+  "source": "data/raw/course.json",
+  "source_sha256": "ed7fba469a102a825afd5369da8b4fabc1f24fc1b9a13bdec1106bec27b052fc",
+  "method": "JSON Lines scan; nonempty = string.strip() is nonempty; field_nonempty = nonempty raw field; CJK = U+3400-4DBF/U+4E00-9FFF/U+F900-FAFF. Coverage is not semantic quality.",
+  "counts": {
+    "courses": 3781,
+    "name_type_str": 3781,
+    "name_nonempty": 3781,
+    "name_cjk": 3398,
+    "about_type_str": 3779,
+    "about_nonempty": 3692,
+    "about_cjk": 3227,
+    "field_nonempty": 547,
+    "about_type_NoneType": 2
+  }
+}

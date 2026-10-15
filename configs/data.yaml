@@ -1,0 +1,8 @@
+source_base: https://lfs.aminer.cn/misc/moocdata/data/mooccube2/entities/
+raw_dir: data/raw
+files:
+  - course.json
+  - user.json
+# Chưa xác nhận timezone của chuỗi enroll_time nguồn.
+source_timezone: null
+audit_output: results/local/data_audit.json

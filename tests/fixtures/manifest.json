@@ -1,0 +1,7 @@
+{
+  "data_mode": "synthetic",
+  "purpose": "UI contract and error handling; no MOOCCubeX performance claim",
+  "files": [
+    "demo_bundle.json"
+  ]
+}
