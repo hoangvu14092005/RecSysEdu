@@ -53,3 +53,20 @@ def test_prepare_cli_invalid_config_has_no_traceback(tmp_path, capsys):
         config.write_text(yaml.safe_dump(config_value), encoding='utf-8')
         assert main(['data', 'prepare', '--config', str(config)]) == 1
         assert 'Traceback' not in capsys.readouterr().err
+
+
+def test_prepare_cli_refuses_short_sample_without_publication(tmp_path, capsys):
+    (tmp_path / 'course.json').write_text(
+        '[{"id":"C_1"},{"id":"C_2"},{"id":"C_3"}]', encoding='utf-8')
+    (tmp_path / 'user.json').write_text(
+        '{"id":"U_1","course_order":[1,2,3],'
+        '"enroll_time":["2020-01-01","2020-02-01","2020-03-01"]}', encoding='utf-8')
+    config = tmp_path / 'prepare.yaml'
+    config.write_text(yaml.safe_dump(dict(
+        raw_dir=str(tmp_path), output_dir=str(tmp_path / 'output'), dataset_version='cli-v1',
+        time_basis='source_local_naive', sample_users=2, seed=20261016)), encoding='utf-8')
+    assert main(['data', 'prepare', '--config', str(config)]) == 1
+    error = capsys.readouterr().err
+    assert 'sample_users=2' in error and 'eligible_user_count=1' in error
+    assert 'Traceback' not in error
+    assert not (tmp_path / 'output').exists()

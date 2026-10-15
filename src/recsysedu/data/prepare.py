@@ -243,6 +243,7 @@ def prepare_dataset(course_path, user_path, output_dir, *, dataset_version, time
                     sample_users, seed) -> dict:
     """Publish selected users with >=3 cleaned courses, without creating a split.
 
+    A positive sample_users requires exactly that many eligible users or fails.
     The reservoir is bounded by sample_users. Zero streams every eligible user.
     Output users retain source encounter order; each history is time/ID sorted.
     """
@@ -307,6 +308,10 @@ def prepare_dataset(course_path, user_path, output_dir, *, dataset_version, time
                     if slot < sample_users:
                         reservoir[slot] = candidate
             emit_reader_errors(user_path, reader_errors)
+            if sample_users > 0 and stats['eligible_user_count'] < sample_users:
+                raise ValueError(
+                    f'Không đủ user hợp lệ: sample_users={sample_users}, '
+                    f"eligible_user_count={stats['eligible_user_count']}")
             for candidate in sorted(reservoir, key=lambda candidate: candidate[0]):
                 write_user(candidate)
         _validate_output(stage)

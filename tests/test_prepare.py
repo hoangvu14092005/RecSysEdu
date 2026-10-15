@@ -139,6 +139,17 @@ def test_prepare_invalid_options_leave_no_output(tmp_path, changes):
     assert not (tmp_path / 'prepared').exists()
 
 
+def test_prepare_requires_exact_positive_sample_count_before_publication(tmp_path):
+    paths = raw_files(tmp_path, [user('U_eligible'), user(
+        'U_ineligible', course_order=['C_1'], enroll_time=['2020-01-01'])])
+    with pytest.raises(ValueError, match=r'sample_users=2.*eligible_user_count=1'):
+        prepare(tmp_path, paths, sample_users=2)
+    assert not (tmp_path / 'prepared').exists()
+    assert not list(tmp_path.glob('.prepare-*'))
+    manifest = prepare(tmp_path, paths, sample_users=0)
+    assert manifest['selected_user_count'] == 1
+
+
 def test_prepare_refuses_overwrite_and_conflicting_or_ambiguous_catalog(tmp_path):
     paths = raw_files(tmp_path, [user()])
     prepare(tmp_path, paths)
