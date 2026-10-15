@@ -1,7 +1,7 @@
 # Thiết kế RecSysEdu theo hướng Pipeline-first
 
 Ngày: 16/10/2026
-Trạng thái: **DRAFT — chờ người dùng duyệt trước khi lập implementation plan**
+Trạng thái: **APPROVED — người dùng duyệt ngày 16/10/2026**
 
 ## 1. Tóm tắt dễ hiểu
 
