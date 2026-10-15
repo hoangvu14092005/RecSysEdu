@@ -1,4 +1,4 @@
-"""Commands currently available: download, raw audit and snapshot validation."""
+"""Commands for raw data, versioned preparation and snapshot validation."""
 
 import argparse
 import json
@@ -24,9 +24,10 @@ def main(argv=None) -> int:
     commands = parser.add_subparsers(dest='command', required=True)
     data = commands.add_parser('data', help='Tải và khảo sát raw MOOCCubeX')
     actions = data.add_subparsers(dest='action', required=True)
-    for name in ('download', 'audit'):
+    for name in ('download', 'audit', 'prepare'):
         action = actions.add_parser(name)
-        action.add_argument('--config', default='configs/data.yaml')
+        action.add_argument('--config', default=(
+            'configs/prepare.yaml' if name == 'prepare' else 'configs/data.yaml'))
         if name == 'audit':
             action.add_argument('--max-users', type=int, default=0, help='0: toàn bộ user')
             action.add_argument('--output', help='File báo cáo JSON tổng hợp')
@@ -44,6 +45,23 @@ def main(argv=None) -> int:
         config = _config(args.config)
         if args.action == 'download':
             fetch_sources(config)
+        elif args.action == 'prepare':
+            from recsysedu.data.prepare import prepare_dataset
+
+            required = ('raw_dir', 'output_dir', 'dataset_version', 'time_basis',
+                        'sample_users', 'seed')
+            missing = [key for key in required if key not in config]
+            if missing:
+                raise ValueError(f"Config thiếu trường: {', '.join(missing)}")
+            for key in ('raw_dir', 'output_dir'):
+                if not isinstance(config[key], str) or not config[key].strip():
+                    raise ValueError(f'{key} phải là đường dẫn string không rỗng')
+            raw = Path(config['raw_dir'])
+            output = Path(config['output_dir'])
+            report = prepare_dataset(raw / 'course.json', raw / 'user.json', output,
+                                     **{key: config[key] for key in required[2:]})
+            print(f"Dataset {report['dataset_version']}: {report['selected_user_count']} user; "
+                  f"output: {output}")
         else:
             raw = Path(config['raw_dir'])
             report = audit_dataset(raw / 'course.json', raw / 'user.json',

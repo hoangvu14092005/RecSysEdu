@@ -1,0 +1,7 @@
+raw_dir: data/raw
+output_dir: data/processed/mooccubex-pilot-v1
+dataset_version: mooccubex-pilot-v1
+# Quy ước thứ tự theo đồng hồ nguồn; chưa xác nhận timezone để quy đổi UTC.
+time_basis: source_local_naive
+sample_users: 10000
+seed: 20261016

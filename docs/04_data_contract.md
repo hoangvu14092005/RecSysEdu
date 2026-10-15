@@ -1,6 +1,6 @@
 # 04 — Quy ước dữ liệu và file bàn giao
 
-Cập nhật: 09/10/2026. Raw user/course đã tải/audit; loader snapshot v1 đã chạy trên fixture. Bảng chuẩn Parquet/split và exporter model chưa xây. Người xử lý dữ liệu, model và UI dùng tài liệu này để thống nhất tên trường. Thuật ngữ ở [trang bắt đầu](README.md).
+Cập nhật: 16/10/2026. Raw user/course đã tải/audit; loader snapshot v1 và bước chuẩn hóa Parquet đã kiểm thử trên fixture. Chưa chạy prepare trên raw đầy đủ, chưa có split hoặc exporter model. Người xử lý dữ liệu, model và UI dùng tài liệu này để thống nhất tên trường. Thuật ngữ ở [trang bắt đầu](README.md).
 
 ## 1. Cần lấy file nào từ MOOCCubeX?
 
@@ -31,15 +31,16 @@ Hai file tải ngày 09/10/2026 là JSON Lines. Catalog có ID string `C_<số>`
 | --- | --- | --- |
 | `user_id` | string | ID nguồn, không rỗng |
 | `course_id` | string | ID nguồn, tồn tại trong catalog |
-| `timestamp` | int64 | Unix seconds; timezone nguồn phải được xác định |
+| `event_time` | timestamp[us] hoặc timestamp[us, UTC] | Naive nếu `source_local_naive`; UTC nếu khai báo IANA timezone |
+| `event_time_raw` | string | Giữ nguyên chuỗi nguồn của lần đăng ký được chọn |
 | `interaction` | int | 1 = đăng ký; không phải điểm đánh giá/năng lực |
-| `source_record` | string | File/vị trí nguồn để truy vết |
+| `source_record` | string | `user.json:record:<n>:slot:<i>`; n từ 1 theo object hợp lệ, i từ 0 trong mảng nguồn |
 
-Mỗi cặp `(user_id, course_id)` chỉ có một dòng. Trùng đăng ký giữ thời gian hợp lệ sớm nhất, ghi số đã gộp. Sắp xếp `(user_id, timestamp, course_id)` để output ổn định; ID chỉ phá hòa khi ghi file, không biến hai thời gian bằng nhau thành trước–sau.
+Mỗi cặp `(user_id, course_id)` chỉ có một dòng. Trùng đăng ký giữ thời gian hợp lệ sớm nhất và provenance tương ứng, ghi số đã gộp; hòa thì giữ lần xuất hiện đầu. User theo thứ tự xuất hiện trong nguồn; trong mỗi user sắp `(event_time, course_id)` để output ổn định và có thể ghi từng lô. ID chỉ phá hòa khi ghi file, không biến hai thời gian bằng nhau thành trước–sau.
 
-Ví dụ giả: `(U_demo_01, C_demo_python, 1704067200, 1)` ghi một user đăng ký một khóa tại một thời điểm; số 1 chỉ đánh dấu đăng ký. Không có trường nào trong dòng này chứng minh người đó đã hoàn thành khóa.
+Ví dụ giả: `(U_demo_01, C_demo_python, 2024-01-01 00:00:00, 1)` ghi một user đăng ký một khóa tại một thời điểm; số 1 chỉ đánh dấu đăng ký. Không có trường nào trong dòng này chứng minh người đó đã hoàn thành khóa.
 
-Thời gian không có timezone phải được M1 xác định quy ước và ghi config. Chưa xác định thì báo `timezone_unresolved`, chưa phát hành temporal split. Không dùng timezone của máy chạy để tự suy diễn.
+`time_basis` bắt buộc là `source_local_naive` hoặc một IANA key hợp lệ, ví dụ `Asia/Shanghai`. Với `source_local_naive`, giữ đồng hồ nguồn, không tạo giá trị UTC; timestamp có offset bị cách ly bằng `timestamp_awareness_mismatch`. Với IANA key, gắn timezone đó cho timestamp naive rồi đổi sang UTC; timestamp đã có offset giữ đúng instant và đổi sang UTC. Giờ không tồn tại hoặc nhập nhằng khi chuyển DST bị cách ly bằng `nonexistent_local_time` / `ambiguous_local_time`. Không dùng timezone của máy chạy để suy diễn. Prepare luôn ghi `temporal_dataset_ready=false`: bước này chưa tạo temporal split.
 
 ### `courses.parquet` — danh mục khóa học
 
@@ -50,6 +51,16 @@ Thời gian không có timezone phải được M1 xác định quy ước và g
 | `about` | string | Chuẩn hóa null thành rỗng, giữ nguồn; dùng cùng name cho Content TF-IDF, thiếu thì name-only |
 | `fields` | list[string] | Lĩnh vực không trùng, lưu nguồn nhãn trong manifest |
 | `prerequisite_text` | string | Văn bản tham khảo, tách khỏi graph |
+
+`name`, `about`, `prerequisites` null thành chuỗi rỗng; giá trị có cấu trúc được mã hóa JSON để giữ nội dung. `field` string thành một phần tử; array loại trùng và sắp ổn định. Manifest ghi `fields_source=course.json:field`. ID catalog trùng metadata giống nhau được gộp; metadata mâu thuẫn hoặc hai mã như `C_1` và `C_01` cùng nối tới số 1 chặn phát hành.
+
+### `cohort_users.parquet` và `rejects.parquet`
+
+`cohort_users` gồm `user_id: string`, `history_length: int64` cho người được chọn ở prepare. Người đủ điều kiện có ít nhất ba khóa catalog khác nhau sau làm sạch. Đây chưa phải cohort đánh giá: timestamp hòa và target cold được xử lý ở split.
+
+Lấy mẫu reservoir bằng `random.Random(seed)` trên toàn bộ người đủ điều kiện theo thứ tự nguồn; người không đủ điều kiện không tham gia phép chọn. `sample_users=0` giữ tất cả; số dương giới hạn tối đa số người. Pilot cấu hình `sample_users=10000`, `seed=20261016`. Giữ catalog đầy đủ; interactions chỉ chứa người được chọn. Không cần nạp toàn bộ lịch sử raw vào RAM: mỗi lần đọc một user, buffer Parquet tối đa 4096 dòng; reservoir giữ tối đa số user yêu cầu. Catalog và tập ID user đã gặp vẫn được giữ trong bộ nhớ để nối và phát hiện trùng.
+
+`rejects` gồm `reason_code`, `user_id`, `raw_course_id`, `event_time_raw`, `source_record` (string nullable), và `count` (int64). `raw_course_id` mã hóa JSON để phân biệt integer, float, bool và string. Lỗi tương tác giữ vị trí slot; lỗi lịch sử giữ vị trí object. `iter_records` chỉ trả tổng số dòng JSON lỗi/object không hợp lệ nên các lỗi đó được ghi thành dòng tổng hợp theo file với `count`; không tuyên bố có số dòng nguồn chính xác. `duplicate_interaction` ghi lần bị gộp; `insufficient_history` ghi người còn dưới ba khóa. Lỗi và bản gộp của mọi user được thống kê trước lấy mẫu, kể cả người không được chọn; tổng `count` bằng tổng `error_counts` trong manifest.
 
 ### Feature Content — M4, sẽ xây
 
@@ -77,7 +88,11 @@ Bảng chuẩn không còn ID mồ côi. Không đặt một tỷ lệ lỗi c�
 
 ## 4. Dataset, split và manifest
 
-Đặt bảng dưới `data/processed/<dataset_version>/`. Có `interactions.parquet`, `courses.parquet`, `train.parquet`, `valid.parquet`, `test.parquet`, cohort và `split_manifest.json`; P1 có thêm concept/mapping/edges.
+Prepare đặt bảng dưới `data/processed/<dataset_version>/`: `interactions.parquet`, `courses.parquet`, `rejects.parquet`, `cohort_users.parquet`, `dataset_manifest.json`. CLI: `python -m recsysedu.cli data prepare --config configs/prepare.yaml`; `output_dir` là thư mục version cuối cùng, không tự nối thêm version. Cấu hình cần đủ `raw_dir`, `output_dir`, `dataset_version`, `time_basis`, `sample_users`, `seed`. Thư mục output đã tồn tại sẽ bị từ chối; ghi/kiểm tra trong thư mục tạm rồi mới phát hành. Raw chỉ được đọc và kiểm hash trước/sau chạy. DuckDB chỉ kiểm tra Parquet đã ghi: khóa ghép duy nhất, không orphan và độ dài cohort đúng.
+
+Dataset manifest ghi schema version, dataset version, time basis, seed, số user yêu cầu/đủ điều kiện/đã chọn, số user đã quét, enrollment trước dedup, số cặp sạch trước lấy mẫu, số dòng từng bảng, mã lỗi/tổng số lỗi, schema Arrow, đường dẫn/bytes/SHA-256 raw và SHA-256 bốn output Parquet. Manifest không tự hash chính nó; bước sau có thể SHA-256 file manifest để làm dataset identity. Hai lần cùng raw/config/phiên bản thư viện tạo cùng output hash; không hứa hash Parquet giống nhau qua mọi phiên bản PyArrow.
+
+Bước split sau mới thêm `train.parquet`, `valid.parquet`, `test.parquet`, cohort đánh giá, candidate universe và `split_manifest.json`; P1 có thêm concept/mapping/edges.
 
 Audit ghi số user/course, số đăng ký trước/sau lọc, lỗi theo loại, người có ít nhất ba khóa khác nhau, mốc thời gian, độ phủ lĩnh vực và graph. Độ thưa tính bằng `1 - số cặp user–course / (số user * số course)`; phải nói rõ catalog ở mẫu số.
 
