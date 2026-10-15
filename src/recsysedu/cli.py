@@ -24,10 +24,10 @@ def main(argv=None) -> int:
     commands = parser.add_subparsers(dest='command', required=True)
     data = commands.add_parser('data', help='Tải và khảo sát raw MOOCCubeX')
     actions = data.add_subparsers(dest='action', required=True)
-    for name in ('download', 'audit', 'prepare'):
+    for name in ('download', 'audit', 'prepare', 'split'):
         action = actions.add_parser(name)
         action.add_argument('--config', default=(
-            'configs/prepare.yaml' if name == 'prepare' else 'configs/data.yaml'))
+            f'configs/{name}.yaml' if name in ('prepare', 'split') else 'configs/data.yaml'))
         if name == 'audit':
             action.add_argument('--max-users', type=int, default=0, help='0: toàn bộ user')
             action.add_argument('--output', help='File báo cáo JSON tổng hợp')
@@ -62,6 +62,24 @@ def main(argv=None) -> int:
                                      **{key: config[key] for key in required[2:]})
             print(f"Dataset {report['dataset_version']}: {report['selected_user_count']} user; "
                   f"output: {output}")
+        elif args.action == 'split':
+            from recsysedu.data.split import build_temporal_split
+
+            required = ('prepared_dir', 'output_dir', 'split_version', 'seed')
+            missing = [key for key in required if key not in config]
+            if missing:
+                raise ValueError(f"Config thiếu trường: {', '.join(missing)}")
+            for key in ('prepared_dir', 'output_dir'):
+                if not isinstance(config[key], str) or not config[key].strip():
+                    raise ValueError(f'{key} phải là đường dẫn string không rỗng')
+            prepared = Path(config['prepared_dir'])
+            output = Path(config['output_dir'])
+            report = build_temporal_split(
+                prepared / 'interactions.parquet', prepared / 'courses.parquet', output,
+                split_version=config['split_version'], seed=config['seed'])
+            sizes = report['warm_cohort_sizes']
+            print(f"Split {report['split_version']}: warm valid={sizes['valid']}, "
+                  f"test={sizes['test']}; output: {output}")
         else:
             raw = Path(config['raw_dir'])
             report = audit_dataset(raw / 'course.json', raw / 'user.json',

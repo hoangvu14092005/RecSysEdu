@@ -4,6 +4,7 @@ import sys
 import yaml
 
 from recsysedu.cli import main
+from recsysedu.data.prepare import prepare_dataset
 
 
 def test_cli_help_is_available():
@@ -70,3 +71,41 @@ def test_prepare_cli_refuses_short_sample_without_publication(tmp_path, capsys):
     assert 'sample_users=2' in error and 'eligible_user_count=1' in error
     assert 'Traceback' not in error
     assert not (tmp_path / 'output').exists()
+
+
+def test_split_cli_reports_version_and_separate_warm_cohort_sizes(tmp_path, capsys):
+    (tmp_path / 'course.json').write_text(
+        '\n'.join(f'{{"id":"C_{i}"}}' for i in range(1, 5)), encoding='utf-8')
+    (tmp_path / 'user.json').write_text('\n'.join([
+        '{"id":"U_1","course_order":["C_1","C_2","C_4"],'
+        '"enroll_time":["2020-01-01","2020-02-01","2020-03-01"]}',
+        '{"id":"U_2","course_order":["C_2","C_3","C_4"],'
+        '"enroll_time":["2020-01-01","2020-02-01","2020-03-01"]}',
+    ]), encoding='utf-8')
+    prepared = tmp_path / 'prepared'
+    prepare_dataset(tmp_path / 'course.json', tmp_path / 'user.json', prepared,
+                    dataset_version='cli-dataset-v1', time_basis='source_local_naive',
+                    sample_users=0, seed=1)
+    config = tmp_path / 'split.yaml'
+    config.write_text(yaml.safe_dump(dict(
+        prepared_dir=str(prepared), output_dir=str(tmp_path / 'split'),
+        split_version='cli-split-v1', seed=1)), encoding='utf-8')
+    assert main(['data', 'split', '--config', str(config)]) == 0
+    output = capsys.readouterr().out
+    assert 'cli-split-v1' in output
+    assert 'valid=1' in output and 'test=0' in output
+    assert (tmp_path / 'split/split_manifest.json').exists()
+
+
+def test_split_cli_malformed_manifest_exits_one_without_traceback(tmp_path, capsys):
+    prepared = tmp_path / 'prepared'
+    prepared.mkdir()
+    (prepared / 'dataset_manifest.json').write_text('{bad json', encoding='utf-8')
+    config = tmp_path / 'split.yaml'
+    config.write_text(yaml.safe_dump(dict(
+        prepared_dir=str(prepared), output_dir=str(tmp_path / 'split'),
+        split_version='cli-split-v1', seed=1)), encoding='utf-8')
+    assert main(['data', 'split', '--config', str(config)]) == 1
+    error = capsys.readouterr().err
+    assert 'manifest' in error and 'Traceback' not in error
+    assert not (tmp_path / 'split').exists()

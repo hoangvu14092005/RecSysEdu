@@ -1,0 +1,4 @@
+prepared_dir: data/processed/mooccubex-pilot-v1
+output_dir: data/splits/mooccubex-pilot-v1-split-v1
+split_version: mooccubex-pilot-v1-split-v1
+seed: 20261016
