@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from math import isfinite
+from numbers import Real
 from typing import Mapping, Protocol, Sequence
 
 import numpy as np
@@ -52,14 +53,15 @@ class RankedItem:
         _require_non_empty_string(self.course_id, "course_id")
         if isinstance(self.rank, bool) or not isinstance(self.rank, int) or self.rank < 1:
             raise ValueError("rank must be an integer from one")
-        if isinstance(self.score, bool) or not isinstance(self.score, (int, float)):
+        if isinstance(self.score, (bool, np.bool_)) or not isinstance(self.score, Real):
             raise ValueError("score must be a finite real number")
         try:
-            finite = isfinite(self.score)
-        except OverflowError as exc:
+            score = float(self.score)
+        except (OverflowError, ValueError) as exc:
             raise ValueError("score must be a finite real number") from exc
-        if not finite:
+        if not isfinite(score):
             raise ValueError("score must be a finite real number")
+        object.__setattr__(self, "score", score)
 
 
 @dataclass(frozen=True)

@@ -70,8 +70,30 @@ def test_ranked_item_requires_rank_from_one_and_finite_score(rank):
         RankedItem("C_1", rank, 0.5)
 
 
-@pytest.mark.parametrize("score", [float("nan"), float("inf"), -float("inf")])
-def test_ranked_item_rejects_non_finite_score(score):
+@pytest.mark.parametrize("dtype", [np.float32, np.int64])
+def test_ranked_item_accepts_score_result_numpy_real_scalar(dtype):
+    result = ScoreResult(("C_1",), np.array([1], dtype=dtype))
+
+    item = RankedItem(result.course_ids[0], 1, result.scores[0])
+
+    assert item.score == 1.0
+    assert type(item.score) is float
+
+
+@pytest.mark.parametrize(
+    "score",
+    [
+        True,
+        np.bool_(True),
+        float("nan"),
+        float("inf"),
+        -float("inf"),
+        np.float32(float("nan")),
+        np.float32(float("inf")),
+        1 + 2j,
+    ],
+)
+def test_ranked_item_rejects_invalid_score(score):
     with pytest.raises(ValueError):
         RankedItem("C_1", 1, score)
 
