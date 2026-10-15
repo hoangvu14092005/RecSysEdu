@@ -9,7 +9,7 @@ from recsysedu.data.prepare import prepare_dataset
 from recsysedu.data.split import build_temporal_split
 
 
-def _prepared(tmp_path, users, course_ids=None):
+def _prepared(tmp_path, users, course_ids=None, time_basis='source_local_naive'):
     course_ids = course_ids or ['C_1', 'C_2', 'C_3', 'C_4', 'C_5']
     (tmp_path / 'course.json').write_text(
         '\n'.join(json.dumps({'id': item}) for item in course_ids), encoding='utf-8')
@@ -19,7 +19,7 @@ def _prepared(tmp_path, users, course_ids=None):
                   for user_id, courses, times in users), encoding='utf-8')
     prepared = tmp_path / 'prepared'
     prepare_dataset(tmp_path / 'course.json', tmp_path / 'user.json', prepared,
-                    dataset_version='fixture-v1', time_basis='source_local_naive',
+                    dataset_version='fixture-v1', time_basis=time_basis,
                     sample_users=0, seed=17)
     return prepared
 
@@ -32,6 +32,16 @@ def _split(prepared, output, seed=17):
 
 def _rows(output, name):
     return pq.read_table(output / f'{name}.parquet').to_pylist()
+
+
+def _replace_time_basis(prepared, basis, *, remove=False):
+    path = prepared / 'dataset_manifest.json'
+    manifest = json.loads(path.read_text(encoding='utf-8'))
+    if remove:
+        manifest.pop('time_basis')
+    else:
+        manifest['time_basis'] = basis
+    path.write_text(json.dumps(manifest), encoding='utf-8')
 
 
 def test_split_uses_last_two_strict_times_and_never_overlaps(tmp_path):
@@ -59,6 +69,8 @@ def test_split_uses_last_two_strict_times_and_never_overlaps(tmp_path):
                 r['event_time'] for r in test if r['user_id'] == user_id)
     assert test[0]['event_time'] == datetime(2020, 4, 1)
     assert manifest['protocol_id'] == 'leave_last_two_out_v1'
+    assert manifest['time_basis'] == 'source_local_naive'
+    assert pq.read_schema(output / 'train.parquet').field('event_time').type.tz is None
     assert _rows(output, 'candidate_universe') == [
         {'course_id': 'C_1'}, {'course_id': 'C_2'}]
 
@@ -132,3 +144,43 @@ def test_split_rejects_bad_manifest_and_leaves_no_output(tmp_path):
     with pytest.raises(ValueError, match='manifest'):
         _split(prepared, tmp_path / 'split')
     assert not (tmp_path / 'split').exists()
+
+
+@pytest.mark.parametrize('basis,remove', [
+    (None, True), ('', False), ('Mars/Unknown', False), (123, False),
+])
+def test_split_rejects_missing_or_invalid_time_basis(tmp_path, basis, remove):
+    prepared = _prepared(tmp_path, [
+        ('U_1', ['C_1', 'C_2', 'C_3'],
+         ['2020-01-01', '2020-02-01', '2020-03-01']),
+    ])
+    _replace_time_basis(prepared, basis, remove=remove)
+    with pytest.raises(ValueError, match='time_basis'):
+        _split(prepared, tmp_path / 'split')
+    assert not (tmp_path / 'split').exists()
+
+
+@pytest.mark.parametrize('prepared_basis,declared_basis', [
+    ('source_local_naive', 'Asia/Shanghai'),
+    ('Asia/Shanghai', 'source_local_naive'),
+])
+def test_split_rejects_time_basis_arrow_schema_mismatch(
+        tmp_path, prepared_basis, declared_basis):
+    prepared = _prepared(tmp_path, [
+        ('U_1', ['C_1', 'C_2', 'C_3'],
+         ['2020-01-01', '2020-02-01', '2020-03-01']),
+    ], time_basis=prepared_basis)
+    _replace_time_basis(prepared, declared_basis)
+    with pytest.raises(ValueError, match='time_basis.*event_time'):
+        _split(prepared, tmp_path / 'split')
+    assert not (tmp_path / 'split').exists()
+
+
+def test_split_accepts_iana_time_basis_with_utc_arrow_timestamp(tmp_path):
+    prepared = _prepared(tmp_path, [
+        ('U_1', ['C_1', 'C_2', 'C_3'],
+         ['2020-01-01', '2020-02-01', '2020-03-01']),
+    ], time_basis='Asia/Shanghai')
+    manifest = _split(prepared, tmp_path / 'split')
+    assert manifest['time_basis'] == 'Asia/Shanghai'
+    assert pq.read_schema(tmp_path / 'split/train.parquet').field('event_time').type.tz == 'UTC'

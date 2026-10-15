@@ -5,6 +5,7 @@ import json
 import tempfile
 from collections import defaultdict
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 PROTOCOL_ID = 'leave_last_two_out_v1'
@@ -43,6 +44,18 @@ def _dataset_identity(interactions_path, courses_path):
     return manifest, _sha256(manifest_path)
 
 
+def _validated_time_basis(manifest):
+    basis = manifest.get('time_basis')
+    if not isinstance(basis, str) or not basis.strip():
+        raise ValueError('dataset manifest thiếu time_basis hợp lệ')
+    if basis != 'source_local_naive':
+        try:
+            ZoneInfo(basis)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise ValueError(f'dataset manifest time_basis không phải IANA key: {basis}') from exc
+    return basis
+
+
 def build_temporal_split(interactions_path, courses_path, output_dir, *, split_version,
                          seed) -> dict:
     """Publish train, held-out targets and separate warm validation/test cohorts.
@@ -62,6 +75,7 @@ def build_temporal_split(interactions_path, courses_path, output_dir, *, split_v
     if output_dir.exists():
         raise ValueError(f'Output đã tồn tại: {output_dir}; dùng split version mới')
     dataset_manifest, dataset_hash = _dataset_identity(interactions_path, courses_path)
+    time_basis = _validated_time_basis(dataset_manifest)
     input_hashes = {path.name: _sha256(path) for path in (interactions_path, courses_path)}
     try:
         interactions = pq.read_table(interactions_path)
@@ -71,6 +85,11 @@ def build_temporal_split(interactions_path, courses_path, output_dir, *, split_v
     required = {'user_id', 'course_id', 'event_time'}
     if not required <= set(interactions.column_names):
         raise ValueError('interactions.parquet thiếu user_id/course_id/event_time')
+    event_type = interactions.schema.field('event_time').type
+    expected_timezone = None if time_basis == 'source_local_naive' else 'UTC'
+    if not pa.types.is_timestamp(event_type) or event_type.tz != expected_timezone:
+        raise ValueError(
+            f'dataset manifest time_basis={time_basis} không khớp event_time Arrow schema')
     catalog_ids = set(catalog.column('course_id').to_pylist())
     histories = defaultdict(list)
     for row in interactions.to_pylist():
@@ -125,7 +144,7 @@ def build_temporal_split(interactions_path, courses_path, output_dir, *, split_v
             schema_version=1, split_version=split_version, protocol_id=PROTOCOL_ID,
             seed=seed, dataset_version=dataset_manifest['dataset_version'],
             dataset_hash=dataset_hash, input_hashes=input_hashes,
-            time_basis=dataset_manifest.get('time_basis'),
+            time_basis=time_basis,
             selected_user_count=len(histories), split_user_count=len(valid),
             boundary_tie_user_count=tie_users,
             boundary_tie_interaction_count=tie_interactions,
