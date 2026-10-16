@@ -128,7 +128,10 @@ def fit_content(courses: pd.DataFrame, train: pd.DataFrame, config: ContentConfi
     texts = [text.strip() for text in texts]
     vectorizer = TfidfVectorizer(analyzer=config.analyzer, ngram_range=config.ngram_range,
                                  min_df=config.min_df, dtype=np.float64)
-    if any(text for text in texts):
+    # Nonblank text can still produce no tokens (for example, one character
+    # with character n-grams starting at two). Check the configured analyzer.
+    analyzer = vectorizer.build_analyzer()
+    if any(any(analyzer(text)) for text in texts):
         try:
             features = vectorizer.fit_transform(texts).tocsr()
         except ValueError as exc:

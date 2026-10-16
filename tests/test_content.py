@@ -111,3 +111,33 @@ def test_content_accepts_nullable_metadata_and_falls_back_when_all_text_is_empty
     manifest = json.loads((tmp_path / 'empty/feature_manifest.json').read_text(encoding='utf-8'))
     assert manifest['empty_vector_count'] == 3
     assert load_npz(tmp_path / 'empty/course_features.npz').shape == (3, 0)
+
+
+def test_content_too_short_text_has_zero_features_and_popularity_fallback(tmp_path):
+    courses = pd.DataFrame({'course_id': ['C_1'], 'name': ['a'], 'about': [None]})
+    train = pd.DataFrame({'user_id': ['U_1'], 'course_id': ['C_1']})
+    fallback = fit_popularity(train, ('C_1',))
+    output = tmp_path / 'short-text'
+
+    model = fit_content(courses, train, ContentConfig(), output, fallback)
+
+    scored = model.score('U_1', ('C_1',))
+    assert scored.fallback_status == 'popularity_empty_profile'
+    np.testing.assert_array_equal(scored.scores, fallback.score('U_1', ('C_1',)).scores)
+    manifest = json.loads((output / 'feature_manifest.json').read_text(encoding='utf-8'))
+    assert manifest['empty_vector_count'] == 1
+    assert manifest['vocabulary_size'] == 0
+    assert load_npz(output / 'course_features.npz').shape == (1, 0)
+    assert (output / 'vectorizer.joblib').is_file()
+    assert (output / 'course_order.json').is_file()
+
+
+def test_content_does_not_treat_invalid_min_df_as_empty_vocabulary(tmp_path):
+    courses = pd.DataFrame({'course_id': ['C_1'], 'name': ['python'], 'about': [None]})
+    train = pd.DataFrame({'user_id': ['U_1'], 'course_id': ['C_1']})
+    fallback = fit_popularity(train, ('C_1',))
+    output = tmp_path / 'invalid-min-df'
+
+    with pytest.raises(ValueError, match='max_df corresponds to < documents than min_df'):
+        fit_content(courses, train, ContentConfig(min_df=2), output, fallback)
+    assert not output.exists()
