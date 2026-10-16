@@ -1,0 +1,13 @@
+# Paths are relative to this YAML. First call export_atomic_files(split_dir, atomic_dir).
+atomic_dir: ../artifacts/recbole
+seed: 17
+epochs: 10
+embedding_size: 64
+train_batch_size: 2048
+learning_rate: 0.001
+# Adapter enforces these settings and rejects split changes after loading:
+benchmark_filename: [train, valid, test]
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+TIME_FIELD: timestamp
+use_gpu: false

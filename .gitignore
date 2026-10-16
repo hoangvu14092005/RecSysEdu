@@ -21,3 +21,4 @@ dist/
 *.ckpt
 *.part
 /results/local/
+/log_tensorboard/
