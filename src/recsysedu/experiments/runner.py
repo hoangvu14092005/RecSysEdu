@@ -129,12 +129,11 @@ def _settings(config: dict):
                       embedding_size=bpr.get('embedding_size', 64),
                       train_batch_size=bpr.get('train_batch_size', 2048),
                       learning_rate=bpr.get('learning_rate', 0.001))
-    if 'validation_early_stopping' in bpr or 'stopping_step' in bpr:
-        parameters.update(validation_early_stopping=bpr.get('validation_early_stopping', False),
-                          stopping_step=bpr.get('stopping_step', 3))
-        if (type(parameters['validation_early_stopping']) is not bool
-                or type(parameters['stopping_step']) is not int or parameters['stopping_step'] < 1):
-            raise ValueError('invalid BPR early stopping settings')
+    parameters.update(validation_early_stopping=bpr.get('validation_early_stopping', False),
+                      stopping_step=bpr.get('stopping_step', 3))
+    if (type(parameters['validation_early_stopping']) is not bool
+            or type(parameters['stopping_step']) is not int or parameters['stopping_step'] < 1):
+        raise ValueError('invalid BPR early stopping settings')
     for name in ('epochs', 'embedding_size', 'train_batch_size'):
         if type(parameters[name]) is not int or parameters[name] < 1:
             raise ValueError(f'BPR {name} must be a positive integer')
@@ -179,7 +178,8 @@ def _bpr_identity(path: Path, identity: RunIdentity, parameters: dict) -> dict:
     for key, value in parameters.items():
         field = ('epochs_requested' if 'epochs_requested' in model else 'epochs_completed'
                  ) if key == 'epochs' else key
-        if model.get(field) != value:
+        legacy_default = {'validation_early_stopping': False, 'stopping_step': 3}.get(field)
+        if model.get(field, legacy_default) != value:
             raise ValueError(f'BPR artifact configuration mismatch: {key}')
     return model
 

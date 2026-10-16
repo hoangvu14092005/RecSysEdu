@@ -62,6 +62,28 @@ def test_runner_refuses_test_before_config_is_marked_frozen(tmp_path, experiment
     assert not (tmp_path / 'test').exists()
 
 
+def test_default_bpr_settings_reject_early_stopped_artifact(tmp_path, experiment_case):
+    from recsysedu.contracts import RunIdentity
+    from recsysedu.experiments.runner import _bpr_identity, _settings
+
+    parameters = _settings(experiment_case)[2]
+    identity = RunIdentity('artifact-check', 'bpr', 'dataset', 'split',
+                           'leave_last_two_out_v1', 17)
+    manifest = dict(dataset_hash='dataset', split_hash='split', epochs_requested=1,
+                    epochs_completed=1, validation_early_stopping=True, stopping_step=2,
+                    embedding_size=4, train_batch_size=8, learning_rate=0.001, seed=17)
+    path = tmp_path / 'manifest.json'
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match='validation_early_stopping'):
+        _bpr_identity(path, identity, parameters)
+    assert parameters['validation_early_stopping'] is False
+    assert parameters['stopping_step'] == 3
+    # Legacy fixed-budget manifests had no early-stopping fields.
+    del manifest['validation_early_stopping'], manifest['stopping_step']
+    path.write_text(json.dumps(manifest))
+    assert _bpr_identity(path, identity, parameters) == manifest
+
+
 @pytest.mark.integration
 def test_runner_accepts_early_stopped_checkpoint_budget(tmp_path, experiment_case):
     experiment_case['bpr'].update(epochs=8, validation_early_stopping=True, stopping_step=1)
