@@ -1,0 +1,5 @@
+model_id: most_popular
+input: train.parquet
+candidate_universe: candidate_universe.parquet
+score: train_enrollment_count
+tie_break_policy: score_desc_course_id_asc
