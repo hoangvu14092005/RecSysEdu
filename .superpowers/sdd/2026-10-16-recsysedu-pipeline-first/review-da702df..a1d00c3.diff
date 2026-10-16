@@ -1,0 +1,147 @@
+# Review package: da702dff2f5f6ad94f3e7a90dc53862dc1bd3a40..a1d00c37072855d572a33c1b5811470be36c140c
+
+## Commits
+a1d00c3 feat: add most-popular baseline
+
+## Files changed
+ configs/popularity.yaml            |  5 ++++
+ src/recsysedu/models/__init__.py   |  2 ++
+ src/recsysedu/models/popularity.py | 53 ++++++++++++++++++++++++++++++++++++++
+ tests/test_popularity.py           | 50 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 110 insertions(+)
+
+## Diff
+diff --git a/configs/popularity.yaml b/configs/popularity.yaml
+new file mode 100644
+index 0000000..aaba5d2
+--- /dev/null
++++ b/configs/popularity.yaml
+@@ -0,0 +1,5 @@
++model_id: most_popular
++input: train.parquet
++candidate_universe: candidate_universe.parquet
++score: train_enrollment_count
++tie_break_policy: score_desc_course_id_asc
+diff --git a/src/recsysedu/models/__init__.py b/src/recsysedu/models/__init__.py
+new file mode 100644
+index 0000000..5e5ca18
+--- /dev/null
++++ b/src/recsysedu/models/__init__.py
+@@ -0,0 +1,2 @@
++"""Baseline and learned recommendation models."""
++
+diff --git a/src/recsysedu/models/popularity.py b/src/recsysedu/models/popularity.py
+new file mode 100644
+index 0000000..d51095f
+--- /dev/null
++++ b/src/recsysedu/models/popularity.py
+@@ -0,0 +1,53 @@
++"""Most-popular baseline scored from train enrollments."""
++
++from __future__ import annotations
++
++from collections import Counter
++from dataclasses import dataclass, field
++from types import MappingProxyType
++from typing import Mapping, Sequence
++
++import numpy as np
++import pandas as pd
++
++from recsysedu.contracts import ScoreResult
++
++
++@dataclass(frozen=True)
++class PopularityModel:
++    """User-independent course enrollment counts for a declared universe."""
++
++    universe: tuple[str, ...]
++    counts: tuple[float, ...]
++    _count_by_course: Mapping[str, float] = field(init=False, repr=False, compare=False)
++
++    def __post_init__(self) -> None:
++        object.__setattr__(self, '_count_by_course', MappingProxyType(
++            dict(zip(self.universe, self.counts))))
++
++    def score(self, user_id: str, candidate_ids: Sequence[str]) -> ScoreResult:
++        """Return train enrollment counts aligned with the requested candidates."""
++        del user_id
++        candidates = tuple(candidate_ids)
++        unknown = set(candidates) - self._count_by_course.keys()
++        if unknown:
++            raise ValueError('unknown candidate IDs')
++        return ScoreResult(candidates, np.array([self._count_by_course[item]
++                                                 for item in candidates]))
++
++
++def fit_popularity(train: pd.DataFrame, universe: Sequence[str]) -> PopularityModel:
++    """Count train enrollments only, in the declared sorted course universe."""
++    courses = tuple(universe)
++    if (not courses or
++            any(not isinstance(course, str) or not course.strip() for course in courses) or
++            courses != tuple(sorted(set(courses)))):
++        raise ValueError('universe must contain unique, non-empty sorted course IDs')
++    if not {'user_id', 'course_id'} <= set(train.columns):
++        raise ValueError('train must contain user_id and course_id columns')
++
++    counts = Counter(train['course_id'])
++    outside = set(counts) - set(courses)
++    if outside:
++        raise ValueError(f'train contains courses outside universe: {sorted(outside)}')
++    return PopularityModel(courses, tuple(float(counts[course]) for course in courses))
+diff --git a/tests/test_popularity.py b/tests/test_popularity.py
+new file mode 100644
+index 0000000..7e7abdc
+--- /dev/null
++++ b/tests/test_popularity.py
+@@ -0,0 +1,50 @@
++import numpy as np
++import pandas as pd
++import pytest
++
++from recsysedu.evaluation.ranking import rank_candidates
++from recsysedu.models.popularity import fit_popularity
++
++
++def test_popularity_counts_train_only_and_scores_unseen_candidates():
++    train = pd.DataFrame({
++        'user_id': ['U_1', 'U_1', 'U_2'],
++        'course_id': ['C_2', 'C_1', 'C_2'],
++        'valid_target': ['C_3', 'C_3', 'C_1'],
++        'test_target': ['C_1', 'C_1', 'C_3'],
++    })
++    model = fit_popularity(train, ('C_1', 'C_2', 'C_3'))
++
++    first = model.score('U_1', ('C_1', 'C_2', 'C_3'))
++    second = model.score('U_2', ('C_1', 'C_2', 'C_3'))
++    assert first.course_ids == ('C_1', 'C_2', 'C_3')
++    np.testing.assert_array_equal(first.scores, [1.0, 2.0, 0.0])
++    np.testing.assert_array_equal(second.scores, first.scores)
++    assert first.evidence == {}
++    with pytest.raises(ValueError, match='unknown candidate'):
++        model.score('U_1', ('C_1', 'C_missing'))
++
++
++def test_popularity_ties_are_resolved_by_shared_ranker():
++    train = pd.DataFrame({'user_id': ['U_1', 'U_1'], 'course_id': ['C_2', 'C_1']})
++    model = fit_popularity(train, ('C_1', 'C_2', 'C_3'))
++
++    ranked = rank_candidates(model.score('U_1', ('C_3', 'C_2', 'C_1')), set(), k=3)
++    assert [item.course_id for item in ranked] == ['C_1', 'C_2', 'C_3']
++    assert [item.score for item in ranked] == [1.0, 1.0, 0.0]
++
++
++def test_popularity_never_reads_valid_or_test_targets():
++    class TrainOnly:
++        columns = ['user_id', 'course_id']
++
++        def __getitem__(self, column):
++            if column not in self.columns:
++                raise AssertionError(f'unexpected target access: {column}')
++            return pd.Series(['U_1'] if column == 'user_id' else ['C_1'])
++
++        def __len__(self):
++            return 1
++
++    model = fit_popularity(TrainOnly(), ('C_1', 'C_2'))
++    np.testing.assert_array_equal(model.score('U_1', ('C_1', 'C_2')).scores, [1.0, 0.0])

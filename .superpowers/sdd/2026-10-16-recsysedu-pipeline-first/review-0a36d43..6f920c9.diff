@@ -1,0 +1,219 @@
+# Review package: 0a36d4332bbea09463391b8d518e7bd4e24d8b0a..6f920c9
+
+## Commits
+6f920c9 feat: define recommendation contracts
+
+## Files changed
+ pyproject.toml             |  2 +-
+ src/recsysedu/contracts.py | 82 +++++++++++++++++++++++++++++++++++++++++++
+ tests/test_contracts.py    | 87 ++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 170 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/pyproject.toml b/pyproject.toml
+index e654414..4e59445 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,20 +1,20 @@
+ [build-system]
+ requires = ["setuptools>=68"]
+ build-backend = "setuptools.build_meta"
+ 
+ [project]
+ name = "recsysedu"
+ version = "0.1.0"
+ description = "LearnPath: reproducible MOOCCubeX course recommendation project"
+ requires-python = ">=3.10"
+-dependencies = ["ijson>=3.3,<4", "PyYAML>=6,<7"]
++dependencies = ["ijson>=3.3,<4", "numpy>=1.26,<3", "PyYAML>=6,<7"]
+ 
+ [project.optional-dependencies]
+ dev = ["pytest>=8,<10", "ruff>=0.9,<1"]
+ demo = ["streamlit>=1.44,<2"]
+ data = ["duckdb>=1.4,<2", "pyarrow>=15"]
+ 
+ [project.scripts]
+ recsysedu = "recsysedu.cli:main"
+ 
+ [tool.setuptools.packages.find]
+diff --git a/src/recsysedu/contracts.py b/src/recsysedu/contracts.py
+new file mode 100644
+index 0000000..23ffd4d
+--- /dev/null
++++ b/src/recsysedu/contracts.py
+@@ -0,0 +1,82 @@
++"""Shared model scoring and run identity contracts."""
++
++from __future__ import annotations
++
++from dataclasses import dataclass, field
++from math import isfinite
++from typing import Mapping, Protocol, Sequence
++
++import numpy as np
++
++
++def _require_non_empty_string(value: str, name: str) -> None:
++    if not isinstance(value, str) or not value.strip():
++        raise ValueError(f"{name} must be a non-empty string")
++
++
++@dataclass(frozen=True)
++class ScoreResult:
++    """Scores aligned positionally with source course IDs in candidate order."""
++
++    course_ids: tuple[str, ...]
++    scores: np.ndarray
++    fallback_status: str = "none"
++    evidence: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
++
++    def __post_init__(self) -> None:
++        if not isinstance(self.course_ids, tuple):
++            raise ValueError("course_ids must be a tuple of source ID strings")
++        for course_id in self.course_ids:
++            _require_non_empty_string(course_id, "course_id")
++        if len(set(self.course_ids)) != len(self.course_ids):
++            raise ValueError("course_ids must not contain duplicates")
++        if not isinstance(self.scores, np.ndarray):
++            raise ValueError("scores must be a NumPy array")
++        if self.scores.ndim != 1 or len(self.scores) != len(self.course_ids):
++            raise ValueError("scores must be one-dimensional and match course_ids length")
++        if self.scores.dtype.kind not in "iuf" or not np.isfinite(self.scores).all():
++            raise ValueError("scores must contain only finite real numbers")
++        _require_non_empty_string(self.fallback_status, "fallback_status")
++        scores = self.scores.copy()
++        scores.setflags(write=False)
++        object.__setattr__(self, "scores", scores)
++
++
++@dataclass(frozen=True)
++class RankedItem:
++    course_id: str
++    rank: int
++    score: float
++
++    def __post_init__(self) -> None:
++        _require_non_empty_string(self.course_id, "course_id")
++        if isinstance(self.rank, bool) or not isinstance(self.rank, int) or self.rank < 1:
++            raise ValueError("rank must be an integer from one")
++        if isinstance(self.score, bool) or not isinstance(self.score, (int, float)):
++            raise ValueError("score must be a finite real number")
++        try:
++            finite = isfinite(self.score)
++        except OverflowError as exc:
++            raise ValueError("score must be a finite real number") from exc
++        if not finite:
++            raise ValueError("score must be a finite real number")
++
++
++@dataclass(frozen=True)
++class RunIdentity:
++    run_id: str
++    model_id: str
++    dataset_hash: str
++    split_hash: str
++    protocol_id: str
++    seed: int | None
++
++    def __post_init__(self) -> None:
++        for name in ("run_id", "model_id", "dataset_hash", "split_hash", "protocol_id"):
++            _require_non_empty_string(getattr(self, name), name)
++        if self.seed is not None and (isinstance(self.seed, bool) or not isinstance(self.seed, int)):
++            raise ValueError("seed must be an integer or None")
++
++
++class Recommender(Protocol):
++    def score(self, user_id: str, candidate_ids: Sequence[str]) -> ScoreResult: ...
+diff --git a/tests/test_contracts.py b/tests/test_contracts.py
+new file mode 100644
+index 0000000..a0a9d94
+--- /dev/null
++++ b/tests/test_contracts.py
+@@ -0,0 +1,87 @@
++import numpy as np
++import pytest
++
++from recsysedu.contracts import RankedItem, Recommender, RunIdentity, ScoreResult
++
++
++def test_score_result_preserves_candidate_order_and_defaults():
++    result = ScoreResult(("C_3", "C_1", "C_2"), np.array([0.3, 0.9, 0.4]))
++
++    assert result.course_ids == ("C_3", "C_1", "C_2")
++    np.testing.assert_array_equal(result.scores, [0.3, 0.9, 0.4])
++    assert result.fallback_status == "none"
++    assert result.evidence == {}
++
++
++def test_score_result_keeps_valid_scores_when_input_array_changes():
++    scores = np.array([0.3, 0.9])
++    result = ScoreResult(("C_3", "C_1"), scores)
++
++    scores[0] = float("nan")
++    np.testing.assert_array_equal(result.scores, [0.3, 0.9])
++    with pytest.raises(ValueError):
++        result.scores[0] = float("inf")
++
++
++@pytest.mark.parametrize(
++    ("course_ids", "scores"),
++    [
++        (("C_1", "C_2"), np.array([0.5])),
++        (("C_1", "C_1"), np.array([0.5, 0.6])),
++        (("C_1",), np.array([float("nan")])),
++        (("C_1",), np.array([float("inf")])),
++        (("C_1",), np.array([-float("inf")])),
++        (("C_1",), np.array([[0.5]])),
++    ],
++)
++def test_score_result_rejects_length_mismatch_and_non_finite_scores(course_ids, scores):
++    with pytest.raises(ValueError):
++        ScoreResult(course_ids, scores)
++
++
++def test_score_result_requires_source_ids_and_numpy_scores():
++    with pytest.raises((TypeError, ValueError)):
++        ScoreResult((1,), np.array([0.5]))
++    with pytest.raises((TypeError, ValueError)):
++        ScoreResult(("C_1",), [0.5])
++
++
++def test_run_identity_requires_non_empty_matching_hash_fields():
++    valid = dict(
++        run_id="run-1",
++        model_id="popularity",
++        dataset_hash="dataset-sha256",
++        split_hash="split-sha256",
++        protocol_id="temporal-v1",
++        seed=42,
++    )
++    identity = RunIdentity(**valid)
++    assert identity.dataset_hash == valid["dataset_hash"]
++    assert identity.split_hash == valid["split_hash"]
++
++    for field in ("run_id", "model_id", "dataset_hash", "split_hash", "protocol_id"):
++        with pytest.raises(ValueError):
++            RunIdentity(**(valid | {field: "  "}))
++
++
++@pytest.mark.parametrize("rank", [0, -1, True, 1.5])
++def test_ranked_item_requires_rank_from_one_and_finite_score(rank):
++    with pytest.raises(ValueError):
++        RankedItem("C_1", rank, 0.5)
++
++
++@pytest.mark.parametrize("score", [float("nan"), float("inf"), -float("inf")])
++def test_ranked_item_rejects_non_finite_score(score):
++    with pytest.raises(ValueError):
++        RankedItem("C_1", 1, score)
++
++
++def test_recommender_protocol_accepts_structural_implementation():
++    class StaticRecommender:
++        def score(self, user_id, candidate_ids):
++            assert user_id == "U_1"
++            return ScoreResult(tuple(candidate_ids), np.array([0.5, 0.2]))
++
++    model: Recommender = StaticRecommender()
++    result = model.score("U_1", ("C_2", "C_1"))
++    assert result.course_ids == ("C_2", "C_1")

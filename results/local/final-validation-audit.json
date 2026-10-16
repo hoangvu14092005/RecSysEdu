@@ -1,0 +1,47 @@
+{
+  "popularity": {
+    "users": 9909,
+    "seen_violations": 0,
+    "independent_metrics_match": true
+  },
+  "content": {
+    "users": 9909,
+    "seen_violations": 0,
+    "independent_metrics_match": true
+  },
+  "bpr": {
+    "users": 9909,
+    "seen_violations": 0,
+    "independent_metrics_match": true
+  },
+  "hybrid": {
+    "users": 9909,
+    "seen_violations": 0,
+    "independent_metrics_match": true
+  },
+  "alpha_0.0": {
+    "users": 9909,
+    "seen_violations": 0,
+    "independent_metrics_match": true
+  },
+  "alpha_0.25": {
+    "users": 9909,
+    "seen_violations": 0,
+    "independent_metrics_match": true
+  },
+  "alpha_0.5": {
+    "users": 9909,
+    "seen_violations": 0,
+    "independent_metrics_match": true
+  },
+  "alpha_0.75": {
+    "users": 9909,
+    "seen_violations": 0,
+    "independent_metrics_match": true
+  },
+  "alpha_1.0": {
+    "users": 9909,
+    "seen_violations": 0,
+    "independent_metrics_match": true
+  }
+}

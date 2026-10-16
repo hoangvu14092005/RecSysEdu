@@ -1,0 +1,159 @@
+# Review package: fed64a19421b953ccc7202aec4a1d2cf543736d7..7f67b9cb0c650d09edb99c31a4ecb6efa7766edf
+
+## Commits
+7f67b9c fix: require exact requested eligible user sample
+
+## Files changed
+ docs/04_data_contract.md      |  2 +-
+ src/recsysedu/data/prepare.py |  5 +++++
+ tests/test_cli.py             | 17 +++++++++++++++++
+ tests/test_prepare.py         | 11 +++++++++++
+ 4 files changed, 34 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/docs/04_data_contract.md b/docs/04_data_contract.md
+index b39b18d..e0d16cd 100644
+--- a/docs/04_data_contract.md
++++ b/docs/04_data_contract.md
+@@ -51,21 +51,21 @@ Ví dụ giả: `(U_demo_01, C_demo_python, 2024-01-01 00:00:00, 1)` ghi một u
+ | `about` | string | Chuẩn hóa null thành rỗng, giữ nguồn; dùng cùng name cho Content TF-IDF, thiếu thì name-only |
+ | `fields` | list[string] | Lĩnh vực không trùng, lưu nguồn nhãn trong manifest |
+ | `prerequisite_text` | string | Văn bản tham khảo, tách khỏi graph |
+ 
+ `name`, `about`, `prerequisites` null thành chuỗi rỗng; giá trị có cấu trúc được mã hóa JSON để giữ nội dung. `field` string thành một phần tử; array loại trùng và sắp ổn định. Manifest ghi `fields_source=course.json:field`. ID catalog trùng metadata giống nhau được gộp; metadata mâu thuẫn hoặc hai mã như `C_1` và `C_01` cùng nối tới số 1 chặn phát hành.
+ 
+ ### `cohort_users.parquet` và `rejects.parquet`
+ 
+ `cohort_users` gồm `user_id: string`, `history_length: int64` cho người được chọn ở prepare. Người đủ điều kiện có ít nhất ba khóa catalog khác nhau sau làm sạch. Đây chưa phải cohort đánh giá: timestamp hòa và target cold được xử lý ở split.
+ 
+-Lấy mẫu reservoir bằng `random.Random(seed)` trên toàn bộ người đủ điều kiện theo thứ tự nguồn; người không đủ điều kiện không tham gia phép chọn. `sample_users=0` giữ tất cả; số dương giới hạn tối đa số người. Pilot cấu hình `sample_users=10000`, `seed=20261016`. Giữ catalog đầy đủ; interactions chỉ chứa người được chọn. Không cần nạp toàn bộ lịch sử raw vào RAM: mỗi lần đọc một user, buffer Parquet tối đa 4096 dòng; reservoir giữ tối đa số user yêu cầu. Catalog và tập ID user đã gặp vẫn được giữ trong bộ nhớ để nối và phát hiện trùng.
++Lấy mẫu reservoir bằng `random.Random(seed)` trên toàn bộ người đủ điều kiện theo thứ tự nguồn; người không đủ điều kiện không tham gia phép chọn. `sample_users=0` giữ tất cả; số dương yêu cầu đúng số người đó, thiếu người đủ điều kiện thì báo lỗi và không phát hành output. Pilot cấu hình `sample_users=10000`, `seed=20261016`, nên bắt buộc chọn đủ 10.000 người. Giữ catalog đầy đủ; interactions chỉ chứa người được chọn. Không cần nạp toàn bộ lịch sử raw vào RAM: mỗi lần đọc một user, buffer Parquet tối đa 4096 dòng; reservoir giữ tối đa số user yêu cầu. Catalog và tập ID user đã gặp vẫn được giữ trong bộ nhớ để nối và phát hiện trùng.
+ 
+ `rejects` gồm `reason_code`, `user_id`, `raw_course_id`, `event_time_raw`, `source_record` (string nullable), và `count` (int64). `raw_course_id` mã hóa JSON để phân biệt integer, float, bool và string. Lỗi tương tác giữ vị trí slot; lỗi lịch sử giữ vị trí object. `iter_records` chỉ trả tổng số dòng JSON lỗi/object không hợp lệ nên các lỗi đó được ghi thành dòng tổng hợp theo file với `count`; không tuyên bố có số dòng nguồn chính xác. `duplicate_interaction` ghi lần bị gộp; `insufficient_history` ghi người còn dưới ba khóa. Lỗi và bản gộp của mọi user được thống kê trước lấy mẫu, kể cả người không được chọn; tổng `count` bằng tổng `error_counts` trong manifest.
+ 
+ ### Feature Content — M4, sẽ xây
+ 
+ Lưu riêng văn bản đã làm sạch, vectorizer/IDF, ma trận feature và `feature_manifest.json`: dataset/hash catalog, course ID đúng thứ tự, nguồn `name/about`, cleaning version, analyzer/ngram/vocabulary config, fit scope universe train và số vector rỗng. Profile chỉ từ train. Cấu hình char n-gram là lựa chọn thử theo [10](10_course_direction.md), không phải yêu cầu nguyên từ slide. Snapshot UI v1 không đổi trong đợt phân tích; nó nhận kết quả/evidence, không nhận ma trận TF-IDF.
+ 
+ ### P1: concept và cạnh tiền đề
+ 
+ Giữ bảng concept có `concept_id`/tên; bảng liên kết có cặp `(concept_id, course_id)` duy nhất. Cạnh gồm `prerequisite_id` từ `c1`, `target_concept_id` từ `c2`, `label` từ `ground_truth`, `provenance` từ file/vị trí nguồn.
+diff --git a/src/recsysedu/data/prepare.py b/src/recsysedu/data/prepare.py
+index dcf6fea..bce145d 100644
+--- a/src/recsysedu/data/prepare.py
++++ b/src/recsysedu/data/prepare.py
+@@ -236,20 +236,21 @@ def _validate_output(stage):
+             )
+         ''').fetchone()[0]
+         if duplicates or orphans or invalid_cohort:
+             raise ValueError('Parquet validation failed: duplicate, orphan or invalid cohort')
+ 
+ 
+ def prepare_dataset(course_path, user_path, output_dir, *, dataset_version, time_basis,
+                     sample_users, seed) -> dict:
+     """Publish selected users with >=3 cleaned courses, without creating a split.
+ 
++    A positive sample_users requires exactly that many eligible users or fails.
+     The reservoir is bounded by sample_users. Zero streams every eligible user.
+     Output users retain source encounter order; each history is time/ID sorted.
+     """
+     zone = _time_zone(time_basis)
+     if not isinstance(dataset_version, str) or not dataset_version.strip():
+         raise ValueError('dataset_version phải là string không rỗng')
+     if type(sample_users) is not int or sample_users < 0:
+         raise ValueError('sample_users phải là integer từ 0; 0 là toàn bộ')
+     if type(seed) is not int:
+         raise ValueError('seed phải là integer')
+@@ -300,20 +301,24 @@ def prepare_dataset(course_path, user_path, output_dir, *, dataset_version, time
+                                           reader_errors, stats):
+                 if sample_users == 0:
+                     write_user(candidate)
+                 elif len(reservoir) < sample_users:
+                     reservoir.append(candidate)
+                 else:
+                     slot = randomizer.randrange(stats['eligible_user_count'])
+                     if slot < sample_users:
+                         reservoir[slot] = candidate
+             emit_reader_errors(user_path, reader_errors)
++            if sample_users > 0 and stats['eligible_user_count'] < sample_users:
++                raise ValueError(
++                    f'Không đủ user hợp lệ: sample_users={sample_users}, '
++                    f"eligible_user_count={stats['eligible_user_count']}")
+             for candidate in sorted(reservoir, key=lambda candidate: candidate[0]):
+                 write_user(candidate)
+         _validate_output(stage)
+         for path in (course_path, user_path):
+             if _sha256(path) != raw_files[path.name]['sha256']:
+                 raise ValueError(f'Raw input changed during prepare: {path.name}')
+         manifest = dict(
+             schema_version=1, dataset_version=dataset_version, time_basis=time_basis, seed=seed,
+             requested_user_count=sample_users,
+             selected_user_count=sinks['cohort_users'].count,
+diff --git a/tests/test_cli.py b/tests/test_cli.py
+index 8f3b295..f16dac8 100644
+--- a/tests/test_cli.py
++++ b/tests/test_cli.py
+@@ -46,10 +46,27 @@ def test_prepare_cli_writes_versioned_dataset(tmp_path, capsys):
+ 
+ 
+ def test_prepare_cli_invalid_config_has_no_traceback(tmp_path, capsys):
+     for config_value in [[], {}, {'time_basis': 'Mars/Unknown'},
+                          dict(raw_dir=str(tmp_path), output_dir='unused', dataset_version='v1',
+                               time_basis=None, sample_users='ten', seed=1)]:
+         config = tmp_path / 'prepare.yaml'
+         config.write_text(yaml.safe_dump(config_value), encoding='utf-8')
+         assert main(['data', 'prepare', '--config', str(config)]) == 1
+         assert 'Traceback' not in capsys.readouterr().err
++
++
++def test_prepare_cli_refuses_short_sample_without_publication(tmp_path, capsys):
++    (tmp_path / 'course.json').write_text(
++        '[{"id":"C_1"},{"id":"C_2"},{"id":"C_3"}]', encoding='utf-8')
++    (tmp_path / 'user.json').write_text(
++        '{"id":"U_1","course_order":[1,2,3],'
++        '"enroll_time":["2020-01-01","2020-02-01","2020-03-01"]}', encoding='utf-8')
++    config = tmp_path / 'prepare.yaml'
++    config.write_text(yaml.safe_dump(dict(
++        raw_dir=str(tmp_path), output_dir=str(tmp_path / 'output'), dataset_version='cli-v1',
++        time_basis='source_local_naive', sample_users=2, seed=20261016)), encoding='utf-8')
++    assert main(['data', 'prepare', '--config', str(config)]) == 1
++    error = capsys.readouterr().err
++    assert 'sample_users=2' in error and 'eligible_user_count=1' in error
++    assert 'Traceback' not in error
++    assert not (tmp_path / 'output').exists()
+diff --git a/tests/test_prepare.py b/tests/test_prepare.py
+index c43d6ab..63ccc2e 100644
+--- a/tests/test_prepare.py
++++ b/tests/test_prepare.py
+@@ -132,20 +132,31 @@ def test_prepare_timestamp_schema_and_manifest_hashes(tmp_path, basis, arrow_typ
+     {'sample_users': -1}, {'sample_users': True}, {'sample_users': '5'},
+     {'seed': None}, {'seed': True}, {'dataset_version': ''}, {'dataset_version': None},
+ ])
+ def test_prepare_invalid_options_leave_no_output(tmp_path, changes):
+     paths = raw_files(tmp_path, [user()])
+     with pytest.raises(ValueError):
+         prepare(tmp_path, paths, **changes)
+     assert not (tmp_path / 'prepared').exists()
+ 
+ 
++def test_prepare_requires_exact_positive_sample_count_before_publication(tmp_path):
++    paths = raw_files(tmp_path, [user('U_eligible'), user(
++        'U_ineligible', course_order=['C_1'], enroll_time=['2020-01-01'])])
++    with pytest.raises(ValueError, match=r'sample_users=2.*eligible_user_count=1'):
++        prepare(tmp_path, paths, sample_users=2)
++    assert not (tmp_path / 'prepared').exists()
++    assert not list(tmp_path.glob('.prepare-*'))
++    manifest = prepare(tmp_path, paths, sample_users=0)
++    assert manifest['selected_user_count'] == 1
++
++
+ def test_prepare_refuses_overwrite_and_conflicting_or_ambiguous_catalog(tmp_path):
+     paths = raw_files(tmp_path, [user()])
+     prepare(tmp_path, paths)
+     with pytest.raises(ValueError, match='exist|tồn tại'):
+         prepare(tmp_path, paths)
+     for courses in [[{'id': 'C_1', 'name': 'A'}, {'id': 'C_1', 'name': 'B'}],
+                     [{'id': 'C_1'}, {'id': 'C_01'}]]:
+         paths = raw_files(tmp_path, [user()], courses)
+         with pytest.raises(ValueError, match='catalog|Catalog'):
+             prepare_dataset(*paths, tmp_path / 'bad', dataset_version='bad-v1',

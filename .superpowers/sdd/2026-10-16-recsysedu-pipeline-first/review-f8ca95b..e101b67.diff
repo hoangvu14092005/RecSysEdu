@@ -1,0 +1,118 @@
+# Review package: f8ca95b..e101b67
+
+## Commits
+e101b67 fix: bind default bpr stopping policy to artifacts
+
+## Files changed
+ src/recsysedu/experiments/runner.py | 14 +++++++-------
+ tests/test_experiment_runner.py     | 22 ++++++++++++++++++++++
+ 2 files changed, 29 insertions(+), 7 deletions(-)
+
+## Diff
+diff --git a/src/recsysedu/experiments/runner.py b/src/recsysedu/experiments/runner.py
+index 54b55fd..f1c28b9 100644
+--- a/src/recsysedu/experiments/runner.py
++++ b/src/recsysedu/experiments/runner.py
+@@ -122,26 +122,25 @@ def _settings(config: dict):
+     for name, value in fixed.items():
+         if name in bpr and (type(bpr[name]) is not type(value) or bpr[name] != value):
+             raise ValueError(f'BPR {name} is owned by the adapter')
+     seed_value = bpr.get('seed', seed)
+     if type(seed_value) is not int or seed_value != seed:
+         raise ValueError('BPR seed must match experiment seed')
+     parameters = dict(seed=seed, epochs=bpr.get('epochs', 10),
+                       embedding_size=bpr.get('embedding_size', 64),
+                       train_batch_size=bpr.get('train_batch_size', 2048),
+                       learning_rate=bpr.get('learning_rate', 0.001))
+-    if 'validation_early_stopping' in bpr or 'stopping_step' in bpr:
+-        parameters.update(validation_early_stopping=bpr.get('validation_early_stopping', False),
+-                          stopping_step=bpr.get('stopping_step', 3))
+-        if (type(parameters['validation_early_stopping']) is not bool
+-                or type(parameters['stopping_step']) is not int or parameters['stopping_step'] < 1):
+-            raise ValueError('invalid BPR early stopping settings')
++    parameters.update(validation_early_stopping=bpr.get('validation_early_stopping', False),
++                      stopping_step=bpr.get('stopping_step', 3))
++    if (type(parameters['validation_early_stopping']) is not bool
++            or type(parameters['stopping_step']) is not int or parameters['stopping_step'] < 1):
++        raise ValueError('invalid BPR early stopping settings')
+     for name in ('epochs', 'embedding_size', 'train_batch_size'):
+         if type(parameters[name]) is not int or parameters[name] < 1:
+             raise ValueError(f'BPR {name} must be a positive integer')
+     if parameters['epochs'] > 100:
+         raise ValueError('BPR epochs must be bounded from 1 to 100')
+     rate = parameters['learning_rate']
+     if type(rate) not in (int, float) or not 0 < rate < float('inf'):
+         raise ValueError('BPR learning_rate must be positive and finite')
+     hybrid = _section(config, 'hybrid', base)
+     hybrid_fixed = dict(primary_metric='NDCG@10', selection_split='valid',
+@@ -172,21 +171,22 @@ def _bpr_identity(path: Path, identity: RunIdentity, parameters: dict) -> dict:
+     for field in ('dataset_hash', 'split_hash'):
+         if model.get(field) != getattr(identity, field):
+             raise ValueError(f'BPR artifact {field} mismatch')
+     # Task 7 manifests predate protocol_id. Their exact split_hash already binds
+     # the complete protocol manifest; if explicitly present it must also match.
+     if model.get('protocol_id', identity.protocol_id) != identity.protocol_id:
+         raise ValueError('BPR artifact protocol_id mismatch')
+     for key, value in parameters.items():
+         field = ('epochs_requested' if 'epochs_requested' in model else 'epochs_completed'
+                  ) if key == 'epochs' else key
+-        if model.get(field) != value:
++        legacy_default = {'validation_early_stopping': False, 'stopping_step': 3}.get(field)
++        if model.get(field, legacy_default) != value:
+             raise ValueError(f'BPR artifact configuration mismatch: {key}')
+     return model
+ 
+ 
+ def _verify_files(root: Path, hashes: dict) -> None:
+     if not isinstance(hashes, dict) or not hashes:
+         raise ValueError('artifact manifest missing output hashes')
+     for name, expected in hashes.items():
+         if not isinstance(name, str) or not isinstance(expected, str):
+             raise ValueError('invalid artifact hash entry')
+diff --git a/tests/test_experiment_runner.py b/tests/test_experiment_runner.py
+index 073b1b6..92b57d9 100644
+--- a/tests/test_experiment_runner.py
++++ b/tests/test_experiment_runner.py
+@@ -55,20 +55,42 @@ def _freeze(config, batch):
+                   freeze=freeze)
+     return result
+ 
+ 
+ def test_runner_refuses_test_before_config_is_marked_frozen(tmp_path, experiment_case):
+     with pytest.raises(ValueError, match='frozen'):
+         run_experiment(experiment_case, split='test', output_root=tmp_path / 'test')
+     assert not (tmp_path / 'test').exists()
+ 
+ 
++def test_default_bpr_settings_reject_early_stopped_artifact(tmp_path, experiment_case):
++    from recsysedu.contracts import RunIdentity
++    from recsysedu.experiments.runner import _bpr_identity, _settings
++
++    parameters = _settings(experiment_case)[2]
++    identity = RunIdentity('artifact-check', 'bpr', 'dataset', 'split',
++                           'leave_last_two_out_v1', 17)
++    manifest = dict(dataset_hash='dataset', split_hash='split', epochs_requested=1,
++                    epochs_completed=1, validation_early_stopping=True, stopping_step=2,
++                    embedding_size=4, train_batch_size=8, learning_rate=0.001, seed=17)
++    path = tmp_path / 'manifest.json'
++    path.write_text(json.dumps(manifest))
++    with pytest.raises(ValueError, match='validation_early_stopping'):
++        _bpr_identity(path, identity, parameters)
++    assert parameters['validation_early_stopping'] is False
++    assert parameters['stopping_step'] == 3
++    # Legacy fixed-budget manifests had no early-stopping fields.
++    del manifest['validation_early_stopping'], manifest['stopping_step']
++    path.write_text(json.dumps(manifest))
++    assert _bpr_identity(path, identity, parameters) == manifest
++
++
+ @pytest.mark.integration
+ def test_runner_accepts_early_stopped_checkpoint_budget(tmp_path, experiment_case):
+     experiment_case['bpr'].update(epochs=8, validation_early_stopping=True, stopping_step=1)
+     from recsysedu.experiments.runner import evaluate_model
+     report = evaluate_model(experiment_case, model_id='bpr', split='valid',
+                             output_root=tmp_path / 'early')
+     batch = _batch(tmp_path / 'early')
+     model = _read(batch / 'artifacts/bpr/bpr_manifest.json')
+     assert model['epochs_requested'] == 8
+     assert model['epochs_completed'] <= 8

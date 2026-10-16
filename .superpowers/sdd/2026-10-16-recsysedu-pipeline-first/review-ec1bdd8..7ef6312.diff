@@ -1,0 +1,680 @@
+# Review package: ec1bdd8..7ef6312ce79bcf1e8d77bd8af46a30b9287cd922
+
+## Commits
+7ef6312 feat: add shared top-k evaluator
+
+## Files changed
+ src/recsysedu/evaluation/__init__.py |   7 +
+ src/recsysedu/evaluation/metrics.py  |  46 ++++++
+ src/recsysedu/evaluation/ranking.py  |  23 +++
+ src/recsysedu/evaluation/run.py      | 232 +++++++++++++++++++++++++++++
+ tests/test_evaluation.py             | 274 +++++++++++++++++++++++++++++++++++
+ tests/test_metrics.py                |  47 ++++++
+ 6 files changed, 629 insertions(+)
+
+## Diff
+diff --git a/src/recsysedu/evaluation/__init__.py b/src/recsysedu/evaluation/__init__.py
+new file mode 100644
+index 0000000..0997d39
+--- /dev/null
++++ b/src/recsysedu/evaluation/__init__.py
+@@ -0,0 +1,7 @@
++"""Shared full-ranking evaluation independent of recommender implementations."""
++
++from recsysedu.evaluation.metrics import metrics_at_k
++from recsysedu.evaluation.ranking import rank_candidates
++from recsysedu.evaluation.run import evaluate_run
++
++__all__ = ['evaluate_run', 'metrics_at_k', 'rank_candidates']
+diff --git a/src/recsysedu/evaluation/metrics.py b/src/recsysedu/evaluation/metrics.py
+new file mode 100644
+index 0000000..9f34e7d
+--- /dev/null
++++ b/src/recsysedu/evaluation/metrics.py
+@@ -0,0 +1,46 @@
++"""Binary relevance metrics; all users receive equal weight in aggregation."""
++
++from math import log2
++from typing import Iterable
++
++
++def _validate_k(k: int) -> None:
++    if type(k) is not int or k < 1:
++        raise ValueError('k must be a positive integer')
++
++
++def _ids(values: Iterable[str], name: str) -> tuple[str, ...]:
++    ids = tuple(values)
++    if any(not isinstance(item, str) or not item.strip() for item in ids):
++        raise ValueError(f'{name} must contain non-empty source IDs')
++    if len(set(ids)) != len(ids):
++        raise ValueError(f'{name} must not contain duplicate IDs')
++    return ids
++
++
++def metrics_at_k(ranked_ids: Iterable[str], target_ids: Iterable[str],
++                 universe_size: int, *, k: int) -> dict[str, float]:
++    """Compute one user's metrics, truncating ranking at K.
++
++    Precision always divides by K, including short lists. Coverage here describes
++    one user's list; run coverage must use the union of recommendations instead
++    of averaging these per-user values. Targets must already be warm and unseen.
++    """
++    _validate_k(k)
++    ranked = _ids(ranked_ids, 'ranked_ids')
++    targets = set(_ids(target_ids, 'target_ids'))
++    if type(universe_size) is not int or universe_size < 1:
++        raise ValueError('universe_size must be a positive integer')
++    if not targets or max(len(ranked), len(targets)) > universe_size:
++        raise ValueError('ranking and non-empty targets must fit the universe')
++    top = ranked[:k]
++    hits = sum(item in targets for item in top)
++    dcg = sum(1 / log2(rank + 1) for rank, item in enumerate(top, 1) if item in targets)
++    ideal = sum(1 / log2(rank + 1) for rank in range(1, min(k, len(targets)) + 1))
++    return {
++        f'NDCG@{k}': dcg / ideal,
++        f'HitRate@{k}': float(hits > 0),
++        f'Recall@{k}': hits / len(targets),
++        f'Precision@{k}': hits / k,
++        f'Coverage@{k}': len(top) / universe_size,
++    }
+diff --git a/src/recsysedu/evaluation/ranking.py b/src/recsysedu/evaluation/ranking.py
+new file mode 100644
+index 0000000..9f65779
+--- /dev/null
++++ b/src/recsysedu/evaluation/ranking.py
+@@ -0,0 +1,23 @@
++"""Evaluator-owned seen filtering and deterministic score ordering."""
++
++from typing import Iterable
++
++from recsysedu.contracts import RankedItem, ScoreResult
++from recsysedu.evaluation.metrics import _ids, _validate_k
++
++
++def rank_candidates(result: ScoreResult, seen_ids: Iterable[str], *, k: int
++                    ) -> tuple[RankedItem, ...]:
++    """Rank finite scores descending, breaking ties by source course ID ascending."""
++    _validate_k(k)
++    if not isinstance(result, ScoreResult):
++        raise ValueError('model must return ScoreResult')
++    # Revalidate at the consumption boundary, including scores of masked items.
++    checked = ScoreResult(result.course_ids, result.scores, result.fallback_status,
++                          result.evidence)
++    seen = set(_ids(seen_ids, 'seen_ids'))
++    scored = [(course_id, float(score)) for course_id, score in
++              zip(checked.course_ids, checked.scores) if course_id not in seen]
++    scored.sort(key=lambda pair: (-pair[1], pair[0]))
++    return tuple(RankedItem(course_id, rank, score)
++                 for rank, (course_id, score) in enumerate(scored[:k], 1))
+diff --git a/src/recsysedu/evaluation/run.py b/src/recsysedu/evaluation/run.py
+new file mode 100644
+index 0000000..0c9099e
+--- /dev/null
++++ b/src/recsysedu/evaluation/run.py
+@@ -0,0 +1,232 @@
++"""Stream one user's full-ranking scores at a time and publish a run atomically."""
++
++from __future__ import annotations
++
++import csv
++import hashlib
++import json
++import tempfile
++from collections import Counter, defaultdict
++from dataclasses import asdict
++from pathlib import Path
++from time import perf_counter
++
++from recsysedu.contracts import Recommender, RunIdentity, ScoreResult
++from recsysedu.data.split import OUTPUT_NAMES, PROTOCOL_ID
++from recsysedu.evaluation.metrics import _ids, _validate_k, metrics_at_k
++from recsysedu.evaluation.ranking import rank_candidates
++
++
++def _sha256(path: Path) -> str:
++    digest = hashlib.sha256()
++    with path.open('rb') as stream:
++        for block in iter(lambda: stream.read(1024 * 1024), b''):
++            digest.update(block)
++    return digest.hexdigest()
++
++
++def _validate_split(split_dir: Path, identity: RunIdentity) -> dict:
++    try:
++        manifest = json.loads((split_dir / 'split_manifest.json').read_text(encoding='utf-8'))
++    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
++        raise ValueError('split manifest cannot be read') from exc
++    if not isinstance(manifest, dict) or manifest.get('schema_version') != 1:
++        raise ValueError('unsupported split manifest schema')
++    for name in ('dataset_hash', 'split_hash', 'protocol_id'):
++        if manifest.get(name) != getattr(identity, name):
++            raise ValueError(f'{name} mismatch between split and run identity')
++    if manifest['protocol_id'] != PROTOCOL_ID:
++        raise ValueError('unsupported protocol_id')
++    content = {name: value for name, value in manifest.items() if name != 'split_hash'}
++    digest = hashlib.sha256(json.dumps(
++        content, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8')
++    ).hexdigest()
++    if manifest['split_hash'] != digest:
++        raise ValueError('split_hash does not match split manifest contents')
++    hashes = manifest.get('output_hashes')
++    if not isinstance(hashes, dict):
++        raise ValueError('split manifest missing output_hashes')
++    for name in OUTPUT_NAMES:
++        filename = f'{name}.parquet'
++        try:
++            matches = _sha256(split_dir / filename) == hashes.get(filename)
++        except OSError as exc:
++            raise ValueError(f'split hash input cannot be read: {filename}') from exc
++        if not matches:
++            raise ValueError(f'split output hash mismatch: {filename}')
++    return manifest
++
++
++def _rows(path: Path, columns: list[str]):
++    import pyarrow as pa
++    import pyarrow.parquet as pq
++
++    try:
++        source = pq.ParquetFile(path)
++        if not set(columns) <= set(source.schema_arrow.names):
++            raise ValueError(f'{path.name} missing required columns')
++        for batch in source.iter_batches(batch_size=1024, columns=columns):
++            yield from batch.to_pylist()
++    except (OSError, pa.ArrowException) as exc:
++        raise ValueError(f'split Parquet cannot be read: {path.name}') from exc
++
++
++def _inputs(split_dir: Path, evaluation_split: str, manifest: dict):
++    universe = _ids((row['course_id'] for row in _rows(
++        split_dir / 'candidate_universe.parquet', ['course_id'])), 'candidate_universe')
++    if not universe or universe != tuple(sorted(universe)):
++        raise ValueError('candidate universe must be non-empty and sorted')
++    universe_set = set(universe)
++    train_seen = defaultdict(set)
++    for row in _rows(split_dir / 'train.parquet', ['user_id', 'course_id']):
++        _ids([row['user_id']], 'train user')
++        _ids([row['course_id']], 'train course')
++        if row['course_id'] not in universe_set:
++            raise ValueError('train course outside candidate universe')
++        train_seen[row['user_id']].add(row['course_id'])
++    if set().union(*train_seen.values()) != universe_set:
++        raise ValueError('candidate universe must equal distinct train courses')
++    valid_targets = {}
++    for row in _rows(split_dir / 'valid.parquet', ['user_id', 'course_id']):
++        user_id, course_id = row['user_id'], row['course_id']
++        if user_id not in train_seen or user_id in valid_targets:
++            raise ValueError('valid target must be unique and belong to a train user')
++        _ids([course_id], 'valid target')
++        if course_id in train_seen[user_id]:
++            raise ValueError('valid target overlaps train seen')
++        valid_targets[user_id] = course_id
++    targets = valid_targets
++    if evaluation_split == 'test':
++        targets = {}
++        for row in _rows(split_dir / 'test.parquet', ['user_id', 'course_id']):
++            user_id, course_id = row['user_id'], row['course_id']
++            if user_id not in valid_targets or user_id in targets:
++                raise ValueError('test target must be unique and belong to a valid user')
++            _ids([course_id], 'test target')
++            if course_id in train_seen[user_id] or course_id == valid_targets[user_id]:
++                raise ValueError('test target overlaps train/valid seen')
++            targets[user_id] = course_id
++    expected = {user_id: target for user_id, target in targets.items() if target in universe_set}
++    if not expected:
++        raise ValueError('cannot evaluate an empty warm cohort')
++    if len(expected) != manifest['warm_cohort_sizes'][evaluation_split]:
++        raise ValueError('warm cohort size mismatch')
++    return universe, train_seen, valid_targets, expected
++
++
++def evaluate_run(model: Recommender, split_dir, output_dir, identity: RunIdentity, *,
++                 evaluation_split: str, k: int = 10) -> dict:
++    """Evaluate a frozen train-only model on the declared warm valid/test cohort.
++
++    The model receives the complete train universe in source-ID order. Only the
++    evaluator masks seen courses. A new output directory is published by a single
++    rename after every artifact is complete; an existing run is never overwritten.
++    """
++    import pyarrow as pa
++    import pyarrow.parquet as pq
++
++    _validate_k(k)
++    if evaluation_split not in ('valid', 'test'):
++        raise ValueError('evaluation_split must be valid or test')
++    if not isinstance(identity, RunIdentity):
++        raise ValueError('identity must be RunIdentity')
++    split_dir, output_dir = Path(split_dir), Path(output_dir)
++    if output_dir.exists():
++        raise ValueError(f'output already exists: {output_dir}')
++    started = perf_counter()
++    split_manifest = _validate_split(split_dir, identity)
++    manifest_hash = _sha256(split_dir / 'split_manifest.json')
++    universe, train_seen, valid_targets, expected = _inputs(
++        split_dir, evaluation_split, split_manifest)
++    metric_names = [f'{name}@{k}' for name in
++                    ('NDCG', 'HitRate', 'Recall', 'Precision', 'Coverage')]
++    schema = pa.schema([('user_id', pa.string()), ('target_id', pa.string()),
++                        ('recommendation_count', pa.int64()), ('train_history_count', pa.int64()),
++                        ('fallback_status', pa.string())] +
++                       [(name, pa.float64()) for name in metric_names])
++    sums = dict.fromkeys(metric_names, 0.0)
++    recommended, evaluated = set(), set()
++    fallback_counts = Counter()
++    short_lists = 0
++    output_dir.parent.mkdir(parents=True, exist_ok=True)
++    with tempfile.TemporaryDirectory(prefix='.evaluation-', dir=output_dir.parent) as temporary:
++        stage = Path(temporary) / 'run'
++        stage.mkdir()
++        with pq.ParquetWriter(stage / 'per_user_metrics.parquet', schema) as writer, (
++                stage / 'recommendations.jsonl').open('w', encoding='utf-8', newline='\n') as recs:
++            buffer = []
++            for row in _rows(split_dir / f'{evaluation_split}_cohort.parquet',
++                             ['user_id', 'course_id', 'target_in_train']):
++                user_id, target = row['user_id'], row['course_id']
++                if (user_id in evaluated or expected.get(user_id) != target
++                        or row['target_in_train'] is not True):
++                    raise ValueError('warm cohort does not match split targets')
++                seen = train_seen[user_id]
++                if evaluation_split == 'test':
++                    seen = seen | {valid_targets[user_id]}
++                result = model.score(user_id, universe)
++                if not isinstance(result, ScoreResult) or result.course_ids != universe:
++                    raise ValueError('model scores must preserve the complete candidate universe')
++                ranked = rank_candidates(result, seen, k=k)
++                values = metrics_at_k([item.course_id for item in ranked], [target],
++                                      len(universe), k=k)
++                buffer.append(dict(user_id=user_id, target_id=target,
++                                   recommendation_count=len(ranked),
++                                   train_history_count=len(train_seen[user_id]),
++                                   fallback_status=result.fallback_status) | values)
++                if len(buffer) >= 1024:
++                    writer.write_table(pa.Table.from_pylist(buffer, schema=schema))
++                    buffer.clear()
++                recs.write(json.dumps(dict(user_id=user_id, target_ids=[target],
++                                           fallback_status=result.fallback_status,
++                                           items=[asdict(item) | {'evidence': list(
++                                               result.evidence.get(item.course_id, ()))}
++                                                  for item in ranked]),
++                                      ensure_ascii=False, allow_nan=False) + '\n')
++                evaluated.add(user_id)
++                recommended.update(item.course_id for item in ranked)
++                fallback_counts[result.fallback_status] += 1
++                short_lists += len(ranked) < k
++                for name in metric_names:
++                    sums[name] += values[name]
++            if buffer:
++                writer.write_table(pa.Table.from_pylist(buffer, schema=schema))
++        if evaluated != set(expected):
++            raise ValueError('warm cohort is missing expected users')
++        count = len(evaluated)
++        metrics = {name: total / count for name, total in sums.items()}
++        metrics[f'Coverage@{k}'] = len(recommended) / len(universe)
++        summary = asdict(identity) | dict(evaluation_split=evaluation_split, k=k,
++                                          cohort_size=count) | metrics
++        with (stage / 'metrics.csv').open('w', encoding='utf-8', newline='') as stream:
++            writer_csv = csv.DictWriter(stream, fieldnames=list(summary))
++            writer_csv.writeheader()
++            writer_csv.writerow(summary)
++        # Detect input mutation during scoring before publishing any run artifacts.
++        _validate_split(split_dir, identity)
++        if _sha256(split_dir / 'split_manifest.json') != manifest_hash:
++            raise ValueError('split manifest hash changed during evaluation')
++        report = asdict(identity) | dict(
++            schema_version=1, evaluation_split=evaluation_split, k=k,
++            primary_metric=f'NDCG@{k}', metrics=metrics, cohort_size=count,
++            candidate_universe_size=len(universe), short_list_user_count=short_lists,
++            cold_target_count=split_manifest['cold_target_counts'][evaluation_split],
++            fallback_counts=dict(sorted(fallback_counts.items())),
++            candidate_policy='full_train_universe', profile_policy='train_only',
++            seen_policy='train' if evaluation_split == 'valid' else 'train_plus_valid',
++            tie_break_policy='score_desc_course_id_asc', history_mode='offline',
++            metric_status='measured', duration_seconds=perf_counter() - started,
++            split_manifest_hash=manifest_hash,
++            output_hashes={name: _sha256(stage / name) for name in
++                           ('metrics.csv', 'per_user_metrics.parquet', 'recommendations.jsonl')},
++            limitations=[
++                'Per-user temporal split allows cross-user future interactions in train.',
++                'Static catalog has no time-dependent course availability.',
++                'Offline enrollment ranking does not measure mastery or learning gain.',
++            ],
++        )
++        (stage / 'run_manifest.json').write_text(
++            json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False) + '\n',
++            encoding='utf-8')
++        stage.rename(output_dir)
++    return report
+diff --git a/tests/test_evaluation.py b/tests/test_evaluation.py
+new file mode 100644
+index 0000000..c4b14d3
+--- /dev/null
++++ b/tests/test_evaluation.py
+@@ -0,0 +1,274 @@
++import csv
++import hashlib
++import json
++from dataclasses import replace
++
++import numpy as np
++import pyarrow.parquet as pq
++import pytest
++
++from recsysedu.contracts import RunIdentity, ScoreResult
++from recsysedu.data.prepare import prepare_dataset
++from recsysedu.data.split import build_temporal_split
++from recsysedu.evaluation.ranking import rank_candidates
++from recsysedu.evaluation.run import evaluate_run
++
++
++class StaticScorer:
++    """Test score provider, with explicit candidate ordering and no fit method."""
++
++    def score(self, user_id, candidate_ids):
++        assert tuple(candidate_ids) == ('C_1', 'C_2', 'C_3')
++        return ScoreResult(tuple(candidate_ids), np.array([9.0, 8.0, 7.0]),
++                           fallback_status='fixture_fallback')
++
++
++@pytest.fixture
++def split_case(tmp_path):
++    # Universe C_1/2/3. U_1 has a cold valid target but a warm test target.
++    users = [
++        ('U_1', ['C_1', 'C_4', 'C_2']),
++        ('U_2', ['C_2', 'C_1', 'C_3']),
++        ('U_3', ['C_3', 'C_2', 'C_1']),
++    ]
++    return _build_split(tmp_path, users)
++
++
++def _build_split(tmp_path, users):
++    course_path, user_path = tmp_path / 'course.json', tmp_path / 'user.json'
++    course_path.write_text('\n'.join(json.dumps({'id': f'C_{i}'}) for i in range(1, 5)),
++                           encoding='utf-8')
++    user_path.write_text('\n'.join(json.dumps({
++        'id': user_id, 'course_order': courses,
++        'enroll_time': ['2020-01-01', '2020-02-01', '2020-03-01'],
++    }) for user_id, courses in users), encoding='utf-8')
++    prepared, split = tmp_path / 'prepared', tmp_path / 'split'
++    prepare_dataset(course_path, user_path, prepared, dataset_version='fixture-v1',
++                    time_basis='source_local_naive', sample_users=0, seed=17)
++    manifest = build_temporal_split(prepared / 'interactions.parquet',
++                                    prepared / 'courses.parquet', split,
++                                    split_version='fixture-split-v1', seed=17)
++    identity = RunIdentity('fixture-run', 'fixture-scorer', manifest['dataset_hash'],
++                           manifest['split_hash'], manifest['protocol_id'], 17)
++    return split, identity, manifest
++
++
++def _recommendations(output):
++    return [json.loads(line) for line in
++            (output / 'recommendations.jsonl').read_text(encoding='utf-8').splitlines()]
++
++
++def test_ranking_masks_seen_and_breaks_equal_scores_by_course_id():
++    result = ScoreResult(('C_3', 'C_2', 'C_1', 'C_4'), np.array([1., 9., 1., -2.]))
++    ranked = rank_candidates(result, {'C_2'}, k=10)
++    assert [(item.course_id, item.rank, item.score) for item in ranked] == [
++        ('C_1', 1, 1.0), ('C_3', 2, 1.0), ('C_4', 3, -2.0)]
++    assert len(rank_candidates(result, set(), k=2)) == 2
++
++
++@pytest.mark.parametrize('bad_score', [float('nan'), float('inf'), -float('inf')])
++def test_ranking_rejects_nan_instead_of_silently_sorting_it(bad_score):
++    result = ScoreResult(('C_1', 'C_2'), np.array([1., 2.]))
++    # Recheck at the trust boundary even if a model has bypassed the dataclass guard.
++    object.__setattr__(result, 'scores', np.array([bad_score, 2.]))
++    with pytest.raises(ValueError, match='finite'):
++        rank_candidates(result, {'C_1'}, k=10)
++
++
++@pytest.mark.parametrize('k', [0, -1, True, 1.5])
++def test_ranking_rejects_invalid_k(k):
++    with pytest.raises(ValueError):
++        rank_candidates(ScoreResult(('C_1',), np.array([1.])), set(), k=k)
++
++
++def test_valid_uses_train_seen_while_test_masks_train_plus_valid(tmp_path, split_case):
++    split, identity, _ = split_case
++    valid_out, test_out = tmp_path / 'valid-run', tmp_path / 'test-run'
++    valid = evaluate_run(StaticScorer(), split, valid_out, identity, evaluation_split='valid')
++    test = evaluate_run(StaticScorer(), split, test_out, identity, evaluation_split='test')
++    valid_recs = _recommendations(valid_out)
++    test_recs = _recommendations(test_out)
++    assert [(row['user_id'], [item['course_id'] for item in row['items']])
++            for row in valid_recs] == [('U_2', ['C_1', 'C_3']), ('U_3', ['C_1', 'C_2'])]
++    assert [(row['user_id'], [item['course_id'] for item in row['items']])
++            for row in test_recs] == [('U_1', ['C_2', 'C_3']), ('U_2', ['C_3']),
++                                     ('U_3', ['C_1'])]
++    assert valid['cohort_size'] == 2
++    assert test['cohort_size'] == 3
++    assert valid['cold_target_count'] == 1
++    assert test['cold_target_count'] == 0
++    assert valid['metrics']['NDCG@10'] == pytest.approx((1 + 0.6309297536) / 2)
++    assert test['metrics']['NDCG@10'] == 1.0
++    assert test['metrics']['Precision@10'] == pytest.approx(0.1)
++    # Lists cover C_1, C_2 and C_3: 3/3, not mean per-user coverage (4/9).
++    assert test['metrics']['Coverage@10'] == 1.0
++    assert test['short_list_user_count'] == 3
++    assert test['fallback_counts'] == {'fixture_fallback': 3}
++    assert test['profile_policy'] == 'train_only'
++
++
++def test_evaluator_writes_consistent_hashed_artifacts(tmp_path, split_case):
++    split, identity, _ = split_case
++    output = tmp_path / 'run'
++    result = evaluate_run(StaticScorer(), split, output, identity, evaluation_split='valid')
++    assert {path.name for path in output.iterdir()} == {
++        'metrics.csv', 'per_user_metrics.parquet', 'recommendations.jsonl', 'run_manifest.json'}
++    saved = json.loads((output / 'run_manifest.json').read_text(encoding='utf-8'))
++    assert saved == result
++    assert saved['primary_metric'] == 'NDCG@10'
++    assert saved['split_hash'] == identity.split_hash
++    assert saved['dataset_hash'] == identity.dataset_hash
++    assert saved['protocol_id'] == identity.protocol_id
++    for filename, digest in saved['output_hashes'].items():
++        assert hashlib.sha256((output / filename).read_bytes()).hexdigest() == digest
++    users = pq.read_table(output / 'per_user_metrics.parquet').to_pylist()
++    assert [row['user_id'] for row in users] == ['U_2', 'U_3']
++    assert [row['NDCG@10'] for row in users] == pytest.approx([1.0, 0.6309297536])
++    with (output / 'metrics.csv').open(encoding='utf-8', newline='') as stream:
++        summary = list(csv.DictReader(stream))
++    assert len(summary) == 1
++    assert float(summary[0]['Coverage@10']) == 1.0
++    assert int(summary[0]['cohort_size']) == 2
++
++
++@pytest.mark.parametrize('field', ['dataset_hash', 'split_hash', 'protocol_id'])
++def test_evaluator_rejects_mismatched_dataset_split_or_protocol_hash(
++        tmp_path, split_case, field):
++    split, identity, _ = split_case
++    with pytest.raises(ValueError, match=field):
++        evaluate_run(StaticScorer(), split, tmp_path / 'bad-run',
++                     replace(identity, **{field: 'wrong'}), evaluation_split='valid')
++    assert not (tmp_path / 'bad-run').exists()
++
++
++@pytest.mark.parametrize('filename', ['train.parquet', 'valid.parquet', 'test.parquet',
++                                     'valid_cohort.parquet', 'candidate_universe.parquet',
++                                     'split_manifest.json'])
++def test_evaluator_rejects_tampered_split_before_scoring(tmp_path, split_case, filename):
++    split, identity, _ = split_case
++    path = split / filename
++    if filename == 'split_manifest.json':
++        value = json.loads(path.read_text(encoding='utf-8'))
++        value['warm_cohort_sizes']['valid'] = 123
++        path.write_text(json.dumps(value), encoding='utf-8')
++    else:
++        path.write_bytes(path.read_bytes() + b'tampered')
++    with pytest.raises(ValueError, match='hash'):
++        evaluate_run(StaticScorer(), split, tmp_path / 'bad-run', identity,
++                     evaluation_split='valid')
++    assert not (tmp_path / 'bad-run').exists()
++
++
++@pytest.mark.parametrize('returned_ids', [('C_1', 'C_2'), ('C_3', 'C_2', 'C_1'),
++                                         ('C_1', 'C_2', 'padding')])
++def test_evaluator_rejects_incomplete_reordered_or_unknown_candidates(
++        tmp_path, split_case, returned_ids):
++    class WrongScorer:
++        def score(self, user_id, candidate_ids):
++            return ScoreResult(returned_ids, np.ones(len(returned_ids)))
++
++    split, identity, _ = split_case
++    with pytest.raises(ValueError, match='candidate'):
++        evaluate_run(WrongScorer(), split, tmp_path / 'bad-run', identity,
++                     evaluation_split='valid')
++    assert not (tmp_path / 'bad-run').exists()
++
++
++def test_failed_run_never_publishes_partial_output(tmp_path, split_case):
++    class FailingScorer(StaticScorer):
++        def score(self, user_id, candidate_ids):
++            if user_id == 'U_3':
++                raise RuntimeError('score failed mid-run')
++            return super().score(user_id, candidate_ids)
++
++    split, identity, _ = split_case
++    with pytest.raises(RuntimeError, match='score failed'):
++        evaluate_run(FailingScorer(), split, tmp_path / 'bad-run', identity,
++                     evaluation_split='valid')
++    assert not (tmp_path / 'bad-run').exists()
++    assert not list(tmp_path.glob('.evaluation-*'))
++
++
++def test_evaluator_refuses_overwrite(tmp_path, split_case):
++    split, identity, _ = split_case
++    output = tmp_path / 'existing'
++    output.mkdir()
++    (output / 'keep.txt').write_text('keep', encoding='utf-8')
++    with pytest.raises(ValueError, match='exist'):
++        evaluate_run(StaticScorer(), split, output, identity, evaluation_split='valid')
++    assert (output / 'keep.txt').read_text(encoding='utf-8') == 'keep'
++
++
++@pytest.mark.parametrize('evaluation_split,k', [('train', 10), ('valid', 0), ('valid', True)])
++def test_evaluator_rejects_invalid_evaluation_parameters(
++        tmp_path, split_case, evaluation_split, k):
++    split, identity, _ = split_case
++    with pytest.raises(ValueError):
++        evaluate_run(StaticScorer(), split, tmp_path / 'bad-run', identity,
++                     evaluation_split=evaluation_split, k=k)
++
++
++def test_evaluator_preserves_ranked_item_evidence_after_masking_and_sorting(tmp_path, split_case):
++    class EvidenceScorer:
++        def score(self, user_id, candidate_ids):
++            return ScoreResult(tuple(candidate_ids), np.array([1., 2., 3.]), evidence={
++                'C_1': ('source-course:C_a',), 'C_2': ('source-course:C_b',)})
++
++    split, identity, _ = split_case
++    output = tmp_path / 'evidence-run'
++    evaluate_run(EvidenceScorer(), split, output, identity, evaluation_split='valid')
++    recs = _recommendations(output)
++    assert [(item['course_id'], item['evidence']) for item in recs[0]['items']] == [
++        ('C_3', []), ('C_1', ['source-course:C_a'])]
++    assert [(item['course_id'], item['evidence']) for item in recs[1]['items']] == [
++        ('C_2', ['source-course:C_b']), ('C_1', ['source-course:C_a'])]
++
++
++def test_source_user_and_course_ids_can_overlap(tmp_path):
++    split, identity, _ = _build_split(tmp_path, [
++        ('C_1', ['C_1', 'C_2', 'C_3']),
++        ('C_2', ['C_2', 'C_3', 'C_1']),
++        ('C_3', ['C_3', 'C_1', 'C_2']),
++    ])
++    result = evaluate_run(StaticScorer(), split, tmp_path / 'run', identity,
++                          evaluation_split='valid')
++    assert result['cohort_size'] == 3
++
++
++def test_evaluator_flushes_all_users_across_output_batches(tmp_path):
++    patterns = [['C_1', 'C_2', 'C_3'], ['C_2', 'C_3', 'C_1'], ['C_3', 'C_1', 'C_2']]
++    split, identity, _ = _build_split(tmp_path, [
++        (f'U_{i:04}', patterns[i % 3]) for i in range(1029)])
++    output = tmp_path / 'run'
++    result = evaluate_run(StaticScorer(), split, output, identity, evaluation_split='valid')
++    assert result['cohort_size'] == 1029
++    users = pq.read_table(output / 'per_user_metrics.parquet').to_pylist()
++    assert len(users) == 1029
++    assert users[0]['user_id'] == 'U_0000'
++    assert users[-1]['user_id'] == 'U_1028'
++    assert len({row['user_id'] for row in users}) == 1029
++    assert len(_recommendations(output)) == 1029
++
++
++def test_empty_warm_cohort_is_rejected_without_fabricated_metrics(tmp_path):
++    split, identity, _ = _build_split(tmp_path, [('U_1', ['C_1', 'C_2', 'C_3'])])
++    with pytest.raises(ValueError, match='empty warm cohort'):
++        evaluate_run(StaticScorer(), split, tmp_path / 'bad-run', identity,
++                     evaluation_split='valid')
++    assert not (tmp_path / 'bad-run').exists()
++
++
++def test_input_mutation_during_scoring_prevents_publication(tmp_path, split_case):
++    split, identity, _ = split_case
++
++    class MutatingScorer(StaticScorer):
++        def score(self, user_id, candidate_ids):
++            if user_id == 'U_3':
++                with (split / 'train.parquet').open('ab') as stream:
++                    stream.write(b'changed-during-run')
++            return super().score(user_id, candidate_ids)
++
++    with pytest.raises(ValueError, match='hash'):
++        evaluate_run(MutatingScorer(), split, tmp_path / 'bad-run', identity,
++                     evaluation_split='valid')
++    assert not (tmp_path / 'bad-run').exists()
+diff --git a/tests/test_metrics.py b/tests/test_metrics.py
+new file mode 100644
+index 0000000..fd431d5
+--- /dev/null
++++ b/tests/test_metrics.py
+@@ -0,0 +1,47 @@
++import pytest
++
++from recsysedu.evaluation.metrics import metrics_at_k
++
++
++@pytest.mark.parametrize('ranking,ndcg,hit', [
++    (['C_target'], 1.0, 1.0),
++    (['C_other', 'C_target'], 0.6309297536, 1.0),
++    (['C_other'], 0.0, 0.0),
++    ([f'C_{i}' for i in range(10)] + ['C_target'], 0.0, 0.0),
++])
++def test_hand_calculated_single_target_metrics(ranking, ndcg, hit):
++    result = metrics_at_k(ranking, ['C_target'], 20, k=10)
++    assert result['NDCG@10'] == pytest.approx(ndcg)
++    assert result['HitRate@10'] == hit
++    assert result['Recall@10'] == hit
++    assert result['Precision@10'] == hit / 10
++    assert result['Coverage@10'] == min(len(ranking), 10) / 20
++
++
++def test_multi_target_ndcg_uses_all_ground_truth_for_ideal_ranking():
++    result = metrics_at_k(['C_a', 'C_miss', 'C_b'], ['C_a', 'C_b', 'C_c'], 10, k=3)
++    assert result['NDCG@3'] == pytest.approx(0.7039180890)
++    assert result['Recall@3'] == pytest.approx(2 / 3)
++    assert result['Precision@3'] == pytest.approx(2 / 3)
++    assert result['Coverage@3'] == 0.3
++
++
++def test_empty_ranking_is_a_valid_miss():
++    assert metrics_at_k([], ['C_target'], 20, k=10) == {
++        'NDCG@10': 0.0, 'HitRate@10': 0.0, 'Recall@10': 0.0,
++        'Precision@10': 0.0, 'Coverage@10': 0.0,
++    }
++
++
++@pytest.mark.parametrize('ranking,targets,size,k', [
++    (['C_a', 'C_a'], ['C_a'], 2, 10),
++    (['C_a'], [], 2, 10),
++    (['C_a'], ['C_a', 'C_a'], 2, 10),
++    (['C_a'], ['C_a'], 0, 10),
++    (['C_a', 'C_b'], ['C_a'], 1, 10),
++    (['C_a'], ['C_a'], 2, 0),
++    (['C_a'], ['C_a'], 2, True),
++])
++def test_metrics_reject_invalid_inputs(ranking, targets, size, k):
++    with pytest.raises(ValueError):
++        metrics_at_k(ranking, targets, size, k=k)

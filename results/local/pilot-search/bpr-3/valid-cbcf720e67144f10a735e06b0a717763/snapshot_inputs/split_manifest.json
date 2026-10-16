@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "split_version": "mooccubex-pilot-v1-split-v1",
+  "protocol_id": "leave_last_two_out_v1",
+  "seed": 20261016,
+  "dataset_version": "mooccubex-pilot-v1",
+  "dataset_hash": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+  "input_hashes": {
+    "interactions.parquet": "6e534dec34cc2a680c120f8d51f73eaebdbeae644e546a893f83216082e8af42",
+    "courses.parquet": "ee424bfdb579e42920ce4d279a67739188f725c2cbe229b5e1cee3c0a0f399fb"
+  },
+  "time_basis": "source_local_naive",
+  "selected_user_count": 10000,
+  "split_user_count": 9965,
+  "boundary_tie_user_count": 35,
+  "boundary_tie_interaction_count": 180,
+  "cold_target_counts": {
+    "valid": 56,
+    "test": 107
+  },
+  "warm_cohort_sizes": {
+    "valid": 9909,
+    "test": 9858
+  },
+  "row_counts": {
+    "train": 106717,
+    "valid": 9965,
+    "test": 9965,
+    "valid_cohort": 9909,
+    "test_cohort": 9858,
+    "candidate_universe": 2586
+  },
+  "output_hashes": {
+    "train.parquet": "30dd414c7f4dda8b5ea4634a346f901f774f7e2b6b525e7c4ac71e1823c268e2",
+    "valid.parquet": "411fc3d91a94ca03cfbf3c9bddb87bd61fd861d5ee1009c18dba0607d5ddf5bc",
+    "test.parquet": "a6e990c33eb48c88c3b3db0f2c44272e529a77a9659af03e03c06d8b18d7eb6b",
+    "valid_cohort.parquet": "116532bc08fef9df0eea1bf2837577b119a6e21c4cb9d25f6216718615bb7a2a",
+    "test_cohort.parquet": "de190822d91d40c44816af822ef802b64a450878ee979be4b778bd3a856b69ee",
+    "candidate_universe.parquet": "f7052f152e677d1131c69b3035f468ea7e97fa93510f4ca66dbecf75d7c6773f"
+  },
+  "boundary_rule": "max(train time) < valid time < test time; ties exclude user",
+  "candidate_rule": "sorted distinct course IDs from train only",
+  "split_hash": "7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617"
+}

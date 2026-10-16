@@ -1,0 +1,94 @@
+{
+  "run_id": "valid-bb282527340f43cfaa6ae1788bd0bfcd",
+  "model_id": "experiment",
+  "dataset_hash": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+  "split_hash": "7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617",
+  "protocol_id": "leave_last_two_out_v1",
+  "seed": 17,
+  "schema_version": 1,
+  "evaluation_split": "valid",
+  "config_hash": "e2c436432d3f4c22f67fe495b39a5f61a2177dd67b27e08b03ac048da22859f8",
+  "effective_config": {
+    "seed": 17,
+    "content": {
+      "analyzer": "char",
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 1
+    },
+    "bpr": {
+      "seed": 17,
+      "epochs": 10,
+      "embedding_size": 32,
+      "train_batch_size": 2048,
+      "learning_rate": 0.001,
+      "validation_early_stopping": true,
+      "stopping_step": 2
+    },
+    "hybrid": {
+      "alphas": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "normalization": "per_user_full_candidates_minmax_constant_zero",
+      "formula": "alpha * normalized_bpr + (1 - alpha) * normalized_content"
+    },
+    "protocol_id": "leave_last_two_out_v1",
+    "k": 10
+  },
+  "git_revision": "f8ca95b775f509b8b989150bdfedebd9bd066199",
+  "git_status": "revision_available",
+  "git_dirty": false,
+  "versions": {
+    "python": "3.10.11",
+    "numpy": "1.26.4",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.7.2",
+    "pyarrow": "25.0.1"
+  },
+  "duration_seconds": 305.68334990000585,
+  "output_root": "C:\\Users\\Vu\\.codex\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\pilot-search\\bpr-1",
+  "runs": {
+    "bpr": "runs/bpr"
+  },
+  "alpha_trials": {},
+  "snapshot_inputs": {
+    "dataset_manifest": "snapshot_inputs/dataset_manifest.json",
+    "split_manifest": "snapshot_inputs/split_manifest.json",
+    "courses": "snapshot_inputs/courses.parquet",
+    "train": "snapshot_inputs/train.parquet",
+    "valid": "snapshot_inputs/valid.parquet"
+  },
+  "selected_alpha": null,
+  "component_hashes": {
+    "bpr": "6d17c0d28e395a9ab46d9e7470fe2ab204444b9737a7620b7938ac2ca4de08c3"
+  },
+  "freeze_candidate": {
+    "dataset_hash": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+    "split_hash": "7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617",
+    "config_hash": "e2c436432d3f4c22f67fe495b39a5f61a2177dd67b27e08b03ac048da22859f8"
+  },
+  "output_hashes": {
+    "artifacts/atomic/export_manifest.json": "fdc36f8bacf5de9ce63acdb13a77ffe274c800f4ad4104f5d22552790155882c",
+    "artifacts/atomic/recsysedu/recsysedu.test.inter": "a8e4cf14d874a41d1d9275efb03d9b2d2b0698aa4867490199e2194a267e2852",
+    "artifacts/atomic/recsysedu/recsysedu.train.inter": "3e62c053ca6c8d1c9e083b7c77b17de7fdb9a1af1a3304a6ccdb84dd3510438d",
+    "artifacts/atomic/recsysedu/recsysedu.valid.inter": "1b27f65bb66b79f7a601941d3e47f85174193b3cbe11f53a047e59c4b2a01258",
+    "artifacts/bpr/bpr.pth": "b705c90fa5a2740ad7d951160b49ae89dfc8954be9e3e86815acfb8f5f80ae62",
+    "artifacts/bpr/bpr_manifest.json": "6d17c0d28e395a9ab46d9e7470fe2ab204444b9737a7620b7938ac2ca4de08c3",
+    "artifacts/bpr/id_maps.json": "f0af46aaa5a1877b0e86078c46d315e639a4c46f7b0308a3fc0472a4e1f7ce99",
+    "runs/bpr/metrics.csv": "62838a5f7f905ab4f40d6f20e0c5b27e875130fcbc27123e35864aaf9edee93f",
+    "runs/bpr/per_user_metrics.parquet": "62bf4ce1f856f3d46f3359df0c023ccb87394f1374bd0d2617c960ac2049ac1d",
+    "runs/bpr/recommendations.jsonl": "36a0191da51611428b394175499dadf950e710bdb60273924d818af0329d1c66",
+    "runs/bpr/run_manifest.json": "27bb5bf617082cecfac90962a4f8448b6d3b3f9983821c7be36bec5f50af50dd",
+    "snapshot_inputs/courses.parquet": "ee424bfdb579e42920ce4d279a67739188f725c2cbe229b5e1cee3c0a0f399fb",
+    "snapshot_inputs/dataset_manifest.json": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+    "snapshot_inputs/split_manifest.json": "bd20e5177753ab99971c7892072d236fbf0035153d50001328f0321eba1881a1",
+    "snapshot_inputs/train.parquet": "30dd414c7f4dda8b5ea4634a346f901f774f7e2b6b525e7c4ac71e1823c268e2",
+    "snapshot_inputs/valid.parquet": "411fc3d91a94ca03cfbf3c9bddb87bd61fd861d5ee1009c18dba0607d5ddf5bc"
+  }
+}

@@ -1,0 +1,733 @@
+diff --git a/README.md b/README.md
+index 6e5a7a0..875d224 100644
+--- a/README.md
++++ b/README.md
+@@ -1,68 +1,70 @@
+ # RecSysEdu — LearnPath trên MOOCCubeX
+ 
+-Dự án gợi ý **khóa học** từ lịch sử đăng ký: xem Top-10, lý do gợi ý và kết quả so sánh mô hình. RecSysEdu là tên mã nguồn; LearnPath là tên giao diện demo.
++Gợi ý tối đa 10 khóa học từ lịch sử đăng ký và so sánh MostPopular, Content
++TF-IDF, BPR, Hybrid. LearnPath chỉ xem kết quả đã tính; bấm trên giao diện
++không huấn luyện lại mô hình.
+ 
+-**Cập nhật 09/10/2026: đã có base chạy được và đã tải/audit dữ liệu user–course thật.** Giao diện hiện dùng mẫu SYNTHETIC; chưa có split, mô hình đã train hoặc metric thật. Hướng triển khai vẫn gọn trong sáu tuần, dễ cùng làm qua GitHub.
++```text
++Raw course/user → Parquet → train/valid/test → bốn model → đánh giá
++  → snapshot JSON → Streamlit: Gợi ý học tập | Model Lab
++```
+ 
+-**Ưu tiên hiện tại: làm rõ phương pháp, chưa phát triển thêm UI.** Đọc [hướng đồ án theo tài liệu môn học](docs/10_course_direction.md) trước: Content từ tên/mô tả + BPR từ hành vi → Hybrid → đánh giá chung. [Ghi chú 11 bài giảng](docs/11_course_reading_notes.md) có trang nguồn; [tính năng cần hiển thị](docs/08_ui_handoff.md) mô tả thông tin và điều kiện, chưa chốt bố cục.
++**Bản bàn giao 16/10/2026:** xem [nghiệm thu](reports/acceptance.md),
++[test cuối](results/final/report.md), [tái lập](results/reproduction.md) và
++[trạng thái công việc](tasks/todo.md). P1 graph/lộ trình dừng vì thiếu nguồn
++dữ liệu thật. Không bật đường học giả để minh họa.
+ 
+-## Chạy base ngay
++## Chạy thử sau khi clone
+ 
+-Từ root, dùng PowerShell và Python 3.10. Bản đã thử trên Windows dùng Python 3.10.11:
++Các lệnh dưới đây là hướng dẫn cho người nhận, chạy PowerShell tại root.
++Môi trường đã kiểm: Windows/Python 3.10.11; chưa kiểm Linux/macOS.
+ 
+ ```powershell
+ py -3.10 -m venv .venv
+ .\.venv\Scripts\python.exe -m pip install -r requirements-win-py310.lock.txt
+ .\.venv\Scripts\python.exe -m pip install -e . --no-deps
++.\.venv\Scripts\python.exe -m recsysedu.cli demo validate
+ .\.venv\Scripts\python.exe -m streamlit run app/streamlit_app.py --server.address 127.0.0.1 --server.headless true
+ ```
+ 
+-Mở `http://127.0.0.1:8501`. Không cần tải raw để xem mẫu. Nếu `.venv` đã có thì bỏ bước tạo môi trường. Hướng dẫn tải/audit/kiểm tra và cách đổi snapshot ở [runbook](docs/09_runbook.md).
+-
+-Đã tải `course.json` 44,66 MB và `user.json` 806,78 MB từ nguồn MOOCCubeX. Audit thấy **3.781 khóa, 3.330.294 người, 11.523.119 lượt đăng ký nối được**; 678.126 hồ sơ có ít nhất ba khóa với ranh giới thời gian tách biệt. Xem [báo cáo dữ liệu thật](results/data_audit.md); chưa phát hành tập huấn luyện do cần chốt múi giờ nguồn.
+-
+-## Bắt đầu ở đâu?
+-
+-Đọc [Bắt đầu đọc tài liệu](docs/README.md) để hiểu toàn dự án trong vài phút. Sau đó đọc phần việc mình nhận:
+-
+-| Cần làm | Tài liệu chính |
+-| --- | --- |
+-| Hiểu bài toán/phạm vi | [01 — Hướng đi](docs/01_analysis.md), [02 — Yêu cầu](docs/02_requirements.md) |
+-| Chia mã và ghép các phần | [03 — Kiến trúc](docs/03_architecture.md) |
+-| Dữ liệu/model xuất file cho UI | [04 — Quy ước dữ liệu](docs/04_data_contract.md) |
+-| Train/so sánh mô hình | [05 — Đánh giá](docs/05_evaluation.md) |
+-| Kiểm căn cứ và giới hạn | [06 — Nguồn](docs/06_sources.md) |
+-| Bố trí dữ liệu trên máy/kho chia sẻ | [07 — Lưu trữ](docs/07_storage_analysis.md) |
+-| Hiểu chức năng cần hiển thị và bàn giao | [08 — Tính năng](docs/08_ui_handoff.md), [CONTRIBUTING](CONTRIBUTING.md) |
+-| Hiểu lý do chọn công nghệ/phương pháp | [ADR-001](docs/decisions/ADR-001-scope-stack.md), [ADR-002](docs/decisions/ADR-002-course-grounded-direction.md) |
++Mở `http://127.0.0.1:8501`. Mặc định là fixture **DỮ LIỆU MẪU**; không cần
++raw. Clone Git chỉ có source, cấu hình, lock, fixture và báo cáo nhỏ. Raw,
++Parquet, checkpoint và snapshot thật phải nhận riêng hoặc tạo lại.
+ 
+-## Hướng triển khai chung
++Để mở snapshot thật đã nhận và đối chiếu hash trong báo cáo:
+ 
+-```text
+-Raw user/course trên SSD → làm sạch, Parquet/DuckDB → train/valid/test
+-    → MostPopular + Content + BPR + Hybrid → đánh giá và xuất snapshot
+-    → LearnPath: Gợi ý học tập | Model Lab → báo cáo và bàn giao
++```powershell
++.\.venv\Scripts\python.exe -m recsysedu.cli demo validate --bundle artifacts/demo/v1/demo_bundle.json
++$env:RECSYSEDU_BUNDLE = 'artifacts/demo/v1/demo_bundle.json'
++.\.venv\Scripts\python.exe -m streamlit run app/streamlit_app.py --server.address 127.0.0.1 --server.headless true
+ ```
+ 
+-Graph/tiền đề/lộ trình là P1, chỉ bật khi dữ liệu đủ. Video/bài tập, LightGCN và web React/FastAPI/PostgreSQL là mở rộng sau sáu tuần. Demo hiện tại được đề xuất bằng Streamlit đọc file kết quả nhỏ; không train khi click.
++File thiếu/sai sẽ báo lỗi, không tự quay về mẫu. [Runbook](docs/09_runbook.md)
++chỉ rõ cách lấy dữ liệu, chạy pipeline và chuyển artifact cho đồng đội.
+ 
+-Mẫu base giúp kiểm contract `demo_bundle.json` ở tài liệu 04; tích hợp chức năng hiển thị ở M10 sau khi có kết quả lõi. Đăng ký chưa chứng minh thành thạo; điểm gợi ý chưa phải xác suất học tốt; số liệu mẫu phải có nhãn.
++## Cách đọc kết quả
+ 
+-## Kế hoạch sáu tuần
++Pilot chọn 10.000 người từ raw MOOCCubeX. Bốn model dùng chung 2.586 khóa
++candidate, K=10 và cách phá hòa theo mã khóa. Model/hồ sơ chỉ học từ train.
++Validation chọn tham số. Test giữ nguyên model và loại khóa đã thấy trong
++train + valid. Không dùng kết quả test để chọn lại tham số.
+ 
+-| Tuần | Kết quả cần có |
+-| --- | --- |
+-| 1 | Dữ liệu/split hợp lệ, fixture, thử môi trường BPR sớm |
+-| 2 | MostPopular và Content TF-IDF có kết quả valid và bằng chứng giải thích |
+-| 3 | BPR và Hybrid, đủ bốn model cùng cách đánh giá |
+-| 4 | Phân tích lỗi/kết quả lõi; khảo sát graph/lộ trình có điều kiện |
+-| 5 | Ghép UI thật, khóa config D25 |
+-| 6 | Test từ D26, báo cáo, chạy lại và bàn giao |
++Đăng ký không chứng minh thành thạo, hoàn thành hay học tốt hơn. Điểm model
++không phải xác suất thành công. Một pilot/một seed chưa chứng minh kết quả
++tổng quát. [Pilot](results/pilot/validation_report.md) lưu ba lần thử BPR và
++năm trọng số Hybrid. [Graph audit](results/graph_audit.md) ghi rõ nguồn còn thiếu.
+ 
+-Việc theo ngày ở [lịch 30 ngày](tasks/six_week_schedule.md); tiêu chí kỹ thuật từng task ở [plan](tasks/plan.md); trạng thái thật ở [todo](tasks/todo.md); phiên code đầu ở [kickoff](tasks/kickoff.md).
++## Tài liệu cho người cùng làm
+ 
+-## Cùng làm qua GitHub
+-
+-Một repo, nhánh theo task và PR nhỏ. Git lưu source/config/lock/docs/fixture nhỏ; raw/processed/checkpoint lớn lưu ngoài Git kèm manifest và cách lấy. Nhận một task có đầu ra/điều kiện xong theo [CONTRIBUTING](CONTRIBUTING.md).
+-
+-Root đã init Git và có commit baseline chứa package/CLI/app; hiện chưa có remote GitHub. Raw, `.venv` và báo cáo local được `.gitignore` loại khỏi Git. Các lệnh prepare/split/train/evaluate trong kế hoạch vẫn là phần sẽ xây. [Bằng chứng base](results/base_verification.md) ghi rõ phần đã thử và phần còn thiếu.
++| Cần biết | Tài liệu |
++| --- | --- |
++| Bài toán và môn học | [Hướng đồ án](docs/10_course_direction.md), [ghi chú bài giảng](docs/11_course_reading_notes.md) |
++| Kiến trúc, đầu vào/đầu ra | [Kiến trúc](docs/03_architecture.md), [data contract](docs/04_data_contract.md) |
++| Cách đánh giá | [Protocol](docs/05_evaluation.md) |
++| Cài/chạy/bàn giao | [Runbook](docs/09_runbook.md), [tái lập](results/reproduction.md) |
++| Kế hoạch và trạng thái | [Plan đã duyệt](docs/superpowers/plans/2026-10-16-recsysedu-pipeline-first.md), [todo](tasks/todo.md) |
++| Làm việc GitHub | [CONTRIBUTING](CONTRIBUTING.md) |
++
++Giữ dự án gọn: Parquet/DuckDB xử lý offline, checkpoint cho model, Streamlit
++đọc snapshot. PostgreSQL/FastAPI/React, log video/bài tập, LightGCN và graph/path
++là mở rộng sau P0. Không commit dữ liệu người học hoặc artifact lớn vào GitHub.
+diff --git a/docs/09_runbook.md b/docs/09_runbook.md
+index ca2bace..011ae53 100644
+--- a/docs/09_runbook.md
++++ b/docs/09_runbook.md
+@@ -1,90 +1,129 @@
+-# 09 — Chạy base và bàn giao cho người khác
++# 09 — Cài, chạy và bàn giao RecSysEdu
+ 
+-Cập nhật 09/10/2026. Các lệnh dưới đây chạy từ root repository bằng PowerShell. Base đã thử trên Windows, Python 3.10.11; chưa kiểm Linux/macOS hay môi trường BPR.
++Cập nhật 16/10/2026. Các khối lệnh là **hướng dẫn cho người nhận**, không phải
++nhật ký khẳng định mọi lệnh đã được chạy trên máy mới. Bằng chứng đã thực thi
++ở [tái lập](../results/reproduction.md), [test cuối](../results/final/report.md)
++và [nghiệm thu](../reports/acceptance.md).
+ 
+-## 1. Cài một lần
++## 1. Cài từ Git
+ 
+-Người nhận source không cần dữ liệu thật để chạy giao diện mẫu. Cần Python 3.10 và kết nối Internet để cài thư viện.
++PowerShell tại root; cần Python 3.10, Internet và dung lượng cho Torch CPU.
+ 
+ ```powershell
+ py -3.10 -m venv .venv
+ .\.venv\Scripts\python.exe -m pip install -r requirements-win-py310.lock.txt
+ .\.venv\Scripts\python.exe -m pip install -e . --no-deps
++.\.venv\Scripts\python.exe -m pip check
+ .\.venv\Scripts\python.exe -m recsysedu.cli --help
+ ```
+ 
+-Nếu có `.venv` đang dùng thì bỏ bước tạo. Dùng trực tiếp Python trong `.venv` giúp không phụ thuộc việc bật môi trường ở từng cửa sổ terminal. Lock ghi phiên bản base đã cài, không chứa đường dẫn máy người viết; chưa bao gồm RecBole/PyTorch/NetworkX.
++Lock chứa RecBole 1.2.1, Torch 2.5.1+cpu, NumPy 1.26.4 và các thư viện data/demo.
++Bản tái lập đã thử trên Windows/Python 3.10.11; chưa chứng nhận Linux/macOS,
++GPU hoặc môi trường cài theo khoảng version thay cho lock.
+ 
+-Muốn thử trên môi trường khác, cài `python -m pip install -e ".[dev,demo,data]"` trong môi trường riêng, rồi chạy kiểm tra dưới đây. Nhánh cài theo khoảng version này chưa được thử lại trên hệ điều hành khác.
++## 2. Mở demo
+ 
+-## 2. Mở LearnPath
++Không có artifact thật thì dùng fixture trong Git:
+ 
+ ```powershell
+ .\.venv\Scripts\python.exe -m recsysedu.cli demo validate
+ .\.venv\Scripts\python.exe -m streamlit run app/streamlit_app.py --server.address 127.0.0.1 --server.headless true
+ ```
+ 
+-Mở `http://127.0.0.1:8501`. Có hai tab: **Gợi ý học tập** và **Model Lab**. Sidebar chọn ba hồ sơ và hai danh sách gợi ý minh họa. Cửa sổ hẹp cần mở sidebar để chọn, đóng lại để xem tab. Nhãn **DỮ LIỆU MẪU** luôn hiện; bảng Model Lab báo chưa có metric. Nhấn Ctrl+C ở terminal để dừng server.
+-
+-Fixture nằm ở `tests/fixtures/demo_bundle.json`. Mọi thứ trong fixture là giả, không lấy hồ sơ người học thật. Điểm/lý do do người viết mẫu tạo để kiểm UI; hai nhãn model không có nghĩa đã train MostPopular/Content.
++Mở `http://127.0.0.1:8501`. Nhãn **DỮ LIỆU MẪU** phải hiện. Fixture chỉ kiểm
++giao diện, không phải kết quả mô hình. Dừng bằng Ctrl+C.
+ 
+-Khi có snapshot model thật, kiểm tra trước rồi truyền đường dẫn qua biến môi trường:
++Đã nhận snapshot thật thì đối chiếu SHA-256 với báo cáo trước khi mở:
+ 
+ ```powershell
++Get-FileHash artifacts/demo/v1/demo_bundle.json -Algorithm SHA256
+ .\.venv\Scripts\python.exe -m recsysedu.cli demo validate --bundle artifacts/demo/v1/demo_bundle.json
+ $env:RECSYSEDU_BUNDLE = 'artifacts/demo/v1/demo_bundle.json'
+ .\.venv\Scripts\python.exe -m streamlit run app/streamlit_app.py --server.address 127.0.0.1 --server.headless true
+ ```
+ 
+-Đường dẫn ví dụ `artifacts/demo/v1/` chưa có bản thật. Khi quay về fixture, dùng `Remove-Item Env:RECSYSEDU_BUNDLE` nếu biến tồn tại. File sai hoặc thiếu phải hiện lỗi; app không tự thay bằng dữ liệu mẫu.
++Chọn hồ sơ/model ở sidebar. Model Lab có metric/cohort/seed/hash và nút CSV.
++Score chỉ là điểm xếp hạng. App không train khi click. Nếu snapshot thiếu/sai,
++app dừng và hiện lỗi; không tự thay fixture. Để chủ động quay về mẫu, chạy
++`Remove-Item Env:RECSYSEDU_BUNDLE` khi biến tồn tại rồi khởi động lại app.
+ 
+-## 3. Lấy dữ liệu thật
++## 3. Những file cần bàn giao riêng
+ 
+-Chỉ người phụ trách dữ liệu/model cần bước này. Config `configs/data.yaml` chỉ chọn course/user, không tải kho log video/bài tập.
++Git **không chứa** raw, Parquet, learner IDs, checkpoint, feature hoặc snapshot thật.
++Chỉ muốn xem kết quả: nhận `artifacts/demo/v1/demo_bundle.json` và đúng hash.
++Muốn kiểm/load lại mô hình: nhận đầy đủ các thư mục dưới đây, giữ nguyên đường dẫn
++tương đối từ root và kiểm hash trước khi dùng:
+ 
+-```powershell
+-.\.venv\Scripts\python.exe -m recsysedu.cli data download --config configs/data.yaml
+-```
++- `data/processed/mooccubex-pilot-v1/`: dataset manifest và toàn bộ Parquet.
++- `data/splits/mooccubex-pilot-v1-split-v1/`: split manifest, train/valid/test,
++  cohort và universe Parquet.
++- `results/local/pilot-final/valid/valid-2e93583494064297adaa556b9bc21d64/`:
++  toàn bộ batch validation đã khóa, gồm checkpoint/ID map/Content/alpha/ranking.
++- Batch test được nêu chính xác trong [test cuối](../results/final/report.md).
++- `results/local/pilot-search/bpr-3/valid-cbcf720e67144f10a735e06b0a717763/`:
++  giữ để chạy lại validation theo config có `manifest_path` gốc.
++- `artifacts/demo/v1/demo_bundle.json`: snapshot đã xuất.
+ 
+-Đầu ra ở `data/raw/`: `course.json`, `user.json`, `raw_manifest.json`. Bản đã tải tổng ~851 MB. URL thuộc kho MOOCCubeX chính thức; manifest ghi bytes, SHA-256 và thời điểm tải. Hash dùng nhận diện bản đã nhận, chưa phải checksum do bên nguồn chứng thực.
++Khi chuyển máy, **không sửa immutable manifest để đổi output_root**; code kiểm
++vị trí thực tế của batch đã chuyển. Đường dẫn ghi trong manifest là nhật ký
++nguồn gốc. Giữ toàn bộ thư mục, không chỉ chép `.pth`. Không đẩy các file này
++lên repo công khai. Cần xác minh điều kiện sử dụng dữ liệu trước khi chia sẻ.
+ 
+-Nếu file hoàn chỉnh đã có và khớp manifest, lệnh kiểm hash rồi giữ file. Nếu tải mất kết nối, giữ `.part`, chạy lại sẽ tải từ đầu file đó; chưa có resume/retry tự động. File hoàn chỉnh khác manifest bị từ chối ghi đè. Muốn giữ bản khác, tạo config riêng với `raw_dir` khác.
++## 4. Tạo một thí nghiệm mới từ raw
+ 
+-## 4. Kiểm tra dữ liệu
++Đây là hướng dẫn chạy lại, **không phải tái sử dụng freeze cũ cho dữ liệu mới**.
+ 
+ ```powershell
+-# Khảo sát nhanh 10.000 hồ sơ đầu; đây không phải mẫu ngẫu nhiên
+-.\.venv\Scripts\python.exe -m recsysedu.cli data audit --max-users 10000 --output results/local/pilot_audit.json
+-
+-# Quét toàn bộ
++.\.venv\Scripts\python.exe -m recsysedu.cli data download --config configs/data.yaml
+ .\.venv\Scripts\python.exe -m recsysedu.cli data audit
++.\.venv\Scripts\python.exe -m recsysedu.cli data prepare --config configs/prepare.yaml
++.\.venv\Scripts\python.exe -m recsysedu.cli data split --config configs/split.yaml
+ ```
+ 
+-Lệnh toàn bộ đã thử: 3.330.294 người, 3.781 khóa, khoảng 27 giây trên máy hiện tại. Đọc JSON ở `results/local/data_audit.json`; bản dễ hiểu ở [báo cáo audit](../results/data_audit.md). Audit đọc từng bản ghi, nhưng vẫn giữ tập ID user trong RAM để kiểm trùng; chưa đo RAM cao nhất, không nhận bộ nhớ cố định.
++Raw gồm course/user ~851 MB; không cần toàn bộ log hành vi. Downloader kiểm
++bytes/hash, giữ `.part` nếu hỏng và tải lại file dở từ đầu ở lần sau. Manifest
++hash nhận diện bản đã tải, không phải chữ ký chứng thực từ nguồn.
+ 
+-ID số trong lịch sử chỉ nối sang mã `C_<số>` tồn tại trong catalog. Timestamp được kiểm/đếm mà không tự gán múi giờ. `source_timezone: null` hiện là trạng thái chưa chốt; thay config này chưa khiến audit chuyển thời gian. Chưa có lệnh prepare/split để tạo Parquet.
++`prepare.yaml` dùng 10.000 người/seed 20261016, thời gian `source_local_naive`.
++Đó là giả định giữ thứ tự trong từng người, không phải bằng chứng timezone.
++Không tự chuyển UTC. Output đã tồn tại không bị ghi đè. Muốn thí nghiệm mới,
++tạo version/output riêng trong bản sao config.
+ 
+-## 5. Kiểm tra base
++Trước validation mới, sao chép `final_experiments.yaml`, đặt `frozen: false`,
++bỏ freeze/validation_dir cũ, chọn output mới và bỏ manifest_path BPR cũ nếu
++muốn train lại. Giữ budget/seed/protocol ghi trước. Ví dụ lệnh sau **cần config
++mới đã soạn**, không chạy trực tiếp trên config frozen để chọn tham số lại:
+ 
+ ```powershell
+-.\.venv\Scripts\python.exe -m pytest -q
+-.\.venv\Scripts\python.exe -m ruff check src app tests
+-.\.venv\Scripts\python.exe -m pip check
++.\.venv\Scripts\python.exe -m recsysedu.cli experiments --split valid --config configs/my_experiment.yaml
+ ```
+ 
+-Kết quả tại lần bàn giao này: 28 tests pass, lint pass, dependency check pass. [Báo cáo kiểm chứng](../results/base_verification.md) phân biệt test tự động, audit thật và UI đã thao tác trên trình duyệt. Chưa thử BPR hoặc chứng minh hiệu quả gợi ý.
++Chỉ sau kiểm hash/protocol/ranking và chọn bằng validation mới tạo freeze mới
++từ `freeze_candidate` cùng SHA-256 của experiment manifest. Chạy test một lần
++cho freeze đó. Đừng đổi alpha hoặc BPR sau khi xem test. Lệnh frozen test của
++bản bàn giao đã được chạy; kết quả lưu sẵn trong báo cáo.
+ 
+-## 6. Ghép việc qua GitHub
+-
+-Hiện đã init Git local và có commit baseline; chưa có remote GitHub. Lưu source, lock, configs, docs, fixture và báo cáo tổng hợp. `/data/`, `/artifacts/`, `.venv/`, cache và `results/local/` được ignore; `src/recsysedu/data/` vẫn phải có trong Git.
++## 5. Kiểm tra khi sửa source
+ 
+ ```powershell
+-git status --short --untracked-files=all
+-git check-ignore data/raw/user.json .venv/Scripts/python.exe
++.\.venv\Scripts\python.exe -m pytest -q
++.\.venv\Scripts\python.exe -m ruff check src app tests
++.\.venv\Scripts\python.exe -m pip check
++git diff --check
+ ```
+ 
+-Người nhận UI chạy fixture; người nhận dữ liệu dùng downloader để lấy đúng bản rồi đối chiếu hash. Không gửi raw vào commit. Chưa tạo repository GitHub, push hay phát hành dữ liệu trong đợt này. Quy ước nhận task/PR ở [CONTRIBUTING](../CONTRIBUTING.md).
++Fixture/integration khác benchmark thật. Test tự động không chứng minh người
++học được lợi. Sửa cleaning/split/protocol/model phải đánh giá artifact nào mất
++hiệu lực và tạo run mới; không sửa số liệu báo cáo bằng tay.
++
++## 6. Chia việc trên GitHub
+ 
+-## 7. Việc tiếp theo
++Mỗi người nhận một module/đầu ra theo [CONTRIBUTING](../CONTRIBUTING.md).
++Commit source/config/test/docs nhỏ. Không `git add -f` raw/checkpoint/Parquet.
++Kiểm `git status --short`, `git diff --cached --stat` và ignore trước khi push.
++Trạng thái push/remote được người thực hiện xác nhận riêng; báo cáo thí nghiệm
++không tự chứng minh GitHub đã nhận commit.
+ 
+-Đọc [10 — Hướng theo môn học](10_course_direction.md). Chốt timezone có nguồn hoặc một giả định nghiên cứu ghi rõ; kiểm name/about, field bổ sung và subset, rồi xây M2 chuẩn hóa Parquet/split. Sau đó M3 MostPopular + evaluator, M4 Content TF-IDF, M6 BPR, M7 Hybrid. Hiện chỉ phân tích thông tin cần hiển thị; ghép kết quả thật ở M10 tuần 5, chưa phát triển thêm UI.
++P1 hiện `P1_STOP_INSUFFICIENT_EVIDENCE`: chưa có ba nguồn concept/mapping/
++prerequisite để audit thật. Muốn tiếp tục phải lấy nguồn, kiểm ID/label/cycle/
++coverage rồi duyệt plan riêng; chưa triển khai rerank/path trong P0.
+diff --git a/reports/acceptance.md b/reports/acceptance.md
+new file mode 100644
+index 0000000..e5b7771
+--- /dev/null
++++ b/reports/acceptance.md
+@@ -0,0 +1,91 @@
++# Nghiệm thu P0 — RecSysEdu
++
++Ngày 16/10/2026. Bản này đánh giá sản phẩm offline theo
++[thiết kế đã duyệt](../docs/superpowers/specs/2026-10-16-recsysedu-pipeline-first-design.md).
++Không coi test tự động hoặc giao diện đẹp là bằng chứng học tập hiệu quả.
++
++**Kết luận: P0 đạt phạm vi offline đã duyệt; P1 dừng có lý do.** Dữ liệu thật,
++bốn model, test đã khóa, snapshot thật, trình duyệt và môi trường sạch đều có
++bằng chứng dưới đây. Review toàn nhánh/tích hợp/push là bước riêng sau Task13.
++
++| Cổng P0 | Trạng thái |
++| --- | --- |
++| Dataset/split versioned, đúng 10.000 người pilot, hash/invariant | Đạt; 9.965 người sau loại tie, 9.858 warm test |
++| Bốn model cùng evaluator, BPR checkpoint reload | Đạt; train-only, K10, seed17; reload khớp |
++| Validation chọn config rồi test một lần | Đạt; Hybrid alpha0,25; không tune theo test |
++| Metric, low/high-history và lỗi | Đạt; Hybrid test NDCG0,0773727819; còn 8.513 miss |
++| Snapshot real schema1, ít nhất3 hồ sơ | Đạt; 3×4 model, paths rỗng, loader qua |
++| Demo thực trong browser/CSV/error states | Đạt; chi tiết dưới đây |
++| Môi trường Python sạch từ lock | Đạt trên cùng máy Windows; fixture + checkpoint nhỏ + snapshot qua |
++| Máy vật lý khác/đa nền tảng/production | Chưa kiểm; ngoài bằng chứng của bản bàn giao |
++
++## Phạm vi bàn giao
++
++| Phần | Bằng chứng |
++| --- | --- |
++| Raw, cleaning, dataset/split versioned | [Dataset report](../results/pilot/dataset_report.md) |
++| Bốn model, cùng protocol, validation và freeze | [Validation report](../results/pilot/validation_report.md), [manifest công khai](../results/pilot/core_manifest.json) |
++| Test cuối, phân tích nhóm và lỗi | [Final report](../results/final/report.md) |
++| Môi trường sạch, checkpoint, snapshot | [Reproduction](../results/reproduction.md) |
++| Lệnh cài/chạy và chuyển artifact | [Runbook](../docs/09_runbook.md) |
++| P1 graph | [Audit](../results/graph_audit.md): **P1_STOP_INSUFFICIENT_EVIDENCE** |
++
++## Kiểm giao diện đã thực thi
++
++Root agent dùng trình duyệt thật trên server Streamlit đọc đúng snapshot hash
++`3e80b5e90db8f2776ff7f5e58915696f45f9b552ee8b7f0fe2219ae20577e56e`:
++
++- Cả 12 lựa chọn (ba hồ sơ × bốn model) hiển thị 10 dòng/rank và run ID đúng;
++  top thay đổi theo model/hồ sơ. Nhãn offline/dataset/protocol/P1-limit có mặt.
++- Model Lab hiển thị test/warm/full_train_universe/train_plus_valid cùng metric,
++  seed/hash. Bấm tải CSV thực sự thành công. Đọc lại CSV bằng pandas: bốn dòng,
++  cỡ mẫu9.858, run IDs và mọi metric khớp snapshot trong `1e-12`.
++- CSV SHA-256: `ca9bf2d2587c4756f04449dd618905861a7713a575db35b4ff7a13f2a5eda406`.
++- Fixture có nhãn **DỮ LIỆU MẪU** kiểm danh sách ngắn3 và fallback người mới.
++  Một bản sao fixture synthetic riêng kiểm danh sách0: hiện không-history,
++  fallback và thông báo không có khóa; không sửa snapshot thật để giả case này.
++- Bundle real hỏng chỉ hiện lỗi schema; không có panel gợi ý hoặc tự fallback
++  sang synthetic. Browser warning/error logs rỗng cho các lượt kiểm.
++
++Quan sát trình duyệt xác nhận hành vi hiển thị/tải file. Tính hợp lệ model,
++seen mask, uniqueness và metric được kiểm độc lập bằng artifact/test, không
++suy ra từ việc nhìn màn hình.
++
++## Artifact và hash bàn giao
++
++Snapshot local `artifacts/demo/v1/demo_bundle.json` (246.003 byte); batch test
++`results/local/pilot-final/test/test-b36cb3e524a346c8bb6a9935da76406a/` (30 file,
++65.591.620 byte). Giữ cả thư mục khi chuyển; danh mục bắt buộc ở runbook.
++Test manifest SHA-256: `d4eb81744e8dc962d09624c7d40286e491ec93f83358e2fcd8322d795622d08d`.
++Dataset/split/config/checkpoint/lock hashes ở final/reproduction report. Các
++file chứa hồ sơ/ranking/checkpoint chỉ lưu local, không commit GitHub.
++
++## Giới hạn phải giữ khi trình bày
++
++- P0 là benchmark offline và demo đọc file; chưa có phục vụ online nhiều người,
++  tài khoản, API/database ứng dụng hoặc triển khai production.
++- Một pilot 10.000 người, một seed model 17, ba BPR config tối đa 10 epoch và
++  năm alpha. Chưa kiểm đa seed, độ tin cậy thống kê hay lợi ích học tập.
++- Timestamp giữ source-local naive; catalog tĩnh; split từng người cho phép
++  tương tác train của người khác nằm sau target của một người.
++- Benchmark warm bỏ target cold khỏi metric và báo số lượng riêng. Không
++  suy diễn kết quả này thành chất lượng cho người mới/khóa mới.
++- Dữ liệu người học và artifact thật không có trong Git. Clone source không
++  tự mở được snapshot thật hoặc chạy frozen test nếu chưa nhận artifact.
++- P1 chưa audit thật vì thiếu concept, mapping, prerequisite; chưa rerank/path.
++- Môi trường sạch trên cùng máy Windows khác với kiểm chứng máy vật lý mới.
++  Linux/macOS/GPU và CI từ GitHub chưa được kiểm trong Task 13.
++
++## Bàn giao cho người tiếp theo
++
++1. Cài lock và chạy fixture theo runbook.
++2. Nhận snapshot hoặc toàn bộ batch/data ngoài Git, đối chiếu hash trong
++   final/reproduction/pilot report. Chỉ chuyển cho người được phép sử dụng dữ liệu.
++3. Mở snapshot thật, xem nhãn offline, ba hồ sơ và bốn mô hình; hiểu lịch sử
++   hiển thị train + valid nhưng profile model vẫn chỉ train.
++4. Nếu sửa data/config/protocol, tạo validation và freeze mới. Không chọn
++   cấu hình dựa vào test cuối đã công bố.
++5. Giữ nhật ký lỗi và artifact gốc. Không sửa immutable manifest hoặc điền metric giả.
++
++Trạng thái push GitHub và review toàn nhánh do bước tích hợp cuối xác nhận;
++không được suy từ nghiệm thu dữ liệu/model ở tài liệu này.
+diff --git a/results/final/report.md b/results/final/report.md
+new file mode 100644
+index 0000000..3a67d44
+--- /dev/null
++++ b/results/final/report.md
+@@ -0,0 +1,110 @@
++# Test cuối — RecSysEdu P0
++
++Ngày 16/10/2026. **Đã chạy đúng một lần full test sau freeze; exit 0.** Không
++đổi dataset, seed, alpha, BPR hoặc protocol theo kết quả test. Không có lần
++full test lỗi hoặc chạy lại. Checkpoint/Content giữ nguyên từ validation.
++
++## Cách chạy và đọc số liệu
++
++Lệnh thực thi từ root worktree với `PYTHONPATH` trỏ rõ vào `src` của worktree,
++Python 3.10.11 môi trường dự án; wrapper đo thời gian/RSS gọi đúng command:
++
++```powershell
++python results/local/task11_measure.py final-test-once experiments --split test --config configs/final_experiments.yaml
++```
++
++Wrapper là helper local không ở Git, không phải công cụ bắt buộc của người nhận.
++Command bên trong là `python -m recsysedu.cli experiments --split test --config
++configs/final_experiments.yaml`. Không chạy lại chỉ để chọn tham số.
++
++`leave_last_two_out_v1`, seed model 17, K=10, 2.586 candidate train. Model và
++profile chỉ dùng train; seen mask = train + valid. Có 9.858 người warm, mỗi
++người một target test. **107 target cold** không thuộc benchmark warm và được
++báo riêng. Một target/người nên HitRate và Recall bằng nhau; Precision=HitRate/10.
++
++| Model | NDCG@10 | HitRate/Recall@10 | Precision@10 | Coverage@10 | Giây evaluator |
++| --- | ---: | ---: | ---: | ---: | ---: |
++| MostPopular | 0,0470426496 | 0,0801379590 | 0,0080137959 | 0,0123743233 | 15,90 |
++| Content TF-IDF | 0,0576570574 | 0,0987015622 | 0,0098701562 | 0,9238205723 | 192,55 |
++| BPR | 0,0572938979 | 0,1059038344 | 0,0105903834 | 0,6782675947 | 28,71 |
++| Hybrid alpha 0,25 | 0,0773727819 | 0,1364374112 | 0,0136437411 | 0,8395204950 | 279,34 |
++
++Hybrid cao nhất về NDCG/HitRate toàn cohort này; Content phủ nhiều khóa hơn.
++Đây là kết quả đo của một pilot/một seed, chưa có kiểm định thống kê. Test
++thấp hơn validation; không thay alpha để che khác biệt này.
++
++Toàn CLI **520,1935 giây** (~8,67 phút). RSS lấy mẫu cây tiến trình mỗi 0,2s:
++**388.657.152 byte** đỉnh. Có thể tính trùng shared pages/bỏ lỡ đỉnh ngắn.
++Đây là máy phát triển có cài môi trường sạch/test tự động chạy cùng, không
++phải benchmark hiệu năng phần cứng độc lập.
++
++## Nhóm ít/nhiều lịch sử
++
++Chia nhóm để mô tả lỗi sau khi mở test, không dùng nhóm để chọn lại model:
++ít=1–4 khóa train; giữa=5–19; nhiều=ít nhất 20. Coverage mỗi nhóm là hợp
++khóa được gợi ý trong nhóm chia cùng 2.586 candidate, không lấy trung bình
++coverage mỗi người. Nhóm ít có 6.110 người, giữa 2.285, nhiều 1.463.
++
++| Nhóm | Model | NDCG@10 | HitRate/Recall@10 | Precision@10 | Coverage@10 |
++| --- | --- | ---: | ---: | ---: | ---: |
++| Ít | MostPopular | 0,06124613 | 0,09934534 | 0,00993453 | 0,00541377 |
++| Ít | Content | 0,07142267 | 0,11816694 | 0,01181669 | 0,90680588 |
++| Ít | BPR | 0,06776266 | 0,12062193 | 0,01206219 | 0,65506574 |
++| Ít | Hybrid | 0,09546463 | 0,16464812 | 0,01646481 | 0,81129157 |
++| Giữa | MostPopular | 0,03112943 | 0,05995624 | 0,00599562 | 0,00696056 |
++| Giữa | Content | 0,05026210 | 0,09190372 | 0,00919037 | 0,65158546 |
++| Giữa | BPR | 0,05556431 | 0,11203501 | 0,01120350 | 0,38283063 |
++| Giữa | Hybrid | 0,06848169 | 0,12647702 | 0,01264770 | 0,59087394 |
++| Nhiều | MostPopular | 0,01257813 | 0,03144224 | 0,00314422 | 0,01237432 |
++| Nhiều | Content | 0,01171693 | 0,02802461 | 0,00280246 | 0,27184841 |
++| Nhiều | BPR | 0,01627407 | 0,03485988 | 0,00348599 | 0,26566125 |
++| Nhiều | Hybrid | 0,01570154 | 0,03417635 | 0,00341763 | 0,29543697 |
++
++Nhóm nhiều lịch sử có kết quả thấp rõ rệt; BPR nhỉnh hơn Hybrid về NDCG nhóm
++này. Vì vậy không tuyên bố Hybrid thắng cho mọi người. Hồ sơ trung bình nội
++dung có thể trộn nhiều chủ đề, nhưng dữ liệu này chưa chứng minh nguyên nhân.
++Muốn kiểm giả thuyết phải có thí nghiệm validation mới.
++
++## Trường hợp thất bại và audit
++
++- Số người **không có target trong Top-10**: MostPopular 9.068; Content 8.885;
++  BPR 8.814; Hybrid 8.513. Ngay cả Hybrid vẫn bỏ lỡ đa số target.
++- Cả bốn run có đủ 9.858 người, mỗi người đúng 10 khóa khác nhau; không cần
++  fallback hoặc danh sách ngắn trong cohort thật này. Điều đó không chứng
++  minh cold-start hoạt động tốt: người mới không thuộc benchmark này.
++- Chọn ba hồ sơ theo độ dài train tăng dần tại vị trí đầu/giữa/cuối, trước
++  khi xem từng hit: 1, 3 và 1.109 khóa train. Đây là ví dụ ít/điển hình/cực
++  nhiều lịch sử, không phải ba người đại diện thống kê cho toàn dân số.
++  BPR đều miss ở ba ví dụ. Không đổi hồ sơ để chỉ trưng bày trường hợp thành công.
++- Kiểm độc lập toàn bộ hash trong experiment manifest, từng thứ tự/rank,
++  khóa thuộc universe, không seen train+valid, tie-break score giảm/mã tăng.
++  Tính lại NDCG/hit/recall/precision từng người từ target và ranking rồi so
++  Parquet/trung bình; Coverage từ hợp các khóa. Sai số cho phép `1e-12`;
++  tất cả qua. Không dùng evaluator làm oracle cho phép tính lại metric.
++
++## Artifact và nhận diện
++
++Batch local đầy đủ: `results/local/pilot-final/test/test-b36cb3e524a346c8bb6a9935da76406a/`.
++Snapshot: `artifacts/demo/v1/demo_bundle.json`, **246.003 byte**, schema 1,
++`data_mode=real`, ba hồ sơ × bốn model, `paths=[]`; exporter và loader đều qua.
++Các file này không nằm trong Git; phải nhận riêng cùng dataset/split/valid batch.
++
++| Thành phần | SHA-256 |
++| --- | --- |
++| Dataset | `215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c` |
++| Split | `7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617` |
++| Effective config | `7e895cc5d88e203cf20c597c6ff349d16b5266910d148108ca4a3f1c22f603cc` |
++| Validation manifest | `379b3ae18de0b2a3859f705be5ce3727284d29fa4a8ddab1326982ba597d3baf` |
++| Test experiment manifest | `d4eb81744e8dc962d09624c7d40286e491ec93f83358e2fcd8322d795622d08d` |
++| BPR checkpoint | `c4dbd2d88e71689b1d447f314fe6b9dc1a90af95499d2cafdba5eec03b36720a` |
++| Demo bundle | `3e80b5e90db8f2776ff7f5e58915696f45f9b552ee8b7f0fe2219ae20577e56e` |
++
++Git revision trong batch: `ae8958107820cb0c25a56d1cf09f4c62982952e7`,
++`git_dirty=true` do sửa wording báo cáo trước khi chạy; không thay source P0.
++Model component hashes giữ nguyên validation. Python 3.10.11, NumPy1.26.4,
++scikit-learn1.7.2, Torch2.5.1+cpu, RecBole1.2.1.
++
++P0 là xếp hạng đăng ký offline. Không đo mastery, completion hay learning gain.
++Giới hạn timezone/catalog/per-user split/một seed vẫn giữ nguyên. P1 dừng vì
++thiếu ba nguồn graph. Xem [tái lập](../reproduction.md), [nghiệm thu](../../reports/acceptance.md)
++và [runbook](../../docs/09_runbook.md) trước khi dùng hoặc sửa bản này.
+diff --git a/results/pilot/validation_report.md b/results/pilot/validation_report.md
+index bcca1e5..2ad26d8 100644
+--- a/results/pilot/validation_report.md
++++ b/results/pilot/validation_report.md
+@@ -5,6 +5,9 @@ Ngày đo: 16/10/2026. Dữ liệu, cách chọn 10.000 người và split đư
+ test cuối và chưa chứng minh hiệu quả học tập. Task 13 mới được mở test sau
+ khi kiểm tra cấu hình đã khóa.
+ 
++Các câu “chưa test/chưa snapshot” bên dưới là trạng thái tại thời điểm freeze
++Task11. Kết quả sau đó ở [Task13 — final report](../final/report.md).
++
+ **Trạng thái: đã khóa cấu hình P0 sau validation và audit.** Đây là khóa dữ
+ liệu/protocol/model để mở test; chưa phải nghiệm thu toàn bộ P0.
+ 
+@@ -32,7 +35,9 @@ Khai báo trước ba cấu hình, dưới mức tối đa sáu của kế hoạ
+ sau khi xem test. Cùng seed 17, CPU, batch 2.048, tối đa 10 epoch,
+ early stopping theo warm validation NDCG@10, stopping_step=2. Adapter dùng
+ chính ranking/metric/policy của dự án để chọn tensor tốt nhất rồi lưu checkpoint.
+-Điều kiện dừng của RecBole là quá 2 lần giảm liên tiếp; bằng điểm đặt lại bộ đếm.
++RecBole đếm các lần đánh giá thấp hơn điểm tốt nhất đã đạt, không phải chỉ
++các lần giảm so với epoch ngay trước. Quá 2 lần như vậy thì dừng; bằng điểm
++tốt nhất đặt lại bộ đếm.
+ 
+ | Lần | Embedding | Learning rate | Epoch tốt nhất / đã chạy | NDCG@10 | Thời gian CLI (giây) | RSS lấy mẫu (byte) |
+ | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+diff --git a/results/reproduction.md b/results/reproduction.md
+new file mode 100644
+index 0000000..477f532
+--- /dev/null
++++ b/results/reproduction.md
+@@ -0,0 +1,113 @@
++# Tái lập và kiểm tra bàn giao
++
++Ngày 16/10/2026. **Đã tạo môi trường Python mới thực sự từ lock**, không sao
++chép site-packages môi trường cũ. Windows/Python 3.10.11 trên cùng máy phát
++triển; chưa thử một máy vật lý khác, Linux/macOS, GPU hoặc GitHub CI.
++
++## Những lệnh đã thực thi
++
++Từ root worktree; `PYTHONPATH` đặt rõ bằng đường dẫn `src` của worktree. Các
++lệnh sau đã chạy, không phải chỉ là kế hoạch:
++
++```powershell
++py -3.10 -m venv .venv-repro
++.\.venv-repro\Scripts\python.exe -m pip install -r requirements-win-py310.lock.txt
++.\.venv-repro\Scripts\python.exe -m pip install -e . --no-deps
++.\.venv-repro\Scripts\python.exe -m pip check
++.\.venv-repro\Scripts\python.exe -m pytest tests/test_experiment_runner.py::test_frozen_test_reuses_selected_validation_checkpoint_and_alpha tests/test_demo_export.py::test_exporter_builds_real_bundle_from_compatible_runs -q
++.\.venv-repro\Scripts\python.exe results/local/task13_reproduce.py
++.\.venv-repro\Scripts\python.exe -m recsysedu.cli demo validate --bundle artifacts/demo/v1/demo_bundle.json
++```
++
++`pyvenv.cfg`: version 3.10.11, `include-system-site-packages=false`.
++Install lock và editable exit 0; pip check **No broken requirements found**.
++Đối chiếu `importlib.metadata.version` với toàn bộ **78 version khóa** bằng
++`packaging.version.Version`: tất cả khớp. Lần so raw string ban đầu báo khác
++ở thop: metadata `0.1.1-2209072238` và lock `0.1.1.post2209072238` tương đương
++theo PEP440; đây không phải đổi dependency hoặc sửa lock.
++
++Install có log riêng; khoảng cách creation→last-write của log là **447,036s**,
++chỉ là khoảng thời gian ghi log, không tuyên bố stopwatch đầy đủ của cả venv +
++install. Fixture báo **2 pass, 3 upstream warnings, 9,79s**. Chúng thực sự chạy
++prepare→split→train bốn model→valid→freeze→test trên dữ liệu nhỏ và xuất snapshot
++từ batch fixture. Các test này không mở lại full test MOOCCubeX.
++
++## Checkpoint thật và frozen small case
++
++Helper local `results/local/task13_reproduce.py` load đúng checkpoint trong
++batch test đã khóa; load hai scorer độc lập. Ba hồ sơ snapshot có train history
++1,3,1.109. Score đầy đủ 2.586 candidate, loại seen train+valid, so Top-10/score
++với snapshot và so NDCG với per-user test Parquet: **exact scores và rankings**,
++NDCG đều 0. Chạy ba case lần đầu qua trong 1,356s.
++
++Mở rộng thêm một case chẩn đoán có hit đã lưu (không dùng để chọn config),
++history 7 và NDCG=0,5/rank3. Chạy lại helper bốn case **1,487s**, tất cả qua.
++Đây là kiểm lại vài score của checkpoint đã khóa, **không chạy lại full test**,
++không huấn luyện hoặc tune sau khi xem test.
++
++- Hai lần NumPy load/scoring và score đã lưu: tolerance 0, cùng environment/library.
++- NDCG tính độc lập so artifact: absolute tolerance `1e-12`.
++- Không suy rộng bit-exact giữa NumPy/Torch: validation đã đối chiếu upstream
++  predict với `rtol=1e-6, atol=2e-6`, xem [validation](pilot/validation_report.md).
++- Loader xác nhận snapshot `real`, schema1, ba profile/bốn model, no paths.
++
++Các helper/log/json đầy đủ nằm `results/local/`, không trong Git vì có đường
++dẫn/ID người học. Có thể nhận riêng để audit. Đoạn sau là **ví dụ tương đương
++cho người nhận** kiểm ba case snapshot bằng API công khai; cần artifact đã chép
++đủ. Nó không chạy full evaluator hoặc sửa config:
++
++```python
++import json
++from pathlib import Path
++import pandas as pd
++from recsysedu.adapters.recbole import load_bpr_scorer
++from recsysedu.demo.artifacts import load_bundle
++from recsysedu.evaluation.ranking import rank_candidates
++
++batch = Path('results/local/pilot-final/test/test-b36cb3e524a346c8bb6a9935da76406a')
++bundle = load_bundle(Path('artifacts/demo/v1/demo_bundle.json'))
++model = load_bpr_scorer(batch / 'artifacts/bpr/bpr_manifest.json')
++universe = tuple(pd.read_parquet(
++    'data/splits/mooccubex-pilot-v1-split-v1/candidate_universe.parquet').course_id)
++for user in bundle['users']:
++    actual = rank_candidates(model.score(user['user_id'], universe),
++                             set(user['observed_course_ids']), k=10)
++    expected = next(r['items'] for r in bundle['recommendations']
++                    if r['user_id'] == user['user_id'] and r['model_id'] == 'bpr')
++    assert [(x.course_id, x.score) for x in actual] == [
++        (x['course_id'], x['score']) for x in expected]
++```
++
++## Hash và artifact cần giữ
++
++| File/nhận diện | SHA-256 |
++| --- | --- |
++| `requirements-win-py310.lock.txt` | `1ea4c9807f56d9563e92a90431c59dcb76bc0e768c4a074121157e126a49e8d5` |
++| BPR checkpoint | `c4dbd2d88e71689b1d447f314fe6b9dc1a90af95499d2cafdba5eec03b36720a` |
++| BPR ID map | `f0af46aaa5a1877b0e86078c46d315e639a4c46f7b0308a3fc0472a4e1f7ce99` |
++| Real snapshot | `3e80b5e90db8f2776ff7f5e58915696f45f9b552ee8b7f0fe2219ae20577e56e` |
++
++Dataset/split/config/batch hashes ở [final report](final/report.md). Chuyển
++đầy đủ dataset/split, validation batch, test batch và snapshot theo
++[runbook](../docs/09_runbook.md). Giữ manifest nguyên vẹn. Clone Git không có
++checkpoint/ranking/learner ID; chỉ source clone không đủ tái lập frozen run.
++
++## Kiểm toàn nhánh và giới hạn bằng chứng
++
++Môi trường dự án hiện có, explicit worktree PYTHONPATH:
++
++```powershell
++python -m pytest -q
++python -m ruff check src app tests
++python -m pip check
++```
++
++**262 pass,64 upstream warnings,40,82s; Ruff pass; pip check không có broken
++requirements.** Môi trường cũ có cảnh báo metadata `-ympy` còn sót; môi trường
++sạch không có cảnh báo đó. Không xóa cache/package cũ để làm sạch bằng chứng.
++Các warning test là upstream RecBole/Pandas/Torch đã ghi trong log.
++
++Tái lập này xác nhận cài dependency, fixture pipeline, load checkpoint, một
++vài score và snapshot. **Chưa lặp toàn bộ raw prepare/full BPR search/full test
++trên máy khác.** Prepare lặp cùng máy và nội dung/hash Parquet đã được xác
++nhận trong Task11. Không khẳng định toàn bộ huấn luyện bit-exact trên phần cứng khác.
+diff --git a/tasks/todo.md b/tasks/todo.md
+index 2ff4f1c..8994197 100644
+--- a/tasks/todo.md
++++ b/tasks/todo.md
+@@ -9,10 +9,10 @@ Các mục ngày 09/10 bên dưới là nhật ký lịch sử; dùng bảng nà
+ 
+ | Task | Trạng thái và đầu ra | Bằng chứng / bước còn lại |
+ | --- | --- | --- |
+-| 0–10 | Đã triển khai, kiểm thử và review từng task: contract, prepare/split, evaluator, bốn model, runner, snapshot exporter | Fixture/integration đã chạy; không đồng nghĩa demo thật và test cuối đã nghiệm thu |
+-| 11 | Đã chạy pilot 10.000 người, bốn model và năm alpha; khóa cấu hình sau audit | [Dữ liệu](../results/pilot/dataset_report.md), [validation](../results/pilot/validation_report.md), [core manifest](../results/pilot/core_manifest.json); 9.909 warm valid, 2.586 candidate; chưa mở test |
++| 0–10 | Đã triển khai, kiểm thử và review từng task: contract, prepare/split, evaluator, bốn model, runner, snapshot exporter | Fixture/integration và Task13 xác nhận dữ liệu thật; giữ phân biệt mức bằng chứng |
++| 11 | Đã chạy pilot 10.000 người, bốn model và năm alpha; khóa cấu hình sau audit | [Dữ liệu](../results/pilot/dataset_report.md), [validation](../results/pilot/validation_report.md), [core manifest](../results/pilot/core_manifest.json); 9.909 warm valid, 2.586 candidate; test sau freeze ở Task13 |
+ | 12 | Đã triển khai công cụ audit; dữ liệu graph thật chưa chạy vì thiếu cả ba nguồn | [Quyết định P1_STOP_INSUFFICIENT_EVIDENCE](../results/graph_audit.md); không bật rerank/path |
+-| 13 | Chưa chạy; freeze Task 11 đã sẵn sàng để review | Test cuối, snapshot thật, xem trình duyệt, môi trường sạch và báo cáo bàn giao |
++| 13 | Đã chạy frozen full test đúng một lần, audit, snapshot thật, browser và clean environment | [Final](../results/final/report.md), [reproduction](../results/reproduction.md), [nghiệm thu P0](../reports/acceptance.md); 9.858 warm test; 262 test pass; chờ review Task13/toàn nhánh |
+ | GitHub | Chờ kiểm tra cuối toàn nhánh | Sau khi xong, đưa về main và push remote người dùng đã chỉ định |
+ 
+ Phân biệt: code đã viết, fixture chạy được, dữ liệu thật đã chạy và hiệu quả
+@@ -64,34 +64,36 @@ tuần chỉ vì thư viện và bộ kiểm thử đã chạy.
+ 
+ ## Triển khai theo lịch
+ 
+-Lịch công việc hằng ngày ở [six_week_schedule](six_week_schedule.md). Các cổng G dưới đây là mục tiêu chưa đạt.
+-
+-- [ ] G1 cuối tuần 1 — Dataset/split v1; thử môi trường BPR nhỏ.
+-- [ ] G2 cuối tuần 2 — Hai baseline có validation và evaluator đúng.
+-- [ ] G3 cuối tuần 3 — Bốn model cùng protocol, checkpoint load được.
+-- [ ] G4 cuối tuần 4 — Xác định P1 graph/path đạt hay thiếu dữ liệu.
+-- [ ] G5 cuối tuần 5 — Demo thật và khóa cấu hình; hết tính năng mới.
+-- [ ] G6 cuối tuần 6 — Test cuối, tái lập và bàn giao.
+-
+-- [ ] M0 — Môi trường và fixture SYNTHETIC.
+-- [ ] M1 — Raw acquisition và data audit.
+-- [ ] M2 — Chuẩn hóa, split và cohort.
+-- [ ] Checkpoint A — Dataset và protocol hợp lệ.
+-- [ ] M3 — MostPopular và evaluator chung.
+-- [ ] M4 — Content TF-IDF tên/mô tả + cosine.
+-- [ ] Checkpoint B — Hai baseline cùng protocol.
+-- [ ] M5 — Feature concept nếu đủ dữ liệu; có thể hoãn với lý do.
+-- [ ] M6 — BPR/RecBole, ID map và reload checkpoint.
+-- [ ] M7 — Hybrid tune validation.
+-- [ ] Checkpoint C — Bốn model có kết quả tái lập.
+-- [ ] M8 — Graph audit và coverage.
+-- [ ] M9a — Prerequisite reranking.
+-- [ ] M9b — Learning path concept.
+-- [ ] Checkpoint D — Graph/path có bằng chứng và giới hạn.
+-- [ ] M10 — Demo đọc artifact.
+-- [ ] M11 — Thực nghiệm cuối và phân tích.
+-- [ ] M12 — Tái lập trong môi trường sạch.
+-- [ ] Checkpoint E — Bàn giao theo yêu cầu và trạng thái thật.
++Lịch công việc hằng ngày ở [six_week_schedule](six_week_schedule.md). Cổng G dưới
++đây phản ánh bằng chứng hiện tại; tuần/ngày là kế hoạch, không phải thời gian
++thực tế đã trôi qua. Nhật ký09/10 phía trên giữ nguyên trạng thái lịch sử.
++
++- [x] G1 — Dataset/split v1; BPR integration chạy được.
++- [x] G2 — Hai baseline validation; evaluator tính tay và audit thật.
++- [x] G3 — Bốn model cùng protocol; checkpoint load khớp.
++- [x] G4 — P1 dừng thiếu ba nguồn graph; real audit chưa chạy.
++- [x] G5 — Snapshot real ba hồ sơ/bốn model; config khóa sau validation.
++- [x] G6 — Test một lần, clean environment cùng máy và tài liệu bàn giao; chờ review/tích hợp.
++
++- [x] M0 — Môi trường/fixture SYNTHETIC và BPR integration.
++- [x] M1 — Raw acquisition/audit; timezone là giả định versioned.
++- [x] M2 — Chuẩn hóa, split và warm/cold cohort.
++- [x] Checkpoint A — Dataset/protocol có manifest/hash hợp lệ.
++- [x] M3 — MostPopular và evaluator chung.
++- [x] M4 — Content TF-IDF tên/mô tả + cosine.
++- [x] Checkpoint B — Hai baseline cùng protocol.
++- [ ] M5 — Hoãn feature concept do thiếu nguồn; không thuộc P0 bắt buộc.
++- [x] M6 — BPR/RecBole, ID map và checkpoint reload.
++- [x] M7 — Hybrid chọn alpha bằng validation.
++- [x] Checkpoint C — Bốn model có run tương thích và frozen test.
++- [x] M8 — Công cụ audit/fixture và quyết định thiếu nguồn; real audit chưa chạy.
++- [ ] M9a — Hoãn prerequisite reranking theo P1 gate.
++- [ ] M9b — Hoãn learning path concept theo P1 gate.
++- [ ] Checkpoint D — Chưa đạt dữ liệu graph/path; không ngăn nghiệm thu P0.
++- [x] M10 — Demo snapshot thật, browser12 tổ hợp và CSV/error states.
++- [x] M11 — Test cuối và phân tích low/high-history/failure cases.
++- [x] M12 — Clean environment từ lock cùng máy Windows; chưa kiểm máy khác.
++- [ ] Checkpoint E — Đủ bằng chứng P0; chờ review toàn nhánh và push GitHub.
+ 
+ ## Cách cập nhật sau mỗi task
+ 

@@ -1,0 +1,14 @@
+{
+  "label": "final-valid-resume",
+  "args": [
+    "experiments",
+    "--split",
+    "valid",
+    "--config",
+    "configs/final_experiments.yaml"
+  ],
+  "exit_code": 0,
+  "seconds": 1526.8460487999982,
+  "sampled_peak_rss_bytes": 403980288,
+  "peak_sampling_interval_seconds": 0.2
+}

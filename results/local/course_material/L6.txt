@@ -1,0 +1,532 @@
+=== PDF PAGE 1 ===
+
+
+=== PDF PAGE 2 ===
+HỆ GỢI Ý
+(IT4613)
+
+=== PDF PAGE 3 ===
+3
+HỆ GỢI Ý
+LỌC DỰA TRÊN PHIÊN
+
+
+=== PDF PAGE 4 ===
+4
+Nội dung môn học
+• Giới thiệu về Hệ gợi ý
+• Gợi ý dựa trên lọc cộng tác: Cơ bản và Các kỹ thuật nâng cao
+• Gợi ý dựa trên nội dung
+• Gợi ý dựa trên tri thức
+• Gợi ý dựa trên phiên
+• Kết hợp các kỹ thuật gợi ý 
+• Đánh giá hiệu quả đối với hệ gợi ý
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Bài toán gợi ý tin tức
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Học tương phản
+
+=== PDF PAGE 5 ===
+5
+Gợi ý dựa trên phiên (session-based recommendation system)
+• Phiên làm việc của một user:
+
+
+=== PDF PAGE 6 ===
+6
+Gợi ý dựa trên phiên
+• Khi nào sử dụng gợi ý dựa trên phiên
+• Khi hệ thống khó định danh user, chỉ có thông tin tương tác trong một phiên làm việc
+• Trong các hệ thống ưu tiên quan tâm đến các sở thích ngắn hạn
+• Các cách tiếp cận
+• Tính độ tương đồng (item-to-item similarity, Item-Based top-N Recommendation)
+• Dựa trên tập mục thường xuyên (association rules)
+• Dựa trên phán đoán item tiếp theo trong chuỗi item trong phiên: Sử dụng mạng nơ-ron hồi quy (RNN)
+
+=== PDF PAGE 7 ===
+7
+1. Tính độ tương đồng (item-to-item)
+• Biểu diễn vector item (thường dựa trên content, features)
+• Với mỗi item, tính top K items tương đồng dựa trên độ đo tương đồng (e.g cosine similarity)
+• Từ tập các items mà người dùng đã tương tác trong phiên, xây dựng tập các items ứng viên:
+• Tập con K items ứng viên: Mỗi item đã tương tác, lấy top K items tương đồng với item đã tương tác
+• Tập ứng viên là hợp của các tập con
+• Loại bỏ các items trùng lặp
+• Xếp hạng các items ứng viên:
+• Tính tổng độ đo tương đồng của mỗi item ứng viên và các items mà user đã tương tác trong phiên
+• Sắp xếp và lấy top các items có tổng độ tương đồng cao nhất
+
+=== PDF PAGE 8 ===
+8
+Tính độ đo tương đồng
+• Sử dụng độ đo tương đồng cosin
+• Sử dụng xác suất có điều kiện:
+𝑃 𝑢 𝑣 = 𝑓𝑟𝑒𝑞(𝑢𝑣)
+𝑓𝑟𝑒𝑞(𝑣)
+Trong đó freq(uv) là số lượng users tương tác v sau đó tương tác u, freq(v) là số users tương tác v
+𝑆𝑖𝑚(𝑢, 𝑣) = 𝑓𝑟𝑒𝑞(𝑢𝑣)
+𝑓𝑟𝑒𝑞 𝑢
+𝛼
+𝑓𝑟𝑒𝑞(𝑣)
+𝛼 là hệ số điều chỉnh để phạt mức độ phổ biến của item u
+
+=== PDF PAGE 9 ===
+9
+2. Phát hiện các luật kết hợp
+• Bài toán phát hiện luật kết hợp (Association rule mining)
+• Với một tập các giao dịch (transactions) cho trước, cần tìm các luật dự đoán khả năng xuất hiện trong một 
+giao dịch của các mục (items) này dựa trên việc xuất hiện của các mục khác
+TID Items 
+1 Bread, Milk 
+2 Bread, Diaper, Beer, Eggs 
+3 Milk, Diaper, Beer, Coke  
+4 Bread, Milk, Diaper, Beer 
+5 Bread, Milk, Diaper, Coke  
+ 
+Các ví dụ của luật kết hợp:
+{Diaper} → {Beer}
+{Milk, Bread} → {Eggs, Coke}
+{Beer, Bread} → {Milk}
+
+=== PDF PAGE 10 ===
+10
+Các định nghĩa cơ bản (1)
+• Tập mục (Itemset)
+• Một tập hợp gồm một hoặc nhiều mục
+• Ví dụ:  {Milk, Bread, Diaper}
+• Tập mục mức k  (k-itemset)
+• Một tập mục gồm k mục
+• Tổng số hỗ trợ (Support count)  
+• Số lần xuất hiện của một tập mục
+• Ví dụ:   ({Milk, Bread, Diaper}) = 2 
+• Độ hỗ trợ (Support)  s
+• Tỷ lệ các giao dịch chứa một tập mục
+• Ví dụ:   s({Milk, Bread, Diaper}) = 2/5
+• Tập mục thường xuyên (Frequent/large itemset)
+• Một tập mục mà độ hỗ trợ lớn hơn hoặc bằng một giá trị ngưỡng minsup
+TID Items 
+1 Bread, Milk 
+2 Bread, Diaper, Beer, Eggs 
+3 Milk, Diaper, Beer, Coke  
+4 Bread, Milk, Diaper, Beer 
+5 Bread, Milk, Diaper, Coke  
+ 
+
+=== PDF PAGE 11 ===
+11
+Các định nghĩa cơ bản (2)
+• Luật kết hợp (Association rule)
+• Một biểu thức kéo theo có dạng:  X → Y, trong đó X và Y là các tập mục
+• Ví dụ:    {Milk, Diaper} → {Beer}
+• Các độ đo đánh giá luật
+• Độ hỗ trợ (Support)  s
+• Tỷ lệ các giao dịch chứa cả X và Y đối với tất cả các giao dịch
+• Độ tin cậy (Confidence)  c
+• Tỷ lệ các giao dịch chứa cả X và Y đối với các giao dịch chứa X
+Beer}Diaper,Milk{ →
+4.05
+2
+|T|
+)BeerDiaper,,Milk( === s
+67.03
+2
+)Diaper,Milk(
+)BeerDiaper,Milk,( === 
+c
+TID Items 
+1 Bread, Milk 
+2 Bread, Diaper, Beer, Eggs 
+3 Milk, Diaper, Beer, Coke  
+4 Bread, Milk, Diaper, Beer 
+5 Bread, Milk, Diaper, Coke  
+ 
+
+=== PDF PAGE 12 ===
+12
+Phát hiện các luật kết hợp
+• Với một tập các giao dịch T, mục đích của bài toán phát hiện luật kết hợp là tìm ra tất cả các luật có:
+• độ hỗ trợ ≥ giá trị ngưỡng minsup,  và
+• độ tin cậy ≥ giá trị ngưỡng minconf
+• Cách tiếp cận vét cạn (Brute-force)
+• Liệt kê tất cả các luật kết hợp có thể
+• Tính toán độ hỗ trợ và độ tin cậy cho mỗi luật
+• Loại bỏ đi các luật có độ hỗ trợ nhỏ hơn minsup hoặc có độ tin cậy nhỏ hơn minconf
+ Phương pháp vét cạn này có chi phí tính toán quá lớn, không áp dụng được trong thực tế!
+
+=== PDF PAGE 13 ===
+13
+Phát hiện luật kết hợp
+• Tất cả các luật trên đều là sự phân tách (thành 2 tập con) của cùng tập mục : {Milk, Diaper, Beer}
+• Các luật sinh ra từ cùng một tập mục sẽ có cùng độ hỗ trợ, nhưng có thể khác về độ tin cậy
+• Do đó, trong quá trình phát hiện luật kết hợp, chúng ta có thể tách riêng 2 yêu cầu về độ hỗ trợ và 
+độ tin cậy
+Các luật kết hợp:
+{Milk, Diaper} → {Beer}   (s=0.4, c=0.67)
+{Milk, Beer} → {Diaper}   (s=0.4, c=1.0)
+{Diaper, Beer} → {Milk}   (s=0.4, c=0.67)
+{Beer} → {Milk, Diaper}   (s=0.4, c=0.67) 
+{Diaper} → {Milk, Beer}   (s=0.4, c=0.5) 
+{Milk} → {Diaper, Beer}   (s=0.4, c=0.5)
+TID Items 
+1 Bread, Milk 
+2 Bread, Diaper, Beer, Eggs 
+3 Milk, Diaper, Beer, Coke  
+4 Bread, Milk, Diaper, Beer 
+5 Bread, Milk, Diaper, Coke  
+ 
+
+=== PDF PAGE 14 ===
+14
+Phát hiện luật kết hợp
+• Quá trình phát hiện luật kết hợp sẽ gồm 2 bước (2 giai đoạn) quan trọng:
+• Sinh ra các tập mục thường xuyên (frequent/large itemsets)
+• Sinh ra tất cả các tập mục có độ hỗ trợ  minsup
+• Sinh ra các luật kết hợp
+• Từ mỗi tập mục thường xuyên (thu được ở bước trên), sinh ra tất cả các luật có độ tin cậy cao (  minconf)
+• Mỗi luật là một phân tách nhị phân (phân tách thành 2 phần) của một tập mục thường xuyên
+• Bước sinh ra các tập mục thường xuyên (bước thứ 1) vẫn có chi phí tính toán quá cao!
+
+=== PDF PAGE 15 ===
+15
+Lattice biểu diễn các tập mục cần xét
+Với d mục, thì phải xét đến 2d các tập mục có thể!
+null
+AB AC AD AE BC BD BE CD CE DE
+A B C D E
+ABC ABD ABE ACD ACE ADE BCD BCE BDE CDE
+ABCD ABCE ABDE ACDE BCDE
+ABCDE
+
+=== PDF PAGE 16 ===
+16
+Sinh ra các tập mục thường xuyên
+• Phương pháp vét cạn (Brute-force)
+• Mỗi tập mục trong lattice đều được xét
+• Tính độ hỗ trợ của mỗi tập mục, bằng cách duyệt qua tất cả các giao dịch
+• Với mỗi giao dịch, so sánh nó với mỗi tập mục được xét
+• Độ phức tạp ~ O(N.M.w)
+• Với M = 2d, thì độ phức tạp này là quá lớn!
+TID Items 
+1 Bread, Milk 
+2 Bread, Diaper, Beer, Eggs 
+3 Milk, Diaper, Beer, Coke 
+4 Bread, Milk, Diaper, Beer 
+5 Bread, Milk, Diaper, Coke 
+ 
+N
+Các tập 
+mục cần xét
+M
+w
+Các giao dịch
+
+=== PDF PAGE 17 ===
+17
+Các chiến lược sinh tập mục thường xuyên
+• Giảm bớt số lượng các tập mục cần xét  (M)
+• Tìm kiếm (xét) đầy đủ: M=2d
+• Sử dụng các kỹ thuật cắt tỉa (pruning) để giảm giá trị M
+• Giảm bớt số lượng các giao dịch cần xét  (N)
+• Giảm giá trị N, khi kích thước (số lượng các mục) của tập mục tăng lên
+• Giảm bớt số lượng các so sánh (matchings/comparisons) giữa các tập mục và các giao dịch  (N.M)
+• Sử dụng các cấu trúc dữ liệu phù hợp (hiệu quả) để lưu các tập mục cần xét hoặc các giao dịch
+• Không cần phải so sánh mỗi tập mục với mỗi giao dịch
+
+=== PDF PAGE 18 ===
+18
+Giảm bớt số lượng các tập mục cần xét
+• Nguyên tắc của giải thuật Apriori – Loại bỏ (prunning) dựa trên độ hỗ trợ
+• Nếu một tập mục là thường xuyên, thì tất cả các tập con (subsets) của nó đều là các tập mục thường xuyên
+• Nếu một tập mục là không thường xuyên (not frequent), thì tất cả các tập cha (supersets) của nó đều là các 
+tập mục không thường xuyên
+• Nguyên tắc của giải thuật Apriori dựa trên đặc tính không đơn điệu (anti-monotone) của độ hỗ trợ
+• Độ hỗ trợ của một tập mục nhỏ hơn độ hỗ trợ của các tập con của nó
+)()()(:, YsXsYXYX 
+
+=== PDF PAGE 19 ===
+19
+Apriori: Loại bỏ dựa trên độ hỗ trợ
+Tập mục 
+không 
+thường 
+xuyên
+null
+AB AC AD AE BC BD BE CD CE DE
+A B C D E
+ABC ABD ABE ACD ACE ADE BCD BCE BDE CDE
+ABCD ABCE ABDE ACDE BCDE
+ABCDE
+null
+AB AC AD AE BC BD BE CD CE DE
+A B C D E
+ABC ABD ABE ACD ACE ADE BCD BCE BDE CDE
+ABCD ABCE ABDE ACDE BCDE
+ABCDE
+Các tập cha của tập 
+mục đó (AB) bị loại bỏ
+
+=== PDF PAGE 20 ===
+20
+Apriori: Loại bỏ dựa trên độ hỗ trợ
+Item Count
+Bread 4
+Coke 2
+Milk 4
+Beer 3
+Diaper 4
+Eggs 1
+Itemset Count
+{Bread,Milk} 3
+{Bread,Beer} 2
+{Bread,Diaper} 3
+{Milk,Beer} 2
+{Milk,Diaper} 3
+{Beer,Diaper} 3
+Itemset Count 
+{Bread,Milk,Diaper} 3 
+ 
+Các tập mục mức 1 (1-itemsets)
+Các tập mục mức 2 (2-
+itemsets)
+(Không cần xét các tập 
+mục có chứa mục Coke
+hoặc Eggs)
+Các tập mục mức 3 
+(3-itemsets)
+minsup = 3
+•Nếu xét tất cả các tập mục có thể:
+ 6C1 + 6C2 + 6C3 = 41
+•Với cơ chế loại bỏ dựa trên độ hỗ trợ:
+ 6 + 6 + 1 = 13
+
+=== PDF PAGE 21 ===
+21
+Giải thuật Apriori
+• Sinh ra tất cả các tập mục thường xuyên mức 1 (frequent 1-itemsets): các tập mục thường xuyên 
+chỉ chứa 1 mục
+• Gán k = 1
+• Lặp lại, cho đến khi không có thêm bất kỳ tập mục thường xuyên nào mới
+• Từ các tập mục thường xuyên mức k (chứa k mục), sinh ra các tập mục mức (k+1) cần xét
+• Loại bỏ các tập mục mức (k+1) chứa các tập con là các tập mục không thường xuyên mức k
+• Tính độ hỗ trợ của mỗi tập mục mức (k+1), bằng cách duyệt qua tất cả các giao dịch
+• Loại bỏ các tập mục không thường xuyên mức (k+1)
+• Thu được các tập mục thường xuyên mức (k+1)
+
+=== PDF PAGE 22 ===
+22
+Sinh ra các luật kết hợp (1)
+• Với mỗi tập mục thường xuyên L, cần tìm tất cả các tập con khác rỗng f  L sao cho:  f → {L \ f}  
+thỏa mãn điều kiện về độ tin cậy tối thiểu
+• Vd:  Với tập mục thường xuyên {A,B,C,D}, các luật cần xét gồm có:
+ABC → D, ABD → C, ACD → B, BCD → A, 
+A → BCD, B → ACD,C → ABD, D → ABC
+AB → CD, AC → BD, AD → BC, BC → AD, 
+BD → AC, CD → AB,
+• Nếu |L| = k, thì sẽ phải xét (2k – 2) các luật kết hợp có thể (bỏ qua 2 luật:  L →  và   → L)
+
+=== PDF PAGE 23 ===
+23
+Sinh ra các luật kết hợp (2)
+• Làm thế nào để sinh ra các luật từ các tập mục thường xuyên, một cách có hiệu quả?
+• Xét tổng quát, độ tin cậy không có đặc tính không đơn điệu (anti-monotone)
+c(ABC → D)  có thể lớn hơn hoặc nhỏ hơn  c(AB → D)
+• Nhưng, độ tin cậy của các luật được sinh ra từ cùng một tập mục thường xuyên thì lại có đặc tính 
+không đơn điệu
+• Ví dụ:  Với L = {A,B,C,D}:
+c(ABC → D)  c(AB → CD)  c(A → BCD) 
+• Độ tin cậy có đặc tính không đơn điệu đối với số lượng các mục ở vế phải của luật
+
+=== PDF PAGE 24 ===
+24
+Apriori:  Sinh ra các luật (1)
+ABCD=>{ }
+BCD=>A ACD=>B ABD=>C ABC=>D
+BC=>ADBD=>ACCD=>AB AD=>BC AC=>BD AB=>CD
+D=>ABC C=>ABD B=>ACD A=>BCD
+Lattice của các luật
+ABCD=>{ }
+BCD=>A ACD=>B ABD=>C ABC=>D
+BC=>ADBD=>ACCD=>AB AD=>BC AC=>BD AB=>CD
+D=>ABC C=>ABD B=>ACD A=>BCD
+Các luật 
+bị loại bỏ
+Luật có độ 
+tin cậy thấp
+
+=== PDF PAGE 25 ===
+25
+Apriori:  Sinh ra các luật (2)
+• Các luật cần xét được sinh ra bằng cách kết hợp 2 luật có cùng tiền tố (phần bắt đầu) của phần kết
+luận
+(rule consequent)
+• Ví dụ:  Kết hợp 2 luật
+(CD → AB, BD → AC)
+sẽ sinh ra luật cần xét
+D → ABC
+• Loại bỏ luật D → ABC  nếu bất kỳ một
+luật con của nó (AD → BC,  BCD → A, …) không có độ tin cậy cao (< minconf)
+BD → ACCD → AB
+D → ABC
+
+=== PDF PAGE 26 ===
+26
+3. Tiếp cận dựa trên RNN
+• Recurrent Neural Networks chuyên dùng cho dữ liệu dạng chuỗi.
+• Ví dụ: Chuỗi: x1 -> x2 -> x3 -> x4 -> x5 -> x6
+• Mỗi phần tử của chuỗi nằm ở một bước thời gian (time step) khác nhau và có quan hệ về mặt thứ
+tự với nhau
+• Mô hình hóa quan hệ thứ tự giữa các phần tử trong chuỗi
+=> Có thể áp dụng cho hệ gợi ý với chuỗi các items trong session
+
+=== PDF PAGE 27 ===
+27
+Mạng hồi quy (Recurrent Neural Networks)
+❑ Cấu trúc chung của RNNs:
+❑𝑥𝑡: item thứ t, 𝑜𝑡: item dự đoán tiếp theo
+ℎ𝑡= 𝐹(𝑊ℎ𝑡−1+ 𝑈𝑥𝑡)
+𝑜𝑡= 𝐺(𝑉ℎ𝑡) 
+
+=== PDF PAGE 28 ===
+28
+Mạng hồi quy (Recurrent Neural Networks)
+• Sử dụng mạng RNN để gợi ý item tiếp theo
+• Hàm Loss tại t dựa trên BPR:
+• 𝐿𝑡 = −
+1
+𝑁𝑠
+σ𝑗=1
+𝑁𝑠 𝐿𝑜𝑔(𝑠𝑖𝑔𝑚𝑜𝑖𝑑(𝑜𝑡,𝑖 − 𝑜𝑡,𝑗))
+Trong đó: i là item được tương tác tiếp theo, Ns là số negative samples j
+• RNN gặp vấn đề khi làm việc với chuỗi dài:
+• Do vanishing hoặc exploding gradient 
+• LTSM và GRU giúp giảm bớt ảnh hưởng này
+
+=== PDF PAGE 29 ===
+29
+Long Short-Term Memory
+▪ Bao gồm các cổng để điều khiển luồng thông tin đi qua qua LSTM
+▪ Thông tin được lưu trữ trong Memory cell (MC) Ct 
+▪ LSTM cell gồm 3 cổng:
+> Forget gate: “quên” thông-tin-trong-MC-từ-timestep-trước, Ct-1
+> Input gate: “lưu trữ” vào MC thông-tin-từ-timestep-hiện-tại, ෩Ct
+> Output gate: “trích xuất” thông tin từ MC để đưa ra ht
+
+=== PDF PAGE 30 ===
+30
+Long Short-Term Memory
+❑ Forget gate: 
+> thông-tin-trong-MC-từ-timestep-trước Ct-1 
+> “quên” Ct-1 nhiều hay ít ?
+
+
+=== PDF PAGE 31 ===
+31
+Long Short-Term Memory
+❑ Forget gate: 
+> thông-tin-trong-MC-từ-timestep-trước Ct-1 
+> “quên” Ct-1 nhiều hay ít ?
+𝑓𝑡 ∈ 0,1
+
+=== PDF PAGE 32 ===
+32
+Long Short-Term Memory
+❑ Forget gate: 
+> thông-tin-trong-MC-từ-timestep-trước Ct-1 
+> “quên” Ct-1 nhiều hay ít ?
+𝑓𝑡 ∈ 0,1
+Thông tin đi qua forget gate:
+𝑓𝑡  ∗ 𝐶𝑡−1
+
+=== PDF PAGE 33 ===
+33
+Long Short-Term Memory
+❑ Input gate: 
+> dữ liệu từ timestep hiện tại xt 
+> thông-tin-từ-xt-muốn-cho-vào-MC là ෩Ct, lấy bao nhiêu ?
+
+
+=== PDF PAGE 34 ===
+34
+Long Short-Term Memory
+❑ Input gate: 
+> dữ liệu từ timestep hiện tại xt 
+> thông-tin-từ-xt-muốn-cho-vào-MC là ෩Ct, lấy bao nhiêu ?
+
+
+=== PDF PAGE 35 ===
+35
+Long Short-Term Memory
+❑ Input gate: 
+> dữ liệu từ timestep hiện tại xt 
+> thông-tin-từ-xt-muốn-cho-vào-MC là ෩Ct, lấy bao nhiêu ?
+Thông tin đi qua input gate:
+𝑖𝑡  ∗ ෩𝐶𝑡
+
+=== PDF PAGE 36 ===
+36
+Long Short-Term Memory
+❑ Tổng hợp thông tin:
+• > Thông tin đi qua forget gate: 𝑓𝑡 ∗ 𝐶𝑡−1
+• > Thông tin đi qua input gate:   𝑖𝑡 ∗ ෩𝐶𝑡
+
+
+=== PDF PAGE 37 ===
+37
+Long Short-Term Memory
+❑ Output gate: 
+> “trích xuất” thông tin từ MC, ht 
+> thông tin được trích xuất trước đó, ht-1
+
+
+=== PDF PAGE 38 ===
+38
+Long Short-Term Memory
+❑ Output gate: 
+> “trích xuất” thông tin từ MC, ht 
+> thông tin được trích xuất trước đó, ht-1
+
+
+=== PDF PAGE 39 ===
+39
+Long Short-Term Memory
+❑ Nhận xét:
+> Memory cell có tác dụng là vật chứa thông tin nội bộ (Ct),  được tích lũy qua các timesteps cho tới
+thời điểm t
+> Output gate đưa ra ht , điều khiển việc trích xuất thông tin từ Memory cell
+
+
+=== PDF PAGE 40 ===
+40
+Long Short-Term Memory
+❑ Nhận xét:
+> Memory cell có tác dụng là vật chứa thông tin nội bộ (Ct), 
+được tích lũy qua các timesteps cho tới thời điểm t
+> Output gate đưa ra ht , điều khiển việc trích xuất
+thông tin từ Memory cell
+> C và h là 2 vector có cùng kích thước -> LSTM cell size (lstm size)
+
+
+=== PDF PAGE 41 ===
+41
+Long Short-Term Memory
+❑ Cách sử dụng LSTM:  
+> cần có trạng thái khởi đầu h(0) 
+> trong LSTM, memory cell cũng cần có
+trạng thái khởi C(0)
+
+
+=== PDF PAGE 42 ===
+42
+Một số mở rộng: SaSRec và Bert4rec
+
+
+=== PDF PAGE 43 ===
+43
+Kết luận
+• Gợi ý dựa trên phiên được sử dụng khi khó định danh user và quan tâm đến các sở thích ngắn hạn
+• 3 cách tiếp cận phổ biến: 
+• Dựa trên độ đo tương đồng item-to-item trong phiên
+• Dựa trên tập mục thường xuyên
+• Dựa trên mạng RNN
+
+=== PDF PAGE 44 ===
+THANK YOU !
+44

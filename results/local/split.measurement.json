@@ -1,0 +1,13 @@
+{
+  "label": "split",
+  "args": [
+    "data",
+    "split",
+    "--config",
+    "configs/split.yaml"
+  ],
+  "exit_code": 0,
+  "seconds": 1.3026501999993343,
+  "sampled_peak_rss_bytes": 250871808,
+  "peak_sampling_interval_seconds": 0.2
+}

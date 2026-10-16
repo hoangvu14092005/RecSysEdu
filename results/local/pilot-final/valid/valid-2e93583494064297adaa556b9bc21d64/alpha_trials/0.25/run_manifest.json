@@ -1,0 +1,68 @@
+{
+  "run_id": "valid-2e93583494064297adaa556b9bc21d64-f2923f6547fb494fbeb4ba736da8b460",
+  "model_id": "hybrid",
+  "dataset_hash": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+  "split_hash": "7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617",
+  "protocol_id": "leave_last_two_out_v1",
+  "seed": 17,
+  "schema_version": 1,
+  "evaluation_split": "valid",
+  "k": 10,
+  "primary_metric": "NDCG@10",
+  "metrics": {
+    "NDCG@10": 0.10850833307518327,
+    "HitRate@10": 0.17822181854879401,
+    "Recall@10": 0.17822181854879401,
+    "Precision@10": 0.017822181854878823,
+    "Coverage@10": 0.8364269141531323
+  },
+  "cohort_size": 9909,
+  "candidate_universe_size": 2586,
+  "short_list_user_count": 0,
+  "cold_target_count": 56,
+  "fallback_counts": {
+    "none": 9909
+  },
+  "candidate_policy": "full_train_universe",
+  "profile_policy": "train_only",
+  "seen_policy": "train",
+  "tie_break_policy": "score_desc_course_id_asc",
+  "history_mode": "offline",
+  "metric_status": "measured",
+  "duration_seconds": 256.36451719999604,
+  "split_manifest_hash": "bd20e5177753ab99971c7892072d236fbf0035153d50001328f0321eba1881a1",
+  "output_hashes": {
+    "metrics.csv": "0254e0e3cf17500d2609a02044931bdd2a501ee507cea71a357924b0ad5482ce",
+    "per_user_metrics.parquet": "6b98b6250404287e604a91be6d2bed45c8342be083eafda7501ec4776136504a",
+    "recommendations.jsonl": "fab3d6bbee855c38e174eb76ca5d4470b85f8a7a5d844574aa0fd361be978a7d"
+  },
+  "limitations": [
+    "Per-user temporal split allows cross-user future interactions in train.",
+    "Static catalog has no time-dependent course availability.",
+    "Offline enrollment ranking does not measure mastery or learning gain."
+  ],
+  "config_hash": "7e895cc5d88e203cf20c597c6ff349d16b5266910d148108ca4a3f1c22f603cc",
+  "model_config": {
+    "alpha": 0.25,
+    "components": {
+      "bpr": "e081969efc358d1d5af2bbc54c17d3de403f31515ce4cf0b7dbb9d0fadfdd101",
+      "content": "d265b4be73db3806d64b229490658c321ff7c3fd6b72afdba52d805d5853d6f1"
+    }
+  },
+  "model_config_hash": "145c6a6215b8877c02242a5b9192387b5148389ec52f353be946ba5518066755",
+  "git_revision": "e101b67b0911c0674b364fcc1e7a5bb1b6673645",
+  "git_status": "revision_available",
+  "git_dirty": true,
+  "versions": {
+    "python": "3.10.11",
+    "numpy": "1.26.4",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.7.2",
+    "pyarrow": "25.0.1"
+  },
+  "experiment_id": "valid-2e93583494064297adaa556b9bc21d64",
+  "component_hashes": {
+    "bpr": "e081969efc358d1d5af2bbc54c17d3de403f31515ce4cf0b7dbb9d0fadfdd101",
+    "content": "d265b4be73db3806d64b229490658c321ff7c3fd6b72afdba52d805d5853d6f1"
+  }
+}

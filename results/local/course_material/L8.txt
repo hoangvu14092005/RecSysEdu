@@ -1,0 +1,481 @@
+=== PDF PAGE 1 ===
+
+
+=== PDF PAGE 2 ===
+HỆ GỢI Ý
+(IT4613)
+
+=== PDF PAGE 3 ===
+3
+HỆ GỢI Ý
+ĐÁNH GIÁ HỆ THỐNG GỢI Ý
+
+
+=== PDF PAGE 4 ===
+4
+Nội dung môn học
+• Giới thiệu về Hệ gợi ý
+• Gợi ý dựa trên lọc cộng tác: Cơ bản và Các kỹ thuật nâng cao
+• Gợi ý dựa trên nội dung
+• Gợi ý dựa trên tri thức
+• Gợi ý dựa trên phiên
+• Kết hợp các kỹ thuật gợi ý 
+• Đánh giá hiệu quả đối với hệ gợi ý
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Bài toán gợi ý tin tức
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Học tương phản
+
+=== PDF PAGE 5 ===
+5
+Đánh giá hệ gợi ý
+• Có vô số kỹ thuật được đề xuất, nhưng:
+• Cái nào tốt nhất trong một miền ứng dụng cụ thể?
+• Các yếu tố thành công của các kỹ thuật là gì?
+• Phân tích so sánh dựa trên một số tiêu chí tối ưu?
+• Câu hỏi nghiên cứu là:
+• Liệu hệ gợi ý có thỏa mãn một số tiêu chí nhất định như: độ chính xác (acc), sự hài lòng của người dùng, 
+thời gian phản hồi, khả năng tìm kiếm, chuyển đổi trực tuyến, nỗ lực tăng cường, ...
+• Liệu khách hàng có thích/ mua sản phẩm được gợi ý?
+• Liệu khách hàng có mua những sản phẩm mà họ vốn không định mua?
+• Liệu họ có hài lòng với đề xuất sau khi mua hàng?
+
+=== PDF PAGE 6 ===
+6
+Nghiên cứu thực nghiệm
+• Các đặc trưng:
+• Đối tượng của nghiên cứu là ai?
+• Phương pháp nghiên cứu được áp dụng?
+• Bối cảnh thực hiện nghiên cứu?
+Đối tượng Khách hàng online, học sinh - sinh viên, 
+phiên online, máy tính, …
+Phương pháp nghiên
+cứu
+Nghiên cứu thực nghiệm, bán thực nghiệm, 
+phi thực nghiệm
+Bối cảnh Phòng thí nghiệm, thế giới thật (thực tế)
+
+=== PDF PAGE 7 ===
+7
+Thiết kế thử nghiệm
+
+
+=== PDF PAGE 8 ===
+8
+Đánh giá trong việc truy xuất thông tin
+• Ground truth được thiết lập bởi chuyên gia
+Reality
+Actually Good Actually Bad
+Prediction
+Rated 
+Good
+True Positive (tp) False Positive (fp)
+Rated 
+Bad
+False Negative (fn) True Negative (tn)
+Tất cả items tốt
+Tất cả các items được 
+gợi ý
+
+=== PDF PAGE 9 ===
+9
+Các độ đo: Precision và Recall
+• Đề xuất được xem như một công việc truy xuất thông tin
+• Truy xuất (gợi ý) tất cả items được sự đoán là "tốt".
+• Precision: thước đo tính chính xác, xác định tỉ lệ phần có liên quan được truy xuất trên tổng số được
+truy xuất.
+• VD. Tỷ lệ các bộ phim được đề xuất là thực sự được quan tâm
+• Recall: thước đo tính đẩy đủ, xác định tỉ lệ phần có liên quan được truy xuất trên tổng số có liên
+quan.
+• VD. Tỷ lệ các bộ phim tốt được đề xuất.
+
+
+=== PDF PAGE 10 ===
+10
+Precision vs. Recall
+• E.g. Thường khi hệ gợi ý được điều chỉnh để tăng precision, recall sẽ giảm (hoặc ngược lại).
+
+=== PDF PAGE 11 ===
+11
+Độ đo F1
+• F1 Cố gắng kết hợp Precision và Recall thành một giá trị duy nhất để so sánh.
+• Có thể được sử dụng để có cái nhìn cân bằng hơn về hiệu suất.
+• F1 đặt trọng số tương đương cho precision và recall
+• Một độ đo khác là Fβ đặt trọng số của recall với hệ số là β.
+
+
+=== PDF PAGE 12 ===
+12
+RECALL trong gợi ý
+• Hiện nay các độ đo RECALL mới được định nghĩa và được sử dụng phổ biến hơn trong hệ gợi ý:
+• 𝐾: Số lượng items (top-K items) mà hệ thống gợi ý cho user u
+• 𝑇𝑃𝑢: Số lượng items mà thực sự phù hợp cho user u trong top-K items được hệ thống  gợi ý
+• 𝑃𝑢: Số lượng Items phù hợp của user u trong tập test
+• 𝑅𝐸𝐶𝐴𝐿𝐿 =
+1
+𝑈 σ𝑢=1
+𝑈 𝑇𝑃𝑢
+min{𝑃𝑢,𝐾}
+
+=== PDF PAGE 13 ===
+13
+AUC (Area Under The Curve)
+
+
+=== PDF PAGE 14 ===
+14
+AUC (Area Under The Curve)
+• TPR (True Positive Rate) / Recall /Sensitivity
+• Specificity
+Specificity=
+𝑻𝑵
+𝑻𝑵+𝑭𝑷
+• FPR (False Positive Rate)
+FPR = 1- Specificity=
+𝑭𝑷
+𝑻𝑵+𝑭𝑷
+𝑹𝒆𝒄𝒂𝒍𝒍 = 𝑻𝑷
+𝑻𝑷 + 𝑭𝑵
+
+=== PDF PAGE 15 ===
+15
+AUC (Area Under The Curve)
+
+
+=== PDF PAGE 16 ===
+16
+AUC (Area Under The Curve)
+
+
+=== PDF PAGE 17 ===
+17
+MRR: Mean Reciprocal Rank
+• Trong đó: 𝑘𝑢là vị trí đầu tiên của relevant item trong danh sách gợi ý
+
+
+=== PDF PAGE 18 ===
+18
+Độ đo: Rank position matters
+• Rank metrics mở rộng recall và precision để lấy được vị trí của các items đúng trong một list được
+xếp hạng.
+• Các mục có liên quan sẽ hữu ích hơn khi chúng xuất hiện sớm hơn trong danh sách đề xuất
+• Đặc biệt quan trọng trong hệ gợi ý vì các items được xếp hạng thấp hơn có thể bị người dùng bỏ qua
+Actually good
+Item 237
+Item 899
+Recommended 
+(predicted as good)
+Item 345
+Item 237
+Item 187
+Cho một người dùng:
+hit
+
+=== PDF PAGE 19 ===
+19
+Độ đo: Rank Score
+• Rank Score mở rộng độ đo recall để lấy được vị trí của các items đúng trong một danh sách đã được
+xếp hạng
+• Rank Score được định nghĩa là tỉ lệ giữa Rank Score của items đúng và Rank Score lý thuyết tốt nhất
+có thể đạt được bởi người dùng. Tức là:
+Trong đó:
+• h: tập các items được gợi ý đúng, tức là "hit".
+• rank: trả về vị trí xếp hạng của item
+• T: tập tất cả các items được quan tâm.
+• α: ranking half life, tức là giảm theo cấp số nhân
+maxrankscore
+rankscorerankscore
+p
+=
+
+
+−−
+=
+hi
+irank
+prankscore 
+1)(
+2
+
+=
+−−
+=
+||
+1
+1
+max 2
+T
+i
+i
+rankscore 
+
+=== PDF PAGE 20 ===
+20
+Độ đo: Liftindex
+• Giả sử danh sách xếp hạng được chia thành 10 phần bằng nhau Si, trong đó:
+• Hệ số giảm tuyến tính.
+• Liftindex:
+• h is the set of correct hits
+ = =
+10
+1 ||i i hS
+
+
+
+
+
+
+ +++
+=
+ =
+else
+hif
+S
+SSS
+liftindex
+i i
+:0
+0||:1.0...9.01
+10
+1
+1021
+
+=== PDF PAGE 21 ===
+21
+Độ đo: Normalized Discounted Cumulative Gain
+• Discounted cumulative gain (DCG)
+• 𝐷𝐶𝐺𝐾 = σ𝑖=1
+𝐾 𝑟𝑒𝑙𝑖
+𝑙𝑜𝑔2(𝑖+1)
+• Idealized discounted cumulative gain (IDCG)
+• Giả sử các items được sắp xếp theo thứ tự liên quan giảm dần.
+• 𝐼𝐷𝐶𝐺𝐾 = σ𝑖=1
+ℎ 1
+𝑙𝑜𝑔2(𝑖+1) với h là số lượng items được gợi ý đúng
+• Normalized discounted cumulative gain (nDCG)
+• Chuẩn hóa về đoạn [0..1]
+• 𝑛𝐺𝐶𝐺𝐾 =
+𝐷𝐶𝐺𝐾
+𝐼𝐷𝐶𝐺𝐾
+Trong đó:
+• K: số lượng top-K items được đưa ra gợi ý
+• reli: Vị trí i có được gợi ý đúng hay không (reli =1 nếu item ở vị trí 
+i được gợi ý phù hợp, = 0 nếu ko phù hợp) 
+
+=== PDF PAGE 22 ===
+22
+Ví dụ
+• Các giả định:
+• |T| = 3
+• Ranking half life (alpha) = 2
+Rank Hit?
+1
+2 X
+3 X
+4 X
+5
+6.03
+14.016.018.0 =++=liftindex
+56.1
+2
+1
+2
+1
+2
+1
+2
+14
+2
+13
+2
+12 =++= −−−prankscore
+21.2
+2
+1
+2
+1
+2
+1
+2
+13
+2
+12
+2
+11max =++= −−−rankscore
+71.0
+max
+= rankscore
+rankscorerankscore
+p 𝐷𝐶𝐺5 = 1
+log2(2 + 𝟏) + 1
+log2( 3 + 𝟏) + 1
+log2(4 + 𝟏) = 𝟏. 𝟓𝟔
+𝐼𝐷𝐶𝐺5 = 1
+log2(𝟏 + 𝟏) + 1
+log2(𝟏 + 𝟐) + 1
+log2(𝟏 + 𝟑) = 𝟐. 𝟏𝟑
+𝑛𝐷𝐶𝐺5 = 𝐷𝐶𝐺5
+𝐼𝐷𝐶𝐺5
+≈ 0. 𝟕𝟑
+
+=== PDF PAGE 23 ===
+23
+Ví dụ (tiếp)
+• Giảm ranking half life (alpha) = 1
+Rankscore (exponential reduction) < Liftscore (linear red.) < NDCG (log. red.)
+Rank Hit?
+1
+2 X
+3 X
+4 X
+5
+875.0
+2
+1
+2
+1
+2
+1
+1
+14
+1
+13
+1
+12 =++= −−−prankscore
+75.1
+2
+1
+2
+1
+2
+1
+1
+13
+1
+12
+1
+11max =++= −−−rankscore
+5.0
+max
+== rankscore
+rankscorerankscore
+p
+
+=== PDF PAGE 24 ===
+24
+Average Precision
+▪ Average Precision (AP) là chỉ số precision được xếp hạng tập trung vào các dự đoán chính xác được
+xếp hạng cao (hits)
+▪ Đó là trung bình của các giá trị precision được xác định sau mỗi lần dự đoán thành công, cụ thể:
+Rank Hit?
+1 X
+2
+3
+4 X
+5 X
+Rank Hit?
+1
+2 X
+3 X
+4 X
+5
+
+
+=== PDF PAGE 25 ===
+25
+MAP: Average Precision and Mean Average Precision
+
+
+=== PDF PAGE 26 ===
+26
+Đánh giá trong hệ gợi ý
+• Các tập dữ liệu với items được đánh giá bởi users
+• MovieLens datasets 100K-10M ratings
+• Netflix 100M ratings
+• Xếp hạng của người dùng trong quá khứ tạo thành ground truth
+• Các chỉ số đo tỉ lệ lỗi
+• Mean Absolute Error (MAE) tính độ chênh lệch giữa xếp hạng dự đoán và xếp hạng thực tế
+• Root Mean Square Error (RMSE) tương tự như MAE, ...
+
+=
+−=
+n
+i
+ii rpnRMSE
+1
+2)(1
+
+=
+−=
+n
+i
+ii rpnMAE
+1
+||1
+
+=== PDF PAGE 27 ===
+27
+Sự thưa của dữ liệu
+• Natural datasets include historical interaction records of real users
+• Explicit user ratings
+• Datasets extracted from web server logs (implicit user feedback)
+• Sparsity of a dataset is derived from ratio of empty and total entries in the user-item matrix:
+• Sparsity = 1 − 𝑅 / 𝐼 ∙ 𝑈
+• 𝑅 = ratings
+• 𝐼 = items
+• 𝑈 = users
+
+=== PDF PAGE 28 ===
+28
+Ví dụ
+• MAE = 0.46
+• RMSE = 0.75
+Removing line nr. 4
+• MAE = 0.29
+• RMSE = 0.42
+Removing lines 1,2,4,5
+• MAE = 0.1
+• RMSE = 0.13
+Nr. UserID MovieID Rating (ri) Prediction (pi) |pi-ri| (pi-ri)2
+1 1 134 5 4.5 0.5 0.25
+2 1 238 4 5 1 1
+3 1 312 5 5 0 0
+4 2 134 3 5 2 4
+5 2 767 5 4.5 0.5 0.25
+6 3 68 4 4.1 0.1 0.01
+7 3 212 4 3.9 0.1 0.01
+8 3 238 3 3 0 0
+9 4 68 4 4.2 0.2 0.04
+10 4 112 5 4.8 0.2 0.04
+4.6 5.6
+
+=== PDF PAGE 29 ===
+29
+Khó khăn trong việc xác định ground truth
+Offline experimentation Online experimentation
+Ratings, transactions Ratings, feedback
+Historic session (not all recommended items are rated) Live interaction (all recommended items are rated)
+Ratings of unrated items unknown, but interpreted as “bad” (default 
+assumption, user tend to rate only good items)
+“Good/bad” ratings  of not recommended items are unknown 
+If default assumption does not hold:
+True positives may be too small 
+False negatives may be too small
+False/true negatives cannot be determined
+Precision may increase 
+Recall may vary
+Precision ok
+Recall questionable
+▪ Các biện pháp IR thường xuyên được áp dụng, tuy nhiên:
+Kết quả thử nghiệm offline có khả năng dự đoán hạn chế hơn đối với hành vi của
+người dùng online.
+
+=== PDF PAGE 30 ===
+30
+Kết luận
+• Nhiều kịch bản và độ đo được đề xuất để đánh giá hệ gợi ý theo các khía cạnh khác nhau
+• Tùy theo khía cạnh muốn đánh giá sẽ lựa chọn độ phù hợp
+• Đánh giá offline và online vẫn còn khác nhau
+• Các chiến lược A/B testing nên được sử dụng để đánh giá trên một tập users nhất định
+
+=== PDF PAGE 31 ===
+THANK YOU !
+31

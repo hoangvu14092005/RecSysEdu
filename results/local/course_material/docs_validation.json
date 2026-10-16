@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "markdown_files": 22,
+  "internal_file_links": 176,
+  "pdf_sources": 11,
+  "source_pages": 367,
+  "visually_checked_pages": 9,
+  "schedule_days": 30,
+  "tasks": 14,
+  "metadata_verified": {
+    "courses": 3781,
+    "name_type_str": 3781,
+    "name_nonempty": 3781,
+    "name_cjk": 3398,
+    "about_type_str": 3779,
+    "about_nonempty": 3692,
+    "about_cjk": 3227,
+    "field_nonempty": 547,
+    "about_type_NoneType": 2
+  },
+  "errors": []
+}

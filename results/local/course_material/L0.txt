@@ -1,0 +1,131 @@
+=== PDF PAGE 1 ===
+
+
+=== PDF PAGE 2 ===
+HỆ GỢI Ý
+(IT4613)
+
+=== PDF PAGE 3 ===
+3
+HỆ GỢI Ý
+GIỚI THIỆU MÔN HỌC 
+
+
+=== PDF PAGE 4 ===
+Hệ gợi ý – IT 4613 4
+Cấu trúc môn học
+• Số tuần:  16
+• Lý thuyết: 13 tuần
+• Sinh viên trình bày đồ án môn học: 03 tuần
+• Thời gian và địa điểm
+• Lớp:   
+• Website cá nhân: https://users.soict.hust.edu.vn/linhnv/
+Thời gian gặp sinh viên
+• Hẹn trước qua e-mail
+• DS Lab - Bộ môn Hệ thống thông tin, Viện CNTT&TT (Nhà B1, Phòng 706)
+
+=== PDF PAGE 5 ===
+Hệ gợi ý – IT 4613 5
+Nội dung môn học
+• Giới thiệu về Hệ gợi ý
+• Gợi ý dựa trên lọc cộng tác: Cơ bản và Các kỹ thuật nâng cao
+• Gợi ý dựa trên nội dung 
+• Gợi ý dựa trên tri thức
+• Gợi ý dựa trên phiên
+• Kết hợp các kỹ thuật gợi ý 
+• Đánh giá hiệu quả đối với hệ gợi ý
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Bài toán gợi ý tin tức
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Học tương phản
+
+=== PDF PAGE 6 ===
+Hệ gợi ý – IT 4613 6
+Mục tiêu của môn học
+Giúp sinh viên có kiến thức và hiểu biết về:
+• Nắm vững các khái niệm và kỹ thuật cơ bản của Hệ gợi ý
+• Có khả năng biểu diễn và mô hình hóa bài toán gợi ý
+• Biết cách áp dụng các kỹ thuật gợi ý vào việc giải quyết bài toán thực tế
+• Hiểu được các vấn đề nâng cao của Hệ gợi ý (gợi  ý phiên, gợi ý theo ngữ cảnh, sử dụng các kiến 
+trúc học sâu trong gợi ý cho các hệ thống thực tế)
+• Hiểu được các vấn đề nâng cao của Hệ gợi ý
+• Áp dụng các kiến thức đã học để xây dựng Hệ gợi ý giải quyết bài toán thực tế (thông qua Đồ án 
+môn học được làm theo nhóm)
+• Có khả năng lựa chọn bài toán gợi ý trong thực tế, phân tích yêu cầu của bài toán gợi ý, và lựa chọn giải 
+pháp giải quyết bài toán gợi ý
+• Có khả năng triển khai xây dựng Hệ gợi ý giải quyết bài toán thực tế
+• Rèn luyện các kỹ năng làm việc nhóm, viết báo cáo và thuyết trình
+
+=== PDF PAGE 7 ===
+Hệ gợi ý – IT 4613 7
+Đánh giá
+• Đồ án môn học (P):  Tối đa 10 điểm
+• Mỗi đồ án được thực hiện bởi một nhóm gồm 2-4 sinh viên
+• (Tự do) chọn một trong số các đề tài hệ gợi ý
+• Xây dựng hệ thống thử nghiệm (a prototypical system)
+• Thi viết (E):  Tối đa 10 điểm
+• Điểm môn học (G)
+• G = 0,5 x P + 0,5 x E
+
+=== PDF PAGE 8 ===
+Hệ gợi ý – IT 4613 8
+Đồ án môn học – Đề xuất đề tài
+• Tự do đề cử một bài toán thực tế cần giải quyết – phù hợp để áp dụng các kỹ thuật và phương pháp 
+trong Hệ gợi ý
+• Đề xuất đề tài (lưu trong file PDF) phải được diễn giải cụ thể
+• Dài khoảng 1 hoặc 2 trang
+• Mô tả bài toán thực tế sẽ được giải quyết (mục đích, yêu cầu, kịch bản ứng dụng, …)
+• Trình bày sơ lược (ý tưởng) về phương pháp (giải pháp) được dự định sẽ sử dụng để giải quyết bài toán
+• Trình bày các thông tin về đầu vào (input) và đầu ra (output) của hệ thống sẽ được cài đặt
+• Lớp trưởng tập hợp đề xuất và gửi qua email
+• Đề xuất đề tài của nhóm
+• Thông tin các thành viên của nhóm:  Tên, Mã số sinh viên, Email
+8
+
+=== PDF PAGE 9 ===
+Hệ gợi ý – IT 4613 9
+Đồ án môn học – Các yêu cầu
+• Kết quả của đồ án phải được trình bày ở cuối môn học
+Tất cả các thành viên phải tham gia vào việc thực hiện và trình bày đồ án
+• Báo cáo kết quả của đồ án bao gồm:
+• Mã nguồn (source codes): lưu trong một file nén
+• File hướng dẫn (readme file) mô tả chi tiết cách thức cài đặt/biên dịch/chạy chương trình (và các gói phần 
+mềm được sử dụng kèm theo)
+• Tài liệu báo cáo đồ án (lưu trong file PDF) mô tả các thông tin sau:
+- Giới thiệu và mô tả về bài toán thực tế được giải quyết
+- Các chi tiết của phương pháp được dùng để giải quyết bài toán
+- Các chức năng chính của hệ thống (và cách sử dụng)
+- Các phương pháp, gói phần mềm, dữ liệu,…có sẵn (của người khác) được sử dụng / khai thác trong công việc của đồ 
+án
+- Các vấn đề / khó khăn gặp phải trong quá trình thực hiện công việc của đồ án, và cách thức được dùng để giải quyết 
+(vượt qua)
+- Các tranh luận / khám phá / kết luận, và các đề cử cho việc tiếp tục phát triển và cải tiến trong tương lai
+9
+
+=== PDF PAGE 10 ===
+Hệ gợi ý – IT 4613 10
+Đồ án môn học – Đánh giá
+• Công việc đồ án được đánh giá theo các tiêu chí sau:
+• Mức độ phức tạp / khó khăn của bài toán thực tế được giải quyết
+• Chất lượng (sự đúng đắn và phù hợp) của phương pháp được dùng để giải quyết bài toán
+• Sự thỏa đáng của các tranh luận (nhận xét, đánh giá) đối với bài toán và phương pháp được sử dụng
+• Chất lượng của bài trình bày (presentation) kết quả đồ án
+• Chất lượng của tài liệu báo cáo kết quả đồ án
+• Cài đặt hệ thống thử nghiệm (các chức năng, dễ sử dụng, …)
+• Bài trình bày trong khoảng 15 phút, và phù hợp với những gì được nêu trong tài liệu báo cáo
+• Nếu sử dụng lại / kế thừa / khai thác các mã nguồn / các gói phần mềm / các công cụ sẵn có, thì 
+phải nêu rõ ràng và chính xác trong tài liệu báo cáo (và đề cập trong bài trình bày)
+10
+
+=== PDF PAGE 11 ===
+Hệ gợi ý – IT 4613 11
+Tài liệu học tập
+• Các bài giảng trên lớp (Lecture slides)
+• Sách tham khảo
+• Dietmar Jannach, Markus Zanker, Alexander Felfernig, Gerhard Friedrich (2010). Recommender Systems: An 
+Introduction. Cambridge University Press.
+• Francesco Ricci, Lior Rokach, Bracha Shapira, Paul B. Kantor (2015). Recommender Systems Handbook (2nd 
+edition). Springer.
+• Charu C. Aggarwal (2016). Recommender Systems: The Textbook. Springer
+
+=== PDF PAGE 12 ===
+THANK YOU !
+12

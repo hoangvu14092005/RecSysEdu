@@ -1,0 +1,409 @@
+# Review package: 31abf2b5166ef024707a54190f8ea6698a130946..a0f54456a52d00d0e69a200eb2292c8727e385a2
+
+## Commits
+a0f5445 feat: add hybrid course ranking
+
+## Files changed
+ configs/hybrid.yaml               |   6 ++
+ src/recsysedu/adapters/recbole.py |   6 +-
+ src/recsysedu/models/hybrid.py    | 154 +++++++++++++++++++++++++++++++++++
+ tests/test_hybrid.py              | 166 ++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 331 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/configs/hybrid.yaml b/configs/hybrid.yaml
+new file mode 100644
+index 0000000..cd43f10
+--- /dev/null
++++ b/configs/hybrid.yaml
+@@ -0,0 +1,6 @@
++# alpha weights BPR; (1 - alpha) weights Content. Select using validation only.
++alphas: [0, 0.25, 0.5, 0.75, 1]
++primary_metric: NDCG@10
++selection_split: valid
++normalization: per_user_full_candidates_minmax_constant_zero
++fallback: content_then_popularity_for_unknown_bpr_user
+diff --git a/src/recsysedu/adapters/recbole.py b/src/recsysedu/adapters/recbole.py
+index c85cf2e..b8025a0 100644
+--- a/src/recsysedu/adapters/recbole.py
++++ b/src/recsysedu/adapters/recbole.py
+@@ -92,20 +92,24 @@ def export_atomic_files(split_dir: Path, output_dir: Path) -> dict:
+                         benchmark_filename=list(names[:3]), split_hash=split_hash,
+                         dataset_hash=source['dataset_hash'], time_basis=source['time_basis'],
+                         split_manifest_sha256=_hash(manifest_path), row_counts=counts,
+                         candidate_ids=candidates,
+                         output_hashes={p.name: _hash(p) for p in sorted(dataset_dir.iterdir())})
+         _write_json(stage / 'export_manifest.json', manifest)
+         stage.rename(output_dir)
+     return manifest
+ 
+ 
++class UnknownBPRUserError(ValueError):
++    """BPR has no train embedding for the requested source user."""
++
++
+ @dataclass(frozen=True)
+ class BPRScorer:
+     """Dot products of the actual trained RecBole BPR embeddings, in source order.
+ 
+     Equivalent to BPR.predict in the pinned upstream source; avoids importing
+     Torch/RecBole in unit scoring and the UI. Padding and cold items are excluded.
+     """
+ 
+     user_embeddings: np.ndarray
+     item_embeddings: np.ndarray
+@@ -121,21 +125,21 @@ class BPRScorer:
+                    index <= 0 or index >= len(embeddings) for token, index in mapping.items()):
+                 raise ValueError('invalid source mapping or padding index')
+             if len(set(mapping.values())) != len(mapping):
+                 raise ValueError('duplicate internal IDs')
+         if self.user_embeddings.shape[1] != self.item_embeddings.shape[1]:
+             raise ValueError('BPR embedding dimensions differ')
+ 
+     def score(self, user_id: str, candidate_ids: Sequence[str]) -> ScoreResult:
+         candidates = tuple(candidate_ids)
+         if not _token(user_id) or user_id not in self.user_id_map:
+-            raise ValueError('unknown user or padding token')
++            raise UnknownBPRUserError('unknown user or padding token')
+         if (len(set(candidates)) != len(candidates)
+                 or any(not _token(item) or item not in self.item_id_map for item in candidates)):
+             raise ValueError('unknown, cold, duplicate or padding candidate IDs')
+         indices = [self.item_id_map[item] for item in candidates]
+         user = self.user_embeddings[self.user_id_map[user_id]]
+         scores = (self.item_embeddings[indices] * user).sum(axis=1)
+         return ScoreResult(candidates, scores)
+ 
+ 
+ def _build_train_loader(config, dataset, candidate_ids):
+diff --git a/src/recsysedu/models/hybrid.py b/src/recsysedu/models/hybrid.py
+new file mode 100644
+index 0000000..28b773d
+--- /dev/null
++++ b/src/recsysedu/models/hybrid.py
+@@ -0,0 +1,154 @@
++"""Validation-selected blend: alpha * BPR + (1 - alpha) * Content.
++
++Each component is min–max normalized over the supplied full candidate list,
++before the shared evaluator masks seen courses. No fitting or test access occurs here.
++"""
++
++from __future__ import annotations
++
++import hashlib
++import json
++import tempfile
++from dataclasses import dataclass
++from numbers import Real
++from pathlib import Path
++from typing import Mapping, Sequence
++
++import numpy as np
++
++from recsysedu.adapters.recbole import UnknownBPRUserError
++from recsysedu.contracts import Recommender, ScoreResult
++
++
++def _alpha(value: object) -> float:
++    if isinstance(value, (bool, np.bool_)) or not isinstance(value, Real):
++        raise ValueError('alpha must be a finite real number in [0, 1]')
++    result = float(value)
++    if not np.isfinite(result) or not 0 <= result <= 1:
++        raise ValueError('alpha must be a finite real number in [0, 1]')
++    return result
++
++
++def _aligned(result: ScoreResult, candidates: tuple[str, ...]) -> ScoreResult:
++    if not isinstance(result, ScoreResult) or result.course_ids != candidates:
++        raise ValueError('component scores must preserve candidate IDs and order')
++    # Revalidate at the component boundary, including length and finite numbers.
++    return ScoreResult(result.course_ids, result.scores, result.fallback_status, result.evidence)
++
++
++def _normalize(scores: np.ndarray) -> np.ndarray:
++    values = scores.astype(np.float64)
++    if not len(values) or values.max() == values.min():
++        return np.zeros(len(values), dtype=np.float64)
++    # Scale first to avoid overflow for finite values near float64 extremes.
++    scaled = values / np.abs(values).max()
++    return (scaled - scaled.min()) / (scaled.max() - scaled.min())
++
++
++@dataclass(frozen=True)
++class HybridModel:
++    content: Recommender
++    bpr: Recommender
++    alpha: float
++    popularity: Recommender
++
++    def __post_init__(self) -> None:
++        object.__setattr__(self, 'alpha', _alpha(self.alpha))
++
++    def score(self, user_id: str, candidate_ids: Sequence[str]) -> ScoreResult:
++        candidates = tuple(candidate_ids)
++        content = _aligned(self.content.score(user_id, candidates), candidates)
++        try:
++            bpr = _aligned(self.bpr.score(user_id, candidates), candidates)
++        except UnknownBPRUserError:
++            if content.fallback_status == 'none':
++                source, status = content, 'content_unknown_bpr_user'
++            else:
++                source = _aligned(self.popularity.score(user_id, candidates), candidates)
++                status = 'popularity_unknown_bpr_user_empty_content'
++            scores = _normalize(source.scores)
++            evidence = {item: tuple(source.evidence.get(item, ())) + (
++                f'hybrid_alpha:{self.alpha}', f'fallback:{status}') for item in candidates}
++            return ScoreResult(candidates, scores, status, evidence)
++        content_scores, bpr_scores = _normalize(content.scores), _normalize(bpr.scores)
++        scores = (1 - self.alpha) * content_scores + self.alpha * bpr_scores
++        status = 'none' if content.fallback_status == 'none' else f'content:{content.fallback_status}'
++        evidence = {item: tuple(dict.fromkeys(
++            tuple(content.evidence.get(item, ())) + tuple(bpr.evidence.get(item, ()))
++        )) + (f'hybrid_alpha:{self.alpha}',
++              f'content_normalized:{float(content_scores[index])}',
++              f'bpr_normalized:{float(bpr_scores[index])}')
++                    for index, item in enumerate(candidates)}
++        return ScoreResult(candidates, scores, status, evidence)
++
++
++def select_alpha(validation_runs: Mapping[float, Mapping], alphas: Sequence[float], *,
++                 artifact_path: Path | None = None) -> float:
++    """Select validation NDCG@10, breaking exact ties by smallest alpha.
++
++    `validation_runs` maps each requested alpha to the shared evaluator's run
++    manifest. All runs must be measured validation runs with compatible identity
++    and policy. Optional artifact_path records the decision and hashes of its inputs.
++    """
++    grid = tuple(_alpha(value) for value in alphas)
++    if not grid or len(set(grid)) != len(grid):
++        raise ValueError('alphas must be non-empty and unique')
++    if not isinstance(validation_runs, Mapping):
++        raise ValueError('validation_runs must map alpha to run manifests')
++    if any(isinstance(key, (bool, np.bool_)) for key in validation_runs):
++        raise ValueError('run alpha keys must be real numbers, not booleans')
++    if set(validation_runs) != set(grid):
++        raise ValueError('validation_runs must cover exactly the requested alphas')
++    compatible = ('dataset_hash', 'split_hash', 'protocol_id', 'seed', 'cohort_size',
++                  'candidate_universe_size', 'candidate_policy', 'profile_policy',
++                  'seen_policy', 'tie_break_policy')
++    baseline = None
++    rows = []
++    for alpha in sorted(grid):
++        run = validation_runs[alpha]
++        if not isinstance(run, Mapping):
++            raise ValueError('validation run must be a manifest mapping')
++        if (run.get('evaluation_split') != 'valid' or run.get('metric_status') != 'measured'
++                or run.get('k') != 10 or run.get('primary_metric') != 'NDCG@10'):
++            raise ValueError('alpha selection requires measured validation NDCG@10 runs')
++        if any(name not in run for name in compatible):
++            raise ValueError('validation run missing compatibility identity or policy')
++        identity = {name: run[name] for name in compatible}
++        if baseline is None:
++            baseline = identity
++        elif identity != baseline:
++            raise ValueError('validation runs have incompatible identity or policy')
++        run_id = run.get('run_id')
++        if not isinstance(run_id, str) or not run_id.strip():
++            raise ValueError('validation run missing run_id')
++        metrics = run.get('metrics')
++        ndcg = metrics.get('NDCG@10') if isinstance(metrics, Mapping) else None
++        if (isinstance(ndcg, (bool, np.bool_)) or not isinstance(ndcg, Real)
++                or not np.isfinite(ndcg) or not 0 <= ndcg <= 1):
++            raise ValueError('validation NDCG@10 must be finite and in [0, 1]')
++        encoded = json.dumps(dict(run), ensure_ascii=False, sort_keys=True,
++                             separators=(',', ':'), allow_nan=False).encode('utf-8')
++        rows.append(dict(alpha=alpha, run_id=run_id, ndcg=float(ndcg),
++                         manifest_hash=hashlib.sha256(encoded).hexdigest()))
++    winner = min(rows, key=lambda row: (-row['ndcg'], row['alpha']))
++    if artifact_path is not None:
++        output = Path(artifact_path)
++        if output.exists():
++            raise ValueError(f'selection artifact already exists: {output}')
++        report = dict(schema_version=1, evaluation_split='valid', primary_metric='NDCG@10',
++                      formula='alpha * normalized_bpr + (1 - alpha) * normalized_content',
++                      normalization='per_user_full_candidates_minmax_constant_zero',
++                      selected_alpha=winner['alpha'],
++                      selected_ndcg=winner['ndcg'], validation_runs=rows, **baseline)
++        # Ranking tie policy and selection tie policy describe different decisions.
++        report['ranking_tie_break_policy'] = report.pop('tie_break_policy')
++        report['selection_tie_break_policy'] = 'ndcg_desc_alpha_asc'
++        output.parent.mkdir(parents=True, exist_ok=True)
++        with tempfile.TemporaryDirectory(prefix='.hybrid-', dir=output.parent) as temporary:
++            stage = Path(temporary) / 'selection.json'
++            stage.write_text(json.dumps(report, ensure_ascii=False, indent=2,
++                                         allow_nan=False) + '\n', encoding='utf-8')
++            if output.exists():
++                raise ValueError(f'selection artifact already exists: {output}')
++            stage.rename(output)
++    return winner['alpha']
+diff --git a/tests/test_hybrid.py b/tests/test_hybrid.py
+new file mode 100644
+index 0000000..00c9125
+--- /dev/null
++++ b/tests/test_hybrid.py
+@@ -0,0 +1,166 @@
++import json
++
++import numpy as np
++import pandas as pd
++import pytest
++
++from recsysedu.adapters.recbole import BPRScorer
++from recsysedu.contracts import ScoreResult
++from recsysedu.evaluation.ranking import rank_candidates
++from recsysedu.models.content import ContentConfig, fit_content
++from recsysedu.models.hybrid import HybridModel, select_alpha
++from recsysedu.models.popularity import PopularityModel
++
++
++def _components():
++    content = PopularityModel(('C_1', 'C_2', 'C_3'), (3., 2., 1.))
++    bpr = BPRScorer(np.array([[0.], [1.]]), np.array([[0.], [-2.], [0.], [2.]]),
++                    {'U_1': 1}, {'C_1': 1, 'C_2': 2, 'C_3': 3})
++    return content, bpr
++
++
++@pytest.mark.parametrize('alpha,expected', [(0, [1., .5, 0.]), (1, [0., .5, 1.]),
++                                           (.25, [.75, .5, .25])])
++def test_alpha_endpoints_and_mix_preserve_candidate_order(alpha, expected):
++    content, bpr = _components()
++    result = HybridModel(content, bpr, alpha, content).score('U_1', ('C_1', 'C_2', 'C_3'))
++    np.testing.assert_allclose(result.scores, expected)
++    assert result.course_ids == ('C_1', 'C_2', 'C_3')
++    assert result.fallback_status == 'none'
++    assert f'hybrid_alpha:{float(alpha)}' in result.evidence['C_2']
++    reordered = HybridModel(content, bpr, alpha, content).score('U_1', ('C_3', 'C_1'))
++    assert reordered.course_ids == ('C_3', 'C_1')
++    np.testing.assert_allclose(reordered.scores, [alpha, 1 - alpha])
++
++
++def test_constant_components_and_empty_candidates_remain_finite():
++    content, bpr = _components()
++    constant = PopularityModel(('C_1', 'C_2', 'C_3'), (9., 9., 9.))
++    hybrid = HybridModel(constant, bpr, .5, content)
++    np.testing.assert_allclose(hybrid.score('U_1', ('C_1', 'C_2', 'C_3')).scores,
++                               [0., .25, .5])
++    assert hybrid.score('U_1', ()).scores.size == 0
++    np.testing.assert_array_equal(hybrid.score('U_1', ('C_2',)).scores, [0.])
++
++
++def test_hybrid_equal_scores_use_shared_deterministic_tie_break():
++    content, bpr = _components()
++    result = HybridModel(content, bpr, .5, content).score('U_1', ('C_3', 'C_2', 'C_1'))
++    assert [item.course_id for item in rank_candidates(result, set(), k=10)] == [
++        'C_1', 'C_2', 'C_3']
++
++
++@pytest.mark.parametrize('bad_ids', [('C_3', 'C_2', 'C_1'), ('C_1', 'C_2')])
++def test_hybrid_rejects_component_candidate_order_or_length_mismatch(bad_ids):
++    class WrongScorer:
++        def score(self, user_id, candidate_ids):
++            return ScoreResult(bad_ids, np.ones(len(bad_ids)))
++
++    content, bpr = _components()
++    for model in (HybridModel(WrongScorer(), bpr, .5, content),
++                  HybridModel(content, WrongScorer(), .5, content)):
++        with pytest.raises(ValueError, match='candidate'):
++            model.score('U_1', ('C_1', 'C_2', 'C_3'))
++
++
++def test_missing_bpr_user_falls_back_to_content_then_popularity(tmp_path):
++    popularity, bpr = _components()
++    courses = pd.DataFrame({'course_id': ['C_1', 'C_2', 'C_3'],
++                            'name': ['python basics', 'python advanced', 'history'],
++                            'about': ['', '', '']})
++    train = pd.DataFrame({'user_id': ['U_2', 'U_3', 'U_4'],
++                          'course_id': ['C_1', 'C_2', 'C_3']})
++    content = fit_content(courses, train, ContentConfig(), tmp_path / 'features', popularity)
++    hybrid = HybridModel(content, bpr, 1., popularity)
++    result = hybrid.score('U_2', ('C_2', 'C_3'))
++    np.testing.assert_allclose(result.scores, [1., 0.])
++    assert result.fallback_status == 'content_unknown_bpr_user'
++    assert 'fallback:content_unknown_bpr_user' in result.evidence['C_2']
++    result = hybrid.score('U_missing', ('C_1', 'C_2', 'C_3'))
++    np.testing.assert_allclose(result.scores, [1., .5, 0.])
++    assert result.fallback_status == 'popularity_unknown_bpr_user_empty_content'
++
++
++def test_hybrid_does_not_hide_other_bpr_errors_as_unknown_user_fallback():
++    class BrokenBPR:
++        def score(self, user_id, candidate_ids):
++            raise ValueError('damaged embedding artifact')
++
++    content, _ = _components()
++    hybrid = HybridModel(content, BrokenBPR(), .5, content)
++    with pytest.raises(ValueError, match='damaged embedding'):
++        hybrid.score('U_1', ('C_1', 'C_2'))
++
++
++def test_hybrid_normalizes_extreme_finite_scores_without_overflow():
++    content, _ = _components()
++    extreme = PopularityModel(('C_1', 'C_2', 'C_3'), (-1e308, 0., 1e308))
++    hybrid = HybridModel(content, extreme, 1., content)
++    np.testing.assert_allclose(hybrid.score('U_1', ('C_1', 'C_2', 'C_3')).scores,
++                               [0., .5, 1.])
++
++
++def test_hybrid_preserves_component_evidence_and_marks_content_fallback():
++    class EvidenceScorer:
++        def score(self, user_id, candidate_ids):
++            return ScoreResult(tuple(candidate_ids), np.array([3., 2., 1.]),
++                               'popularity_empty_profile', {'C_2': ('observed:C_7',)})
++
++    popularity, bpr = _components()
++    result = HybridModel(EvidenceScorer(), bpr, .25, popularity).score(
++        'U_1', ('C_1', 'C_2', 'C_3'))
++    assert result.fallback_status == 'content:popularity_empty_profile'
++    assert result.evidence['C_2'][:2] == ('observed:C_7', 'hybrid_alpha:0.25')
++    scores = dict(item.split(':', 1) for item in result.evidence['C_2'][2:])
++    assert float(scores['content_normalized']) == pytest.approx(.5)
++    assert float(scores['bpr_normalized']) == pytest.approx(.5)
++
++
++@pytest.mark.parametrize('alpha', [-1, 1.01, True, float('nan'), float('inf'), '0.5'])
++def test_hybrid_rejects_invalid_alpha(alpha):
++    content, bpr = _components()
++    with pytest.raises(ValueError, match='alpha'):
++        HybridModel(content, bpr, alpha, content)
++
++
++def _run(run_id, ndcg):
++    return dict(run_id=run_id, dataset_hash='dataset', split_hash='split', protocol_id='protocol',
++                seed=17, evaluation_split='valid', k=10, primary_metric='NDCG@10',
++                cohort_size=12, candidate_universe_size=3, candidate_policy='full_train_universe',
++                profile_policy='train_only', seen_policy='train',
++                tie_break_policy='score_desc_course_id_asc', metric_status='measured',
++                metrics={'NDCG@10': ndcg})
++
++
++def test_alpha_selection_uses_validation_ndcg_then_smallest_alpha_and_persists(tmp_path):
++    runs = {1.: _run('r1', .9), 0.: _run('r0', .5), .5: _run('r05', .9)}
++    path = tmp_path / 'selection.json'
++    assert select_alpha(runs, [1., 0., .5], artifact_path=path) == .5
++    manifest = json.loads(path.read_text(encoding='utf-8'))
++    assert manifest['selected_alpha'] == .5
++    assert manifest['selected_ndcg'] == .9
++    assert manifest['evaluation_split'] == 'valid'
++    assert [row['alpha'] for row in manifest['validation_runs']] == [0., .5, 1.]
++    assert manifest['validation_runs'][1]['run_id'] == 'r05'
++    assert manifest['validation_runs'][1]['manifest_hash']
++    with pytest.raises(ValueError, match='exists'):
++        select_alpha(runs, [1., 0., .5], artifact_path=path)
++
++
++@pytest.mark.parametrize('change', [
++    {'evaluation_split': 'test'}, {'split_hash': 'other'}, {'cohort_size': 13},
++    {'seed': 18}, {'metric_status': 'not_available'}, {'k': 5},
++    {'metrics': {'NDCG@10': float('nan')}}, {'metrics': {'NDCG@10': 1.1}},
++])
++def test_selection_rejects_test_unmeasured_or_incompatible_runs(change, tmp_path):
++    runs = {0.: _run('r0', .5), 1.: _run('r1', .9) | change}
++    path = tmp_path / 'rejected.json'
++    with pytest.raises(ValueError):
++        select_alpha(runs, [0., 1.], artifact_path=path)
++    assert not path.exists()
++
++
++@pytest.mark.parametrize('alphas', [[], [0., 0.], [0., 1.], [True]])
++def test_selection_requires_exactly_one_run_per_unique_alpha(alphas):
++    with pytest.raises(ValueError):
++        select_alpha({0.: _run('r0', .5)}, alphas)

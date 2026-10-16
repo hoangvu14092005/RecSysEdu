@@ -1,0 +1,13 @@
+{
+  "label": "prepare",
+  "args": [
+    "data",
+    "prepare",
+    "--config",
+    "results/local/prepare-pilot.yaml"
+  ],
+  "exit_code": 0,
+  "seconds": 35.663458700000774,
+  "sampled_peak_rss_bytes": 4358144,
+  "peak_sampling_interval_seconds": 0.2
+}

@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "evaluation_split": "valid",
+  "primary_metric": "NDCG@10",
+  "formula": "alpha * normalized_bpr + (1 - alpha) * normalized_content",
+  "normalization": "per_user_full_candidates_minmax_constant_zero",
+  "selected_alpha": 0.25,
+  "selected_ndcg": 0.10850833307518327,
+  "validation_runs": [
+    {
+      "alpha": 0.0,
+      "run_id": "valid-2e93583494064297adaa556b9bc21d64-fb9f9b955bc6409eb0cdea7cf674618d",
+      "ndcg": 0.08230373486780361,
+      "manifest_hash": "f329859e8426b38b8d69e52faef195d8f4686f51081980c2c4611fd5c3577cc5"
+    },
+    {
+      "alpha": 0.25,
+      "run_id": "valid-2e93583494064297adaa556b9bc21d64-f2923f6547fb494fbeb4ba736da8b460",
+      "ndcg": 0.10850833307518327,
+      "manifest_hash": "7f501a13a3f176dce7c4c9512fa525309e0a722be347df946e64db70b637765e"
+    },
+    {
+      "alpha": 0.5,
+      "run_id": "valid-2e93583494064297adaa556b9bc21d64-06437c757d634cb48193755d1f522a4a",
+      "ndcg": 0.10405136569235414,
+      "manifest_hash": "a62ed8c41265eb3a8b9bd628ea556ae54b0891cd8d9e3a3a1bd2fed314862c96"
+    },
+    {
+      "alpha": 0.75,
+      "run_id": "valid-2e93583494064297adaa556b9bc21d64-05a264403f5e4f4686c7b3e6ee08d096",
+      "ndcg": 0.09288478060726162,
+      "manifest_hash": "672e00fb2d5260783a49bb037465e6cc13df1b070ea5358c576b86a64522a6c8"
+    },
+    {
+      "alpha": 1.0,
+      "run_id": "valid-2e93583494064297adaa556b9bc21d64-cad84433b283420c8f9199cf82834e6e",
+      "ndcg": 0.0774493614401512,
+      "manifest_hash": "65a6982a22240ca194415c41cb51c3adcd7b61a750023a96c822f729526d6cf2"
+    }
+  ],
+  "dataset_hash": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+  "split_hash": "7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617",
+  "protocol_id": "leave_last_two_out_v1",
+  "seed": 17,
+  "cohort_size": 9909,
+  "candidate_universe_size": 2586,
+  "candidate_policy": "full_train_universe",
+  "profile_policy": "train_only",
+  "seen_policy": "train",
+  "ranking_tie_break_policy": "score_desc_course_id_asc",
+  "selection_tie_break_policy": "ndcg_desc_alpha_asc"
+}

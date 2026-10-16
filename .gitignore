@@ -14,3 +14,7 @@ dist/
 .env.*
 !.env.example
 *.part
+
+# Bản sao lồng phát sinh khi chuyển artifact từ worktree; dữ liệu gốc nằm ngay
+# tại results/local/ và được đưa lên đầy đủ.
+/results/local/local/

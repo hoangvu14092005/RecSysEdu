@@ -1,0 +1,20 @@
+bpr:
+  embedding_size: 32
+  epochs: 10
+  learning_rate: 0.001
+  seed: 17
+  stopping_step: 2
+  train_batch_size: 2048
+  validation_early_stopping: true
+content:
+  config_path: C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\configs\content.yaml
+frozen: false
+hybrid:
+  config_path: C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\configs\hybrid.yaml
+output_roots:
+  test: ../results/experiments/test
+  valid: ../results/experiments/valid
+prepared_dir: C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\data\processed\mooccubex-pilot-v1
+release_mode: true
+seed: 17
+split_dir: C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\data\splits\mooccubex-pilot-v1-split-v1

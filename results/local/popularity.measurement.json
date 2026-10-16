@@ -1,0 +1,18 @@
+{
+  "label": "popularity",
+  "args": [
+    "evaluate",
+    "--model",
+    "popularity",
+    "--split",
+    "valid",
+    "--config",
+    "configs/final_experiments.yaml",
+    "--output",
+    "results/local/pilot-search/popularity"
+  ],
+  "exit_code": 0,
+  "seconds": 19.71993379999185,
+  "sampled_peak_rss_bytes": 231129088,
+  "peak_sampling_interval_seconds": 0.2
+}

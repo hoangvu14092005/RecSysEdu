@@ -1,0 +1,83 @@
+{
+  "run_id": "valid-448a563ce1a34885917268e3751bc901",
+  "model_id": "experiment",
+  "dataset_hash": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+  "split_hash": "7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617",
+  "protocol_id": "leave_last_two_out_v1",
+  "seed": 17,
+  "schema_version": 1,
+  "evaluation_split": "valid",
+  "config_hash": "6de68ebbe8bc4bf0e356a2f977e22f6d9a0a1fd634941139e17159a83d3006f2",
+  "effective_config": {
+    "seed": 17,
+    "content": {
+      "analyzer": "char",
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 1
+    },
+    "bpr": {
+      "seed": 17,
+      "epochs": 10,
+      "embedding_size": 64,
+      "train_batch_size": 2048,
+      "learning_rate": 0.001
+    },
+    "hybrid": {
+      "alphas": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "normalization": "per_user_full_candidates_minmax_constant_zero",
+      "formula": "alpha * normalized_bpr + (1 - alpha) * normalized_content"
+    },
+    "protocol_id": "leave_last_two_out_v1",
+    "k": 10
+  },
+  "git_revision": "e7663cdcc45cdb02344d5fc54ae37de608b504fb",
+  "git_status": "revision_available",
+  "git_dirty": true,
+  "versions": {
+    "python": "3.10.11",
+    "numpy": "1.26.4",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.7.2",
+    "pyarrow": "25.0.1"
+  },
+  "duration_seconds": 18.114790699997684,
+  "output_root": "C:\\Users\\Vu\\.codex\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\pilot-search\\popularity",
+  "runs": {
+    "popularity": "runs/popularity"
+  },
+  "alpha_trials": {},
+  "snapshot_inputs": {
+    "dataset_manifest": "snapshot_inputs/dataset_manifest.json",
+    "split_manifest": "snapshot_inputs/split_manifest.json",
+    "courses": "snapshot_inputs/courses.parquet",
+    "train": "snapshot_inputs/train.parquet",
+    "valid": "snapshot_inputs/valid.parquet"
+  },
+  "selected_alpha": null,
+  "component_hashes": {},
+  "freeze_candidate": {
+    "dataset_hash": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+    "split_hash": "7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617",
+    "config_hash": "6de68ebbe8bc4bf0e356a2f977e22f6d9a0a1fd634941139e17159a83d3006f2"
+  },
+  "output_hashes": {
+    "runs/popularity/metrics.csv": "ae491ff7e8e5680164e81fab73f7eab3a39718e4abea4e3b88f6f7036464b05f",
+    "runs/popularity/per_user_metrics.parquet": "78b5f383852ad0fe760cc6f2c5124ff1eb1132d331e8bc47732c85026768e0c2",
+    "runs/popularity/recommendations.jsonl": "33af0dc07dc9cd9da809e07f986136975a36d03057cdc69208e0f522371562ab",
+    "runs/popularity/run_manifest.json": "ee3e5255b10d72b50705e659994ae6786b98b695b24a61af75b9bb8e31e76410",
+    "snapshot_inputs/courses.parquet": "ee424bfdb579e42920ce4d279a67739188f725c2cbe229b5e1cee3c0a0f399fb",
+    "snapshot_inputs/dataset_manifest.json": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+    "snapshot_inputs/split_manifest.json": "bd20e5177753ab99971c7892072d236fbf0035153d50001328f0321eba1881a1",
+    "snapshot_inputs/train.parquet": "30dd414c7f4dda8b5ea4634a346f901f774f7e2b6b525e7c4ac71e1823c268e2",
+    "snapshot_inputs/valid.parquet": "411fc3d91a94ca03cfbf3c9bddb87bd61fd861d5ee1009c18dba0607d5ddf5bc"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "model_id": "recbole-bpr",
+  "device": "cpu",
+  "seed": 17,
+  "epochs_completed": 10,
+  "epochs_requested": 10,
+  "validation_early_stopping": true,
+  "stopping_step": 2,
+  "best_epoch": 10,
+  "best_validation_ndcg_at_10": 0.06134094543097587,
+  "validation_ndcg_history": [
+    0.0012748807059124881,
+    0.010102110229357553,
+    0.02688748378106686,
+    0.035909729198839176,
+    0.042011801965431646,
+    0.04967165686382288,
+    0.05490091616359112,
+    0.05867747302073775,
+    0.06019156533436617,
+    0.06134094543097587
+  ],
+  "embedding_size": 64,
+  "train_batch_size": 2048,
+  "learning_rate": 0.001,
+  "training_losses": [
+    36.73500072956085,
+    36.57615906000137,
+    35.40614324808121,
+    30.6567802131176,
+    24.219688206911087,
+    20.04154160618782,
+    17.84810945391655,
+    16.52261546254158,
+    15.458228439092636,
+    14.720578521490097
+  ],
+  "negative_sampling": {
+    "distribution": "uniform_over_train_items",
+    "implementation": "RecBole popularity alias, alpha=0",
+    "positive_exclusion": "train only",
+    "sample_num": 1
+  },
+  "split_hash": "7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617",
+  "dataset_hash": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+  "export_manifest_sha256": "fdc36f8bacf5de9ce63acdb13a77ffe274c800f4ad4104f5d22552790155882c",
+  "loaded_row_counts": {
+    "train": 106717,
+    "valid": 9965,
+    "test": 9965
+  },
+  "checkpoint": "bpr.pth",
+  "id_maps": "id_maps.json",
+  "checkpoint_sha256": "0ed4b9587b28b057ea66eb48b56176061aa68eba0b8714fb3acd760546a37997",
+  "id_maps_sha256": "f0af46aaa5a1877b0e86078c46d315e639a4c46f7b0308a3fc0472a4e1f7ce99",
+  "versions": {
+    "python": "3.10.11",
+    "torch": "2.5.1+cpu",
+    "recbole": "1.2.1",
+    "numpy": "1.26.4"
+  },
+  "elapsed_seconds": 274.52013050000824,
+  "peak_working_set_bytes": 500273152,
+  "evaluation": "project evaluator required; no quality claim"
+}

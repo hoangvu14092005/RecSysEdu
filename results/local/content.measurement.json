@@ -1,0 +1,18 @@
+{
+  "label": "content",
+  "args": [
+    "evaluate",
+    "--model",
+    "content",
+    "--split",
+    "valid",
+    "--config",
+    "configs/final_experiments.yaml",
+    "--output",
+    "results/local/pilot-search/content"
+  ],
+  "exit_code": 0,
+  "seconds": 206.3115179000015,
+  "sampled_peak_rss_bytes": 381693952,
+  "peak_sampling_interval_seconds": 0.2
+}

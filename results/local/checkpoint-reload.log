@@ -1,0 +1,8 @@
+D:\VuLapTrinh2\RecSysEdu\.venv\lib\site-packages\recbole\data\dataset\dataset.py:648: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  feat[field].fillna(value=0, inplace=True)
+{"known_users": 5, "candidates_per_user": 2586, "restored_upstream_predict_matches": true, "max_absolute_difference": 9.5367431640625e-07, "float64_oracle_max_absolute_difference": 7.018902890010281e-07, "tolerance": {"rtol": 1e-06, "atol": 2e-06}, "full_rankings_equal": true}

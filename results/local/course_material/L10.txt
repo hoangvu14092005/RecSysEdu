@@ -1,0 +1,233 @@
+=== PDF PAGE 1 ===
+
+
+=== PDF PAGE 2 ===
+HỆ GỢI Ý
+(IT4613)
+
+=== PDF PAGE 3 ===
+3
+HỆ GỢI Ý
+GỢI Ý VỚI HỌC TƯƠNG PHẢN
+
+
+=== PDF PAGE 4 ===
+4
+Nội dung môn học
+• Giới thiệu về Hệ gợi ý
+• Gợi ý dựa trên lọc cộng tác: Cơ bản và Các kỹ thuật nâng cao
+• Gợi ý dựa trên nội dung
+• Gợi ý dựa trên tri thức
+• Gợi ý dựa trên phiên
+• Kết hợp các kỹ thuật gợi ý 
+• Đánh giá hiệu quả đối với hệ gợi ý
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Bài toán gợi ý tin tức
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Học tương phản
+
+=== PDF PAGE 5 ===
+5
+Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Học tương phản
+1. Học tương phản (contrastive learning)
+2. Học tương phản trong hệ gợi ý
+
+=== PDF PAGE 6 ===
+6
+1. Học tương phản (contrastive learning)
+• Hướng tới giúp:
+• Biểu diễn của những điểm dữ liệu tương đồng sẽ gần nhau
+• Biểu diễn của những điểm dữ liệu khác biệt sẽ xa nhau
+• Học tương phản đang được ứng dụng rộng rãi vì có thể sử dụng trong các tác vụ học tự giám sát 
+(self-supervised learning)
+• Tận dụng được nguồn dữ liệu khổng lồ từ dữ liệu không nhãn
+• Sử dụng rộng rãi trong các bài toán CV, NLP, recsys
+
+=== PDF PAGE 7 ===
+7
+1. Học tương phản
+• Cách thực hiện của học tương phản:
+• Tạo dữ liệu huấn luyện
+• Tạo cặp dữ liệu dương (positive) : Cặp dữ liệu dương là cặp dữ liệu có độ tương đồng về ngữ nghĩa. Ví dụ: các dữ 
+liệu cùng lớp, các dữ liệu sinh ra từ phép data augmentation 
+• Tạo dữ liệu âm (negative): Dữ liệu khác nhau về ngữ nghĩa.  
+• Hàm mã hóa (encoder): 
+• Học biểu diễn các dữ liệu
+• Lựa chọn độ đo tương đồng 
+• Xây dựng hàm loss để có thể:
+• Cực đại độ đo tương đồng giữa biểu diễn của cặp positive 
+• Cực tiểu độ đo tương đồng giữa biểu diễn của cặp negative
+
+=== PDF PAGE 8 ===
+8
+Học tương phản: Ví dụ
+• Mô hình SimCLR (Chen et.al. 2020) cho ảnh:
+• Mỗi điểm dữ liệu 𝑥 qua 2 phép data augmentation khác nhau để thu được 1 cặp dữ liệu positive (𝑥′, 𝑥′′) 
+• Từ N điểm dữ liệu, sinh ra N cặp dữ liệu positive (dương), gồm 2N điểm dữ liệu
+• Hàm mã hõa: 𝑧𝑖 = 𝑓(𝑥′) và 𝑧𝑗 = 𝑓(𝑥′′)
+• Độ đo tương đồng cosine
+• Hàm loss 
+Với hàm 1[𝑘≠𝑖] trả lại 1 nếu 𝑘 ≠ 𝑖, 0 khi 𝑘 = 𝑖
+
+
+=== PDF PAGE 9 ===
+9
+Học tương phản: Ví dụ
+• SimCSE [Gao et.al. 2021] cho văn bản: Áp dụng contrastive learning cho học có giám sát và không 
+giám sát.
+○ Unsupervised: Sử dụng dropout để tạo cặp positive: Cho 1 câu 2 lần qua mạng Encoder có dropout thu 
+được 2 biểu diễn - coi như là “positive-pairs”, các biểu diễn câu khác trong cùng 1 mini-batch được coi 
+như là các “negative”
+○ Supervised: Cặp dương là cặp gồm các dữ liệu cùng nhãn lớp
+
+
+=== PDF PAGE 10 ===
+10
+2. Học tương phản trong hệ gợi ý
+- Với những người dùng có hành vi tương tác trong lịch sử tương đồng nhau, thì các vector biểu 
+diễn mã hóa thu được từ mô hình mã hóa người dùng (user encoder) của họ cần phải
+nằm gần nhau hơn trong không gian biểu diễn
+- Với những người dùng có hành vi tương tác khác biệt, các vector biểu diễn mã hóa của họ cần nằm 
+xa nhau hơn trong không gian biểu diễn. 
+- Ý tưởng cải thiện user representations bằng cách tối ưu biểu diễn của cùng 1 user theo các views 
+khác nhau 
+- Đánh giá 3 cách tiếp cận tạo ra các views khác nhau giữa biểu diễn của người dùng: 
+- Cropping
+- Masking
+- Reordering
+
+=== PDF PAGE 11 ===
+11
+Học tương phản cho gợi ý phiên CL4Rec
+- Học tương phản cho gợi ý phiên CL4Rec [Xie et.al. 2022]
+- Tập dữ liệu bao gồm U, V và các tương tác giữa User và Item 
+- Lịch sử tương tác có thứ tự của mỗi u:
+Trong đó:        là item được user tương tác ở thời điểm t và      là độ dài của chuỗi tương tác
+- Tập subsequence của mỗi u trước item t 
+- Mục tiêu của bài toán là : 
+
+
+=== PDF PAGE 12 ===
+12
+Học tương phản cho gợi ý phiên
+Mô hình gồm 3 modules chính: 
+- Data Augmentation: Tạo ra 2 view từ lịch sử đọc của mỗi user từ các phép augmentation 𝑎𝑖
+(cropping, masking, reordering)
+- User Representation Encoder:  Áp dụng Transformer để học biểu diễn của user 
+- Contrastive Loss function: Trong 1 batch có N users, do đó có 2N views  
+
+
+=== PDF PAGE 13 ===
+13
+Học tương phản cho gợi ý phiên
+
+
+=== PDF PAGE 14 ===
+14
+Học tương phản cho gợi ý phiên
+Các phép data augmentation: 
+1. Item Crop: Ngẫu nhiên chọn ra tập con
+2. Item Mask: Mask ngẫu nhiên các item
+3. Item Reoder:  Shuffle ngẫu nhiên 1 subsequence trong lịch sử click của User 
+
+
+=== PDF PAGE 15 ===
+15
+Học tương phản cho gợi ý phiên
+Mô hình biểu diễn cho user: Sử dụng transformer
+
+
+=== PDF PAGE 16 ===
+16
+Học tương phản cho gợi ý phiên: Kết quả
+Tập dữ liệu: 
+
+
+=== PDF PAGE 17 ===
+17
+Học tương phản cho gợi ý phiên: Kết quả
+Kết quả thử nghiệm:
+
+
+=== PDF PAGE 18 ===
+18
+Học tương phản cho gợi ý phiên: Kết quả
+Kết quả thử nghiệm khi chỉ sử dụng một phép augmentation:
+
+
+=== PDF PAGE 19 ===
+19
+Cải tiến phép làm giàu dữ liệu: CoSeRec
+- Cải tiến phép làm giàu dữ liệu: CoSeRec [Liu et.al.2021]
+- Các phép data augmentation ngẫu nhiên: 
+1. Item Crop: Ngẫu nhiên chọn ra tập con
+2. Item Mask: Mask ngẫu nhiên các item
+3. Item Reoder:  Shuffle ngẫu nhiên 1 subsequence trong lịch sử click của User 
+• Các phương pháp trên có một vài nhược điểm:
+• Crop, mask: gây là cold start
+• Reorder: làm mất thông tin tuần tự
+
+=== PDF PAGE 20 ===
+20
+Data augmentation dựa trên thông tin item
+• Substitute: Việc thay thế các item trong lịch sử có thể mở rộng không gian quan tâm của người 
+dùng.
+• Thay thế ngẫu nhiên item bằng các item tương quan với chúng.
+• Insert: Bổ sung item tương quan vào ngẫu nhiên một vị trí trong chuỗi ban đầu
+
+
+=== PDF PAGE 21 ===
+21
+Độ đo tương đồng của item
+• Dựa trên cách tiếp cận bộ nhớ trong lọc cộng tác: 
+• Sử dụng item-base collaborative filtering: để tính nghịch đảo tần suất người dùng - độ đo xem 
+các item có tương đồng hay không. 
+Trong đó 𝑁𝑖, 𝑁𝑗 là số lượng người dùng đã tương tác với item i, j, 𝑁𝑢 là số item mà user u đã 
+tương tác
+• Dựa trên mô hình: 
+• Sử dụng độ tương đồng giữa 2 items trên vector biểu diễn của chúng khi học mô hình
+
+
+=== PDF PAGE 22 ===
+22
+Data augmentation dựa trên thông tin độ dài chuỗi
+• Các chuỗi ngắn thường nhạy cảm đối với việc sử dụng crop => Vì vậy mỗi chuỗi sẽ có loại 
+augmentation riêng, tuỳ thuộc vào độ dài của chuỗi đó.
+• Lựa chọn các phép augmentations (Mask, Crop, Reoder, Substitute, Insert) theo độ dài 
+
+
+=== PDF PAGE 23 ===
+23
+Minh họa kết quả thử nghiệm
+
+
+=== PDF PAGE 24 ===
+24
+Thử nghiệm ảnh hưởng của các phép data augmentation
+
+
+=== PDF PAGE 25 ===
+25
+Minh họa học tương phản cho các mô hình gợi ý tin tức
+• Kết quả thử nghiệm trên tập Mind và SH
+
+
+=== PDF PAGE 26 ===
+26
+5. Kết luận
+● Học tương phản mang lại hiệu quả cho nhiều lĩnh vực khác nhau
+● Học tương phản trong hệ gợi ý giúp cải thiện chất lượng biểu diễn cho user, item
+● Các phương pháp data augmentation đang được khảo sát và ứng dụng 
+
+=== PDF PAGE 27 ===
+27
+Tài liệu tham khảo
+• Chen, T., Kornblith, S., Norouzi, M., & Hinton, G. (2020, November). Simclr: A simple framework for contrastive 
+learning of visual representations. In International Conference on Learning Representations (Vol. 2).
+• Gao, T., Yao, X., & Chen, D. (2021). Simcse: Simple contrastive learning of sentence embeddings. EMNLP
+• Xie, X., Sun, F., Liu, Z., Wu, S., Gao, J., Zhang, J., ... & Cui, B. (2022, May). Contrastive learning for sequential 
+recommendation. In 2022 IEEE 38th international conference on data engineering (ICDE) (pp. 1259-1273). IEEE.
+• Liu, Z., Chen, Y., Li, J., Yu, P. S., McAuley, J., & Xiong, C. (2021). Contrastive self-supervised sequential 
+recommendation with robust augmentation. arXiv preprint arXiv:2108.06479.
+
+=== PDF PAGE 28 ===
+THANK YOU !
+28

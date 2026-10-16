@@ -1,0 +1,447 @@
+=== PDF PAGE 1 ===
+
+
+=== PDF PAGE 2 ===
+HỆ GỢI Ý
+(IT4613)
+
+=== PDF PAGE 3 ===
+3
+HỆ GỢI Ý
+HỆ THỐNG GỢI Ý TIN TỨC DỰA TRÊN HỌC SÂU
+
+
+=== PDF PAGE 4 ===
+4
+Nội dung môn học
+• Giới thiệu về Hệ gợi ý
+• Gợi ý dựa trên lọc cộng tác: Cơ bản và Các kỹ thuật nâng cao
+• Gợi ý dựa trên nội dung
+• Gợi ý dựa trên tri thức
+• Gợi ý dựa trên phiên
+• Kết hợp các kỹ thuật gợi ý 
+• Đánh giá hiệu quả đối với hệ gợi ý
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Bài toán gợi ý tin tức
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Học tương phản
+
+=== PDF PAGE 5 ===
+5
+Học sâu cho gợi ý tin tức: News neural recommendation
+• Phát biểu bài toán: 
+• Items: Là các bản tin (news)
+• Title: Tiêu đề bản tin
+• Snippet, content: Là nội dung của bản tin
+• Category: Chuyên mục
+• Sub-categories: Các chuyên mục con
+• Users: Là các người dùng đọc tin tức
+• Mỗi người dung gồm có danh sách các bản tin đã đọc
+• Mục tiêu: Gợi ý các bản tin phù hợp cho người dùng
+
+=== PDF PAGE 6 ===
+Mind dataset
+• https://msnews.github.io/
+• behaviors.tsv: chứa lịch sử nhấp chuột và nhật ký hiển thị của người dung
+• news.tsv: chứa thông tin các tin tức
+• entity_embedding.vec: chứa các vec-tơ nhúng (embedding) của các entity trong tin tức trích xuất từ 
+Wikidata
+• relation_embedding.vec: chứa các vec-tơ nhúng của mối quan hệ giữa các entity
+6
+
+=== PDF PAGE 7 ===
+Định dạng dữ liệu: behaviors.tsv
+• Impression ID: ID của một hiển thị.
+• User ID: ID (ẩn danh) của người dùng.
+• Time: Thời gian hiển thị với định dạng "MM/DD/YYYY HH:MM:SS AM/PM".
+• History: Lịch sử nhấp chuột trên tin tức (danh sách các ID của tin tức đã được nhấp) của người dùng 
+trước hiển thị này (được sắp xếp theo thời gian)
+• Impressions: Danh sách tin tức hiển thị trong impression và hành vi nhấp chuột của người dùng (1-
+click, 0-no click) (đã được xáo trộn)
+7
+Impression ID: 1
+User ID: U134050
+Time: 11/15/2019 8:55:22 AM
+History: N12246 N128820 N119226 N4065 N67770 N33446 N103285 N99640 N106837 N76775 
+N129444 N120026 N115495 N86141 N98680 N108013 N121782 N30276 N93576 N123743 
+N48804 N79909 N68728 N71356 N102447 N33846 N83623 N97597 N59416 N1014 N20285
+Impressions: N91737-0 N30206-0 N54368-0 N117802-0 N18190-0 N122944-0 N69938-1 N18356-0 
+N123209-0 N46894-0 N29160-0 N49978-0 N89764-0 N30582-0 N58465-0 N35304-0
+
+=== PDF PAGE 8 ===
+Định dạng dữ liệu: news.tsv
+8
+• News ID: ID của tin tức.
+• Category: Danh mục của tin tức.
+• SubCategory: Danh mục con của tin tức.
+• Title: Tiêu đề của tin tức.
+• Abstract: Phần tóm tắt hoặc trích dẫn của tin tức.
+• URL: Địa chỉ URL của tin tức trên mạng.
+• Title Entities: Các thực thể (entities) có trong tiêu đề của tin tức.
+• Abstract Entities: Các thực thể (entities) có trong phần tóm tắt của tin 
+tức.
+
+=== PDF PAGE 9 ===
+Định dạng dữ liệu: news.tsv
+9
+News ID: N1387
+Category: entertainment
+SubCategory: gaming
+Title: Best PS4 games 2019: play great PlayStation 4 games
+Abstract: These are the best PS4 games available today, from Sony's awesome 
+exclusives to third-party must plays
+URL: https://assets.msn.com/labs/mind/AACkFyc.html
+Title Entities: [{"Label": "PlayStation 4", "Type": "J", "WikidataId": "Q5014725", 
+"Confidence": 1.0, "OccurrenceOffsets": [5, 32], "SurfaceForms": ["PS4", 
+"PlayStation 4"]}]
+Abstract Entities: [{"Label": "PlayStation 4", "Type": "J", "WikidataId": "Q5014725", 
+"Confidence": 1.0, "OccurrenceOffsets": [19], "SurfaceForms": ["PS4"]}, 
+{"Label": "Sony", "Type": "O", "WikidataId": "Q41187", "Confidence": 0.936, 
+"OccurrenceOffsets": [51], "SurfaceForms": ["Sony"]}]
+
+=== PDF PAGE 10 ===
+Thống kê dữ liệu: MIND small
+10
+# users 50,000 avg. #words per title 10.75
+# news 51,282 avg. #words per abstract 36.17
+# impressions 156,965 # sample (tổng số tin tức được hiển thị) 5,843,444
+# category 17 # positive samples (tin tức được click) 236,344
+# sub-category 264 # negative samples (tin tức không được click) 5,607,100
+• Tập dữ liệu huấn luyện (training set)
+# users 50,000 avg. #words per title 10.81
+# news 42,416 avg. #words per abstract 34.76
+# impressions 73,152 # sample (tổng số tin tức được hiển thị) 2,740,998
+# category 17 # positive samples (tin tức được click) 111,383
+# sub-category 257 # negative samples (tin tức không được click) 2,629,615
+• Tập tối ưu (validation/dev set)
+2019-11-09 00:00:19 to 2019-11-14 23:59:13
+
+=== PDF PAGE 11 ===
+Thống kê dữ liệu: MIND small
+11
+# users 94,057 avg. #words per title 10.77
+# news 65,238 avg. #words per abstract 35.53
+# impressions 230,117 # sample (tổng số tin tức được hiển thị) 8,584,442
+# category 18 # positive samples (tin tức được click) 347,727
+# sub-category 270 # negative samples (tin tức không được click) 8,236,715
+• Tổng quan bộ dữ liệu MIND small (unique):
+
+=== PDF PAGE 12 ===
+Trực quan hóa dữ liệu
+12
+Left: Training set
+Right: Dev set
+
+=== PDF PAGE 13 ===
+Trực quan hóa dữ liệu
+13
+Left: Training set
+Right: Dev set
+
+=== PDF PAGE 14 ===
+Trực quan hóa dữ liệu
+14
+Left: Training set
+Right: Dev set
+
+=== PDF PAGE 15 ===
+Tiền xử lý dữ liệu
+• Behaviors data:
+• Chuyển UserID thành số thứ tự tương ứng của user
+• Negative sampling: với mỗi mẫu dương xác định, chia các mẫu âm thành các tập gồm K mẫu
+15
+
+
+=== PDF PAGE 16 ===
+16
+Kiến trúc tổng quan
+■ Cấu tạo bởi 3 thành phần: News encoder, user encoder, click predictor
+
+
+=== PDF PAGE 17 ===
+17
+Kết quả gợi ý trên tập dữ liệu Mind (Wu et.al. 2020)
+
+
+=== PDF PAGE 18 ===
+18
+1. Mô hình gợi ý đa góc nhìn (MAML (Wu et.al. 2019a))
+• Một bài báo thường chứa thông tin ở nhiều phần khác nhau: tiêu đề, nội dung, thể loại. 
+• Các thông tin này được dung để tìm ra sở thích và xu hướng đọc báo của người dùng.
+• Các thành phần này có các tính chất khác nhau: tiêu đề ngắn và súc tích, nội dung thì dài và chi 
+tiết, thể loại thì thường là cụm từ. Cách sử dụng khác nhau:
+
+
+=== PDF PAGE 19 ===
+19
+Mô hình gợi ý đa góc nhìn
+• Các bài báo khác nhau thì chứa lượng thông tin khác nhau. 
+• Từ ngữ trong bài có mức độ quan trọng khác nhau.
+• Mức độ phổ biến của các bài mà user đọc có thể giúp tìm ra sở thích
+• tin “thời tiết” có nhiều người khác cũng xem, đóng góp ít trong việc tìm sở thích user
+• tin “Olympic Toán” có ít người khác cùng xem, đóng góp nhiều hơn, cho thấy user quan tâm vấn đề này
+
+
+=== PDF PAGE 20 ===
+20
+Mô hình gợi ý đa góc nhìn
+
+
+=== PDF PAGE 21 ===
+21
+Mô hình gợi ý đa góc nhìn: News encoder
+• Gồm 3 thành phần
+• Title encoder
+• Word embedding
+• Convolution neural network
+• Attention
+• Body encoder
+• Word embedding
+• Convolution neural network
+• Attention
+• Categories encoder
+• Categories embedding
+• Dense
+
+
+=== PDF PAGE 22 ===
+22
+Mô hình gợi ý đa góc nhìn: News encoder
+• Title encoder
+• Word embedding: dictionary look-up
+• Convolution neural network: 
+• Attention mức từ: 
+• Biểu diễn của title
+
+
+=== PDF PAGE 23 ===
+23
+Mô hình gợi ý đa góc nhìn: News encoder
+■ Body encoder thực hiện tương tự title encoder
+■ Categories encoder
+■ Embedding
+■ Dense 
+■ Attention cho biểu diễn của title, categories, body
+■ Biểu diễn item: 
+
+
+=== PDF PAGE 24 ===
+24
+Mô hình gợi ý đa góc nhìn: User encoder
+■ Áp dụng attention cho biểu diễn item 
+user đã xem
+■User được biểu diễn thông qua biểu diễn
+của các item đã xem
+
+
+=== PDF PAGE 25 ===
+25
+Mô hình gợi ý đa góc nhìn: Click prediction
+• Dự đoán khả năng user click vào item:
+• Xây dựng hàm loss: Cho mỗi user, với mỗi tin được đọc (positive news) ො𝑦+, K tin chưa được đọc 
+(negative news) [ ො𝑦1
+−, ො𝑦2
+−, …, ො𝑦𝐾
+− ]sẽ được lấy mẫu ngẫu nhiên => K+1 news
+• Hàm loss: 
+• Trong đó: S là tập positive news và 
+
+
+=== PDF PAGE 26 ===
+26
+Mô hình gợi ý đa góc nhìn: Thử nghiệm
+■ Dữ liệu MSN news (https://msnews.github.io/) trong 1 tháng:
+■ Kết quả: 
+
+
+=== PDF PAGE 27 ===
+27
+2. NPA: Neural News Recommendation with Personalized Attention
+(Wu et.al. 2019b)
+• Số lượng các bài báo được đăng tải mỗi ngày rất lớn.
+• Người dùng cần tìm thông tin mình quan tâm trong “biển thông tin”.
+• Không phải tin nào user xem cũng thuộc vào lĩnh vực mà người đó quan tâm.
+• Một tin được người dung quan tâm với mức độ khác nhau.
+• Các từ trong tiêu đề đóng góp mức độ khác nhau trong biểu diễn đại diện cho tin đó.
+• Trong một tiêu đề, các từ khác nhau được những người dung khác nhau chú ý đền với mức độ khác nhau.
+• → Mô hình hóa được mức độ quan tâm khác nhau của người dùng đến từ ngữ trong tiêu đề hay 
+các tin khác nhau sẽ giúp ích trong việ gợi ý.
+
+=== PDF PAGE 28 ===
+28
+2. Mô hình
+• Mô hình gồm 3 phần:
+• News encoder: học biểu diễn item
+• User encoder: học biểu diễn user thông qua lịch sử đọc.
+• Click preditor: dự đoán khả năng click item của mỗi user.
+
+
+=== PDF PAGE 29 ===
+29
+2.1. News encoder
+• News encoder gồm các bước
+• Word embedding: embedding các từ trong tiêu đề
+Thu được vector
+• CNN: học thông tin về ngữ cảnh
+Thu được vector 
+• Personalized attention: học mức độ quan tâm của 
+người dung đối với từng từ trong tiêu đề
+
+
+=== PDF PAGE 30 ===
+30
+2.1. News encoder (tiếp)
+• Persionalized attention
+• Với mỗi user, học mức độ quan tâm của user đối với từng từ trong tiêu đề.
+• Embedding userID thành vector 𝑒𝑢
+• Cho qua lớp fully connected để chuyển thành vector query 
+• Tính trọng số attention
+• Biểu diễn của item thứ i:
+
+
+=== PDF PAGE 31 ===
+31
+2.2. User encoder
+• Dùng attention để biểu diễn user thông qua các item mà user đó đã xem
+• Embedding userID thành vector 𝑒𝑢
+• Cho qua lớp fully connected để chuyển thành vector query 
+• Tính trọng số attention:
+• Biểu diễn user:
+
+
+=== PDF PAGE 32 ===
+32
+2.3. Click prediction
+• Dự đoán khả năng user click vào item nào đó:
+
+
+=== PDF PAGE 33 ===
+33
+Đánh giá
+• Dữ liệu từ MSN News trong 01 tháng
+• So sánh: 
+
+
+=== PDF PAGE 34 ===
+34
+3. Mô hình gợi ý với cơ chế tự chú ý (NRMS (Wu et.al. 2019c))
+■ Sự tương tác giữa các từ trong tiêu đề tin tức rất quan trọng để hiểu được tin tức  
+■Các bài báo khác nhau được duyệt bởi cùng một người dùng sẽ có liên quan 
+■ Các từ khác nhau có tầm quan trọng khác nhau trong việc đại diện cho tin tức 
+■ Các bài báo khác nhau được duyệt bởi cùng một người dùng có tầm quan trọng khác nhau trong việc đại diện 
+cho người dùng
+
+=== PDF PAGE 35 ===
+35
+Mô hình gợi ý với cơ chế tự chú ý: Kiến trúc
+■ Gồm 3 thành phần
+■News encoder
+■User encoder
+■ Click predictor
+
+
+=== PDF PAGE 36 ===
+36
+Mô hình gợi ý với cơ chế tự chú ý: News encoder
+■ News encoder
+
+
+=== PDF PAGE 37 ===
+37
+Mô hình gợi ý với cơ chế tự chú ý: User encoder
+■ User encoder
+
+
+=== PDF PAGE 38 ===
+38
+Mô hình gợi ý với cơ chế tự chú ý: Click prediction
+■ Dự đoán khả năng user click vào item:
+■ Xây dựng hàm loss: Cho mỗi user, với mỗi tin được đọc (positive news) ො𝑦+, K tin chưa được đọc 
+(negative news) [ ො𝑦1
+−, ො𝑦2
+−, …, ො𝑦𝐾
+− ]sẽ được lấy mẫu ngẫu nhiên => K+1 news
+■ Hàm loss: 
+Trong đó: S là tập positive news và 
+
+
+=== PDF PAGE 39 ===
+39
+Mô hình gợi ý với cơ chế tự chú ý: Đánh giá
+
+
+=== PDF PAGE 40 ===
+40
+4. Mô hình gợi ý dựa trên sở thích ngắn hạn và dài hạn (LSTUR (An et.al. 
+2019))
+● User có sở thích dài hạn và ngắn hạn. => Cần phải khai thác cả 2.
+=> Tiếp cận theo hướng biểu diễn user theo long-term và short-term
+
+
+=== PDF PAGE 41 ===
+41
+Mô hình gợi ý dựa trên sở thích ngắn hạn và dài hạn
+● News encoder
+
+
+=== PDF PAGE 42 ===
+42
+Mô hình gợi ý dựa trên sở thích ngắn hạn và dài hạn
+● News encoder: Sử dụng thông tin title, category (topic), subcategories
+● Title encoder.
+○ Title được embedding ( dùng pre-train word2vec,..)
+○ Sau khi embedding, đưa qua mạng CNN để trích xuất context:
+○ Sau đó đưa qua attention weight:
+■ Với v,vb là các tham số được học
+trong quá trình training.
+○ Sau cùng, vector đại diện cho title
+được lấy tổng có trọng số của các c_i
+
+
+=== PDF PAGE 43 ===
+43
+Mô hình gợi ý dựa trên sở thích ngắn hạn và dài hạn
+● News encoder: Sử dụng thông tin title, category (topic), subcategories
+● Topic encoder
+○ topic và subtopic categories được embedding ( được học trong quá trình training )
+● Sau cùng concat các vector lại sẽ thu được vector biểu diễn của news
+
+
+=== PDF PAGE 44 ===
+44
+Mô hình gợi ý dựa trên sở thích ngắn hạn và dài hạn
+User encoder: Short-term và Long-term
+Sử dụng mạng GRU và user embedding
+
+
+=== PDF PAGE 45 ===
+45
+Mô hình gợi ý dựa trên sở thích ngắn hạn và dài hạn
+
+
+=== PDF PAGE 46 ===
+46
+5. Kết luận
+● Mô hình gợi ý dựa trên học sâu cho hệ gợi ý tin tức (neural news recommendation) thường gồm 3 
+thành phần: News encoder, user encoder, click predictor
+● Các mạng sâu CNN, RNN, Bert, self-attention để mã hóa đặc trưng dạng chuỗi trong tin tức (news 
+encoder) hoặc trong chuỗi tương tác (user encoder)
+● Các phương pháp cho neural news recommendation còn phát triển mạnh theo sau các mô hình 
+ngôn ngữ lớn 
+
+=== PDF PAGE 47 ===
+47
+Tài liệu tham khảo
+• Chuhan Wu, Fangzhao Wu, Mingxiao An, Jianqiang Huang, Yongfeng Huang, and Xing Xie. 2019a. Neural 
+news recommendation with attentive multiview learning. In IJCAI-19, pages 3863–3869.
+• Chuhan Wu, Fangzhao Wu, Mingxiao An, Jianqiang Huang, Yongfeng Huang, and Xing Xie. 2019b. Npa: 
+Neural news recommendation with personalized attention. In KDD, pages 2576–2584. ACM.
+• Chuhan Wu, Fangzhao Wu, Suyu Ge, Tao Qi, Yongfeng Huang, and Xing Xie. 2019c. Neural news 
+recommendation with multi-head selfattention. In EMNLP-IJCNLP, pages 6390–6395
+• Mingxiao An, Fangzhao Wu, Chuhan Wu, Kun Zhang, Zheng Liu, and Xing Xie. 2019. Neural news 
+recommendation with long-and short-term user representations. In ACL, pages 336–345.
+• Wu, F., Qiao, Y., Chen, J. H., Wu, C., Qi, T., Lian, J., ... & Zhou, M. (2020, July). Mind: A large-scale dataset for 
+news recommendation. In Proceedings of the 58th Annual Meeting of the Association for Computational 
+Linguistics(pp. 3597-3606).
+
+=== PDF PAGE 48 ===
+THANK YOU !
+48

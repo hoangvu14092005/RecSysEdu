@@ -1,0 +1,427 @@
+=== PDF PAGE 1 ===
+
+
+=== PDF PAGE 2 ===
+HỆ GỢI Ý
+(IT4613)
+
+=== PDF PAGE 3 ===
+3
+HỆ GỢI Ý
+GỢI Ý DỰA TRÊN LỌC CỘNG TÁC CƠ BẢN
+
+
+=== PDF PAGE 4 ===
+4
+Nội dung môn học
+• Giới thiệu về Hệ gợi ý
+• Gợi ý dựa trên lọc cộng tác: Cơ bản và Các kỹ thuật nâng cao
+• Gợi ý dựa trên nội dung 
+• Gợi ý dựa trên tri thức
+• Gợi ý dựa trên phiên
+• Kết hợp các kỹ thuật gợi ý 
+• Đánh giá hiệu quả đối với hệ gợi ý
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Bài toán gợi ý tin tức
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Học tương phản
+
+=== PDF PAGE 5 ===
+5
+Lọc cộng tác (Collaborative Filtering)
+
+=== PDF PAGE 6 ===
+6
+Nội dung
+• Lọc cộng tác (CF)
+• Ý tưởng của lọc cộng tác
+• Lọc cộng tác dựa trên láng giềng gần của user
+• Lọc cộng tác dựa trên láng giềng gần của item
+• Vấn đề với dữ liệu thưa
+• Học biểu diễn ẩn của user và item dựa trên phân tích ma trận
+• Tài liệu tham khảo
+
+=== PDF PAGE 7 ===
+7
+1. Lọc cộng tác: Ý tưởng
+• Là các tiếp cận nổi bật để đưa ra gợi ý:
+• Được sử dụng bởi nhiều các hệ thống thương mại điện tử
+• Có nhiều thuật toán và các biến thể
+• Áp dụng trong nhiều domains (news, book, movies, DVDs, ..)
+• Tiếp cận:
+• Dựa trên "wisdom of the crowd" để gợi ý items
+• Giả thiết và ý tưởng:
+• Users đưa ra ratings cho các items (implicit hoặc explicit feedback)
+• Users có sở thích tương tự nhau trong quá khứ, cũng sẽ có sở thích tương tự trong tương lai
+
+
+=== PDF PAGE 8 ===
+8
+Lọc cộng tác: Ý tưởng
+• Input
+• Only a matrix of given user–item ratings
+• Output types
+• A (numerical) prediction indicating to what degree the current user will like or dislike a certain item
+• A top-N list of recommended items
+
+=== PDF PAGE 9 ===
+9
+Tiếp cận dựa trên bộ nhớ (memory)
+• Lọc cộng tác dựa trên láng giềng là tiếp cận dựa trên bộ nhớ
+• Ma trận ratings được sử dụng trực tiếp để tìm láng giềng của users hoặc items và đưa ra gợi ý
+• Ví dụ: Với một user, cách tiếp cận sẽ tìm ra những láng giềng là users tương tự. Danh sách gợi ý cho user sẽ xây 
+dựng từ các items mà users tương tự đã thích.
+• Chỉ lưu trữ dữ liệu trong bước training
+• Khó làm việc với dữ liệu lớn
+
+=== PDF PAGE 10 ===
+10
+Tiếp cận dựa trên mô hình (model)
+• Lọc cộng tác dựa trên mô hình
+• Phải xây dựng và huấn luyện mô hình trước
+• Ở thời điểm gợi ý, mô hình sau khi huấn luyện được sử dụng để đưa ra dự đoán, gợi ý
+• Mô hình phải được cập nhật sau một giai đoạn thời gian
+• Có đa dạng các kiểu mô hình đã được xây dựng
+• Xây dựng mô hình và huấn luyện có thể yêu cầu khối lượng tính toán lớn
+
+=== PDF PAGE 11 ===
+11
+2. Lọc cộng tác dựa trên láng giềng gần của user
+
+
+=== PDF PAGE 12 ===
+12
+Lọc cộng tác dựa trên láng giềng gần của user 
+• Ví dụ
+• Cho ma trận ratings của các users hiện tại
+• Xác định Alice có thích hay không thích Item5?
+Item1 Item2 Item3 Item4 Item5
+Alice 5 3 4 4 ?
+User1 3 1 2 3 3
+User2 4 3 4 3 5
+User3 3 3 1 5 4
+User4 1 5 5 2 1
+
+=== PDF PAGE 13 ===
+13
+Lọc cộng tác dựa trên láng giềng gần của user 
+• Một số câu hỏi đầu tiên cho cách tiếp cận này:
+• Độ đo tương đồng?
+• Số lượng láng giềng?
+• Cách sinh ra rating từ ratings của tập các láng giềng?
+Item1 Item2 Item3 Item4 Item5
+Alice 5 3 4 4 ?
+User1 3 1 2 3 3
+User2 4 3 4 3 5
+User3 3 3 1 5 4
+User4 1 5 5 2 1
+
+=== PDF PAGE 14 ===
+14
+Độ đo tương đồng (1)
+
+
+=== PDF PAGE 15 ===
+15
+Độ đo tương đồng (2)
+Item1 Item2 Item3 Item4 Item5
+Alice 5 3 4 4 ?
+User1 3 1 2 3 3
+User2 4 3 4 3 5
+User3 3 3 1 5 4
+User4 1 5 5 2 1
+sim = 0,85
+sim = 0,00
+sim = 0,70
+sim = -0,79
+
+=== PDF PAGE 16 ===
+16
+Pearson correlation
+• Minh họa
+• Làm việc tốt trong nhiều bài toán khi so với:
+• Độ đo tương đồng cosine
+0
+1
+2
+3
+4
+5
+6
+Item1 Item2 Item3 Item4
+Ratings
+Alice
+User1
+User4
+
+=== PDF PAGE 17 ===
+17
+Dự đoán
+• Hàm dự đoán phổ biến:
+• Tính toán điểm mỗi láng giềng trên item p so với điểm trung bình của họ
+• Kết hợp điểm trung bình của các láng giềng với trọng số tương đồng của user a
+• Cộng với mức độ bias của user a
+
+
+=== PDF PAGE 18 ===
+18
+Cải thiện hàm dự đoán
+• Không phải tất cả các ratings của láng giềng đều có giá trị tương đương
+• Đồng thuận trên các items được thích phổ biến sẽ không mang lại nhiều thông tin như đồng 
+thuận trên các items có nhiều đánh giá trái ngược
+• Possible solution: Đặt trọng số cao hơn trên các items mà có đánh giá là higher variance
+
+=== PDF PAGE 19 ===
+19
+Cải thiện hàm dự đoán
+• Số lượng của các items mà 2 users cùng tương tác
+• Trọng số sẽ giảm khi 2 users có ít items tương tác chung
+• Tăng trọng số láng giếng
+• Trực quan: Đặt trọng số gần 1 khi cặp users là rất tương đồng.
+• Lựa chọn láng giềng
+• Dựa trên ngưỡng tương đồng hoặc số cố định các láng giềng
+
+=== PDF PAGE 20 ===
+20
+3. Lọc cộng tác dựa trên item
+• Ý tưởng: 
+• Sử dụng độ tương đồng giữa các items để đưa ra gợi ý
+• Ví dụ: 
+• Tìm kiếm items mà tương tự với Item5
+• Sử dụng ratings của Alice cho những items này để dự đoán rating cho Item5
+Item1 Item2 Item3 Item4 Item5
+Alice 5 3 4 4 ?
+User1 3 1 2 3 3
+User2 4 3 4 3 5
+User3 3 3 1 5 4
+User4 1 5 5 2 1
+
+=== PDF PAGE 21 ===
+21
+Độ đo tương đồng cosin
+
+
+=== PDF PAGE 22 ===
+22
+Đưa ra gợi ý
+• Hàm gợi ý:
+• Số lượng láng giềng phải lựa chọn cụ thể
+• Không phải tất cả láng giềng đều nên được lựa chọn để dự đoán
+• Phân tích thực nghiệm trên MovieLens gợi ý rằng “số lượng láng giềng nên đặt 20 
+tới 50 " (Herlocker et al. 2002)
+
+
+=== PDF PAGE 23 ===
+23
+Tiền xử lý cho lọc dựa trên items
+• Lọc dựa trên items khó mở rộng hệ thống lớn
+• Tiền xử lý trước như hệ thống Amazon.com (năm 2003)
+• Tính toán tất cả các cặp tương đồng của items trước
+• Láng giềng được sự dụng lúc gợi ý thường nhỏ bởi vì chỉ xét tới một số lượng items được gợi ý 
+• Gợi ý tương đồng dựa trên items thường không đa dạng 
+
+=== PDF PAGE 24 ===
+24
+Tiền xử lý cho lọc dựa trên items
+• Yêu cầu bộ nhớ
+• Về lý thuyêt, có thể lên tới N2 cặp tương đồng được lưu trữ (N = số lượng items)
+• Thực tế, số lượng lưu trữ nhỏ hơn đang kể (items không có rating bởi cùng user)
+• Có thể giảm kích thước bộ nhớ
+• Sử dụng ngưỡng tối thiểu co-ratings
+• Giới hạn số lượng láng giềng
+
+=== PDF PAGE 25 ===
+25
+4. Vấn đề với dữ liệu thưa
+• Vấn đề Cold start
+• Khi có users hoặc items mới, làm sao thực hiện được quá trình gợi ý? 
+• Một số cách đơn giản:
+• Yêu cầu/ Ép buộc users mới đánh giá cho 1 tập items
+• Sử dụng phương pháp khác (ví dụ. content-based, demographic or simply non-personalized) 
+trong giai đoạn ban đầu khi user mới sử dụng hệ thống
+• Đưa danh sách mặc định: assign default values to items that only one of the two users to be 
+compared has rated (Breese et al. 1998)
+
+=== PDF PAGE 26 ===
+26
+Vấn đề với dữ liệu thưa
+• Một số cách khác
+• Sử dụng thuật toán tốt hơn, đặc thù cho vấn đề này
+• Ví dụ: 
+• Trong tiếp cận dựa trên láng giếng gần, tập các láng giềng gần có thể quá nhỏ để đưa ra gợi ý tốt
+• Sử dụng giả thiết tính bắc cầu  của hàng xóm
+
+=== PDF PAGE 27 ===
+27
+Ví dụ: Thuật toán cho dữ liệu thưa
+Item1 Item2 Item3 Item4 Item5
+Alice 5 3 4 4 ?
+User1 3 1 2 3 ?
+User2 4 3 4 3 5
+User3 3 3 1 5 4
+User4 1 5 5 2 1
+sim = 0.85
+Dự đoán 
+Rating cho
+User1
+
+=== PDF PAGE 28 ===
+28
+Ví dụ: Phương pháp dựa trên đồ thị 
+• "Spreading activation" (Huang et al. 2004)
+• Khai thác giả thiết bắc cầu sở thích của khách hàng để bổ sung thêm thông tin
+• Giả sử chúng ta đang phải gợi ý cho User1
+• Khi sử dụng lọc cộng tác thông thường, User2 được xem là láng giềng của User1 bởi vì họ cùng mua 
+Item2 và Item4
+• Vì thế, Item3 sẽ được gợi ý cho User1
+
+
+=== PDF PAGE 29 ===
+29
+Ví dụ: Phương pháp dựa trên đồ thị
+• "Spreading activation" (Huang et al. 2004)
+• Với tiếp cận láng giếng gần, đường đi với độ dài 3 sẽ được sử dụng
+• Ví dụ, Item3 phù hợp cho User1 bởi vì đường đi với đồ dài 3 (User1–Item2–User2–Item3) giữa 
+chúng
+• Idea: Xem xét độ dài lớn hơn (mặc dù không có tương tác trực tiếp) để tính toán cho gợi ý
+• Ví du: Sử dụng đường đi với độ dài 5
+
+
+=== PDF PAGE 30 ===
+30
+Ví dụ: Phương pháp dựa trên đồ thị
+• "Spreading activation" (Huang et al. 2004)
+• Idea: Sử dụng đường đi với độ dài > 3 để gợi ý
+• Độ dài 3: Gợi ý Item3 cho User1
+• Độ dài 5: Item1 cũng được gợi ý
+
+
+=== PDF PAGE 31 ===
+31
+5. Phân tích ma trận (matrix factorization)
+• Là tiếp cận dựa trên mô hình
+• Được xem như mô hình doubly linear regression
+• Giả thiết users và items được biểu diễn trên cùng không gian ẩn mà thể hiện đặc trưng của 
+chúng
+• Gợi ý: Dựa học biểu diễn ẩn của user và item
+
+=== PDF PAGE 32 ===
+32
+Lọc cộng tác dựa trên phân tích ma trận
+• Biểu diễn user và item trên cùng không gian
+Figures from Koren et al. (2009)
+
+=== PDF PAGE 33 ===
+33
+Lọc cộng tác dựa trên phân tích ma trận
+• Biểu diễn của user u:
+• Biểu diễn của item i:
+• Rating của user u cho item i:
+Figures from Koren et al. (2009)
+Matrix$factorization$as$SGD$V$why$does$
+this$work?$$Here’s$the$key$claim: 
+Figures from Gemulla et al. (2011)
+
+
+=== PDF PAGE 34 ===
+• User vectors:
+• Item vectors:
+• Dự đoán Rating:
+34
+Lọc cộng tác dựa trên phân tích ma trận
+Figures from Koren et al. (2009)
+
+
+=== PDF PAGE 35 ===
+35
+Lọc cộng tác dựa trên phân tích ma trận
+• Dữ liệu huấn luyện: Z là tập các cặp user-item có tương tác:
+• Hàm mục tiêu:
+Figures from Koren et al. (2009)
+
+
+=== PDF PAGE 36 ===
+36
+Lọc cộng tác dựa trên phân tích ma trận
+• Hàm mục tiêu với đại lượng hiệu chỉnh :
+SGD update for random (u,i):
+Figures from Koren et al. (2009)
+
+
+=== PDF PAGE 37 ===
+37
+Lọc cộng tác dựa trên phân tích ma trận
+• Hàm mục tiêu:
+• Sử dụng SGD (stochastic gradient descent) để học:
+ Figures from Koren et al. (2009)
+
+
+=== PDF PAGE 38 ===
+38
+Lọc cộng tác dựa trên phân tích ma trận
+• Thuật toán
+Figures from Koren et al. (2009)
+Matrix$factorization$as$SGD$V$why$does$
+this$work?$$Here’s$the$key$claim: 
+Figure from Gemulla et al. (2011)
+Matrix$factorization$as$SGD$V$why$does$
+this$work? 
+step size 
+Figure from Gemulla et al. (2011)
+
+=== PDF PAGE 39 ===
+39
+Lọc cộng tác dựa trên phân tích ma trận
+Figure from Koren et al. (2009)
+Ví dụ
+
+=== PDF PAGE 40 ===
+40
+Tài liệu tham khảo
+• Slide
+• http://www.recommenderbook.net/teaching-material/slides
+• Book
+• Dietmar Jannach, Markus Zanker, Alexander Felfernig, Gerhard Friedrich (2010). Recommender Systems: An 
+Introduction. Cambridge University Press.
+• Francesco Ricci, Lior Rokach, Bracha Shapira, Paul B. Kantor (2015). Recommender Systems Handbook (2nd 
+edition). Springer.
+• Charu C. Aggarwal (2016). Recommender Systems: The Textbook. Springer
+
+=== PDF PAGE 41 ===
+41
+Tài liệu tham khảo
+• [Adomavicius and Tuzhilin 2005] Toward the next generation of recommender systems: A survey of the state-
+of-the-art and possible extensions, IEEE Transactions on Knowledge and Data Engineering 17 (2005), no. 6, 
+734–749
+• [Breese et al. 1998] Empirical analysis of predictive algorithms for collaborative filtering, Proceedings of the 
+14th Conference on Uncertainty in Artificial Intelligence (Madison, WI) (Gregory F. Cooper and Seraf´in Moral, 
+eds.), Morgan Kaufmann, 1998, pp. 43–52
+• [Gedikli et al. 2011] RF-Rec: Fast and accurate computation of recommendations based on rating frequencies, 
+Proceedings of the 13th IEEE Conference on Commerce and Enterprise Computing - CEC 2011, Luxembourg, 
+2011, forthcoming
+• [Goldberg et al. 2001] Eigentaste: A constant time collaborative filtering algorithm, Information Retrieval 4 
+(2001), no. 2, 133–151
+• [Golub and Kahan 1965] Calculating the singular values and pseudo-inverse of a matrix, Journal of the Society 
+for Industrial and Applied Mathematics, Series B: Numerical Analysis 2 (1965), no. 2, 205–224
+• [Herlocker et al. 2002] An empirical analysis of design choices in neighborhood-based collaborative filtering 
+algorithms, Information Retrieval 5 (2002), no. 4, 287–310
+• [Herlocker et al. 2004] Evaluating collaborative filtering recommender systems, ACM Transactions on 
+Information Systems (TOIS) 22 (2004), no. 1, 5–53
+
+=== PDF PAGE 42 ===
+42
+Tài liệu tham khảo
+• [Hofmann 2004] Latent semantic models for collaborative filtering, ACM Transactions on Information Systems 
+22 (2004), no. 1, 89–115
+• [Huang et al. 2004] Applying associative retrieval techniques to alleviate the sparsity problem in collaborative 
+filtering, ACM Transactions on Information Systems 22 (2004), no. 1, 116–142
+• [Koren et al. 2009] Matrix factorization techniques for recommender systems, Computer 42 (2009), no. 8, 30–37
+• [Lemire and Maclachlan 2005] Slope one predictors for online rating-based collaborative filtering, Proceedings 
+of the 5th SIAM International Conference on Data Mining (SDM ’05) (Newport Beach, CA), 2005, pp. 471–480
+• [Sarwar et al. 2000a] Application of dimensionality reduction in recommender systems – a case study, 
+Proceedings of the ACM WebKDD Workshop (Boston), 2000
+• [Zhang and Pu 2007] A recursive prediction algorithm for collaborative filtering recommender systems, 
+Proceedings of the 2007 ACM Conference on Recommender Systems (RecSys ’07) (Minneapolis, MN), ACM, 
+2007, pp. 57–64
+
+=== PDF PAGE 43 ===
+THANK YOU !
+43

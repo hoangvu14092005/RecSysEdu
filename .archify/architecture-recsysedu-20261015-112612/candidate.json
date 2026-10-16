@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "RecSysEdu — kiến trúc hệ gợi ý khóa học",
+    "locale": "en",
+    "subtitle": "Luồng P0 từ MOOCCubeX đến LearnPath; nhánh prerequisite là P1 có điều kiện",
+    "output": ".archify/architecture-recsysedu-20261015-112612/recsysedu-architecture.html",
+    "quality_profile": "showcase",
+    "legend": { "mode": "auto" }
+  },
+  "components": [
+    {
+      "id": "team",
+      "type": "external",
+      "label": "Nhóm thực hiện",
+      "sublabel": "chạy CLI / xem demo",
+      "pos": [40, 300],
+      "size": [150, 68]
+    },
+    {
+      "id": "github",
+      "type": "cloud",
+      "label": "GitHub",
+      "sublabel": "source · config · docs",
+      "tag": "không chứa raw lớn",
+      "pos": [40, 100],
+      "size": [170, 68]
+    },
+    {
+      "id": "mooc_raw",
+      "type": "database",
+      "label": "MOOCCubeX raw",
+      "sublabel": "course.json · user.json",
+      "tag": "SSD / cloud riêng",
+      "pos": [270, 100],
+      "size": [180, 72]
+    },
+    {
+      "id": "download",
+      "type": "backend",
+      "label": "Data CLI",
+      "sublabel": "download · manifest · SHA-256",
+      "pos": [270, 300],
+      "size": [180, 72]
+    },
+    {
+      "id": "audit",
+      "type": "backend",
+      "label": "Audit & chuẩn hóa",
+      "sublabel": "schema · ID · timestamp · rejects",
+      "pos": [500, 300],
+      "size": [190, 72]
+    },
+    {
+      "id": "parquet",
+      "type": "database",
+      "label": "Parquet + DuckDB",
+      "sublabel": "interactions · courses · features",
+      "tag": "processed dataset",
+      "pos": [698, 300],
+      "size": [190, 72]
+    },
+    {
+      "id": "split",
+      "type": "backend",
+      "label": "Split & protocol",
+      "sublabel": "train · valid · test · cohort",
+      "pos": [900, 300],
+      "size": [185, 72]
+    },
+    {
+      "id": "popular",
+      "type": "backend",
+      "label": "MostPopular",
+      "sublabel": "baseline từ train",
+      "pos": [590, 520],
+      "size": [170, 68]
+    },
+    {
+      "id": "content",
+      "type": "backend",
+      "label": "Content TF-IDF",
+      "sublabel": "name/about + cosine",
+      "pos": [780, 520],
+      "size": [180, 68]
+    },
+    {
+      "id": "bpr",
+      "type": "backend",
+      "label": "BPR",
+      "sublabel": "implicit enrollment",
+      "pos": [970, 520],
+      "size": [170, 68]
+    },
+    {
+      "id": "graph",
+      "type": "backend",
+      "label": "P1 Graph / Path",
+      "sublabel": "prerequisite có điều kiện",
+      "tag": "optional",
+      "pos": [470, 670],
+      "size": [190, 70]
+    },
+    {
+      "id": "hybrid",
+      "type": "backend",
+      "label": "Hybrid",
+      "sublabel": "alpha · fallback · rerank",
+      "pos": [780, 670],
+      "size": [180, 70]
+    },
+    {
+      "id": "evaluator",
+      "type": "backend",
+      "label": "Evaluator",
+      "sublabel": "NDCG · HitRate · Coverage",
+      "pos": [780, 820],
+      "size": [190, 72]
+    },
+    {
+      "id": "snapshot",
+      "type": "database",
+      "label": "demo_bundle.json",
+      "sublabel": "ranking · reason · metrics · run",
+      "tag": "snapshot nhỏ",
+      "pos": [780, 980],
+      "size": [210, 72]
+    },
+    {
+      "id": "learnpath",
+      "type": "frontend",
+      "label": "LearnPath",
+      "sublabel": "Streamlit · Gợi ý | Model Lab",
+      "pos": [700, 1140],
+      "size": [210, 72]
+    },
+    {
+      "id": "viewer",
+      "type": "external",
+      "label": "Người xem",
+      "sublabel": "chọn hồ sơ / model",
+      "pos": [1030, 1140],
+      "size": [150, 72]
+    }
+  ],
+  "connections": [
+    { "id": "team-github", "from": "team", "to": "github", "label": "commit / PR", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "id": "github-cli", "from": "github", "to": "download", "label": "config + source", "variant": "dashed", "fromSide": "right", "toSide": "top" },
+    { "id": "team-cli", "from": "team", "to": "download", "label": "chạy CLI", "variant": "emphasis" },
+    { "id": "cli-raw", "from": "download", "to": "mooc_raw", "label": "ghi raw + manifest", "variant": "security", "fromSide": "top", "toSide": "bottom" },
+    { "id": "raw-audit", "from": "mooc_raw", "to": "audit", "label": "đọc raw", "fromSide": "bottom", "toSide": "top" },
+    { "id": "audit-parquet", "from": "audit", "to": "parquet", "label": "clean + map ID", "variant": "emphasis" },
+    { "id": "parquet-split", "from": "parquet", "to": "split", "label": "dataset chuẩn" },
+    { "id": "split-popular", "from": "split", "to": "popular", "label": "train" },
+    { "id": "split-content", "from": "split", "to": "content", "label": "train + metadata", "fromSide": "bottom", "toSide": "top" },
+    { "id": "split-bpr", "from": "split", "to": "bpr", "label": "pre-split", "fromSide": "bottom", "toSide": "top" },
+    { "id": "parquet-graph", "from": "parquet", "to": "graph", "label": "P1 mapping", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "content-hybrid", "from": "content", "to": "hybrid", "label": "content score", "fromSide": "bottom", "toSide": "top" },
+    { "id": "bpr-hybrid", "from": "bpr", "to": "hybrid", "label": "behavior score" },
+    { "id": "graph-hybrid", "from": "graph", "to": "hybrid", "label": "optional penalty", "variant": "dashed" },
+    { "id": "popular-evaluator", "from": "popular", "to": "evaluator", "label": "ranking", "fromSide": "bottom", "toSide": "top" },
+    { "id": "content-evaluator", "from": "content", "to": "evaluator", "label": "ranking" },
+    { "id": "bpr-evaluator", "from": "bpr", "to": "evaluator", "label": "ranking", "fromSide": "bottom", "toSide": "top" },
+    { "id": "hybrid-evaluator", "from": "hybrid", "to": "evaluator", "label": "ranking", "fromSide": "bottom", "toSide": "top" },
+    { "id": "evaluator-snapshot", "from": "evaluator", "to": "snapshot", "label": "metrics + Top-K", "variant": "emphasis" },
+    { "id": "snapshot-learnpath", "from": "snapshot", "to": "learnpath", "label": "read snapshot", "variant": "emphasis" },
+    { "id": "viewer-learnpath", "from": "viewer", "to": "learnpath", "label": "xem kết quả", "fromSide": "left", "toSide": "right" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "P0 bắt buộc", "items": ["MostPopular + Content TF-IDF + BPR + Hybrid", "Evaluator chung và Top-10", "Snapshot để bàn giao, không train trong UI"] },
+    { "dot": "amber", "title": "P1 có điều kiện", "items": ["Graph prerequisite chỉ bật khi mapping và cycle được audit", "Không gọi enrollment là mastery", "Thiếu graph thì bàn giao P0 và ghi rõ giới hạn"] },
+    { "dot": "rose", "title": "Trạng thái hiện tại", "items": ["Base CLI, audit, fixture và Streamlit đã có", "Raw đã tải/audit; chưa có split/model/metric thật", "Các module prepare/train/evaluate là bước tiếp theo"] }
+  ]
+}

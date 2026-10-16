@@ -1,0 +1,451 @@
+diff --git a/configs/final_experiments.yaml b/configs/final_experiments.yaml
+index 7decfe8..2425a4e 100644
+--- a/configs/final_experiments.yaml
++++ b/configs/final_experiments.yaml
+@@ -3,28 +3,33 @@ prepared_dir: ../data/processed/mooccubex-pilot-v1
+ split_dir: ../data/splits/mooccubex-pilot-v1-split-v1
+ seed: 17
+ release_mode: true
+-frozen: false
++frozen: true
+ output_roots:
+-  valid: ../results/experiments/valid
+-  test: ../results/experiments/test
++  valid: ../results/local/pilot-final/valid
++  test: ../results/local/pilot-final/test
+ 
+ # Config files are read on every invocation; their effective values are hashed.
+ content:
+   config_path: content.yaml
+ bpr:
+   config_path: bpr.yaml
+-  # To evaluate an already-trained BPR (must match dataset/split/seed/parameters):
+-  # manifest_path: ../artifacts/models/<run>/bpr_manifest.json
++  # Chosen from three seed-17 validation trials; reuse the exact best checkpoint.
++  epochs: 10
++  embedding_size: 32
++  learning_rate: 0.01
++  validation_early_stopping: true
++  stopping_step: 2
++  manifest_path: ../results/local/pilot-search/bpr-3/valid-cbcf720e67144f10a735e06b0a717763/artifacts/bpr/bpr_manifest.json
+ hybrid:
+   config_path: hybrid.yaml
+ 
+-# After validation and manual review (Task 11), copy freeze_candidate from
+-# <validation batch>/experiment_manifest.json, then add the SHA-256 of that file.
+-# Keep the model settings above unchanged; test uses its exact saved checkpoint,
+-# Content features and validation-selected alpha. Use a separate test output root.
+-# validation_dir: ../results/experiments/valid/valid-<batch-id>
+-# freeze:
+-#   dataset_hash: <exact dataset manifest SHA-256>
+-#   split_hash: <exact split hash>
+-#   config_hash: <effective config hash from validation>
+-#   validation_manifest_sha256: <SHA-256 of experiment_manifest.json>
++# Frozen after the real four-model valid batch and five-alpha grid (Task 11).
++# Carry this ignored local batch with the data when handing off the project.
++# Test reuses its exact checkpoint, Content features and selected alpha 0.25.
++# New data/config requires a separate validation run and a new freeze.
++validation_dir: ../results/local/pilot-final/valid/valid-2e93583494064297adaa556b9bc21d64
++freeze:
++  dataset_hash: 215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c
++  split_hash: 7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617
++  config_hash: 7e895cc5d88e203cf20c597c6ff349d16b5266910d148108ca4a3f1c22f603cc
++  validation_manifest_sha256: 379b3ae18de0b2a3859f705be5ce3727284d29fa4a8ddab1326982ba597d3baf
+diff --git a/results/pilot/core_manifest.json b/results/pilot/core_manifest.json
+new file mode 100644
+index 0000000..f1640ef
+--- /dev/null
++++ b/results/pilot/core_manifest.json
+@@ -0,0 +1,81 @@
++{
++  "status": "frozen_validation_only",
++  "test_evaluated": false,
++  "dataset_hash": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
++  "split_hash": "7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617",
++  "protocol_id": "leave_last_two_out_v1",
++  "seed": 17,
++  "config_hash": "7e895cc5d88e203cf20c597c6ff349d16b5266910d148108ca4a3f1c22f603cc",
++  "validation_manifest_sha256": "379b3ae18de0b2a3859f705be5ce3727284d29fa4a8ddab1326982ba597d3baf",
++  "validation_batch": "valid-2e93583494064297adaa556b9bc21d64",
++  "chosen_bpr": {
++    "seed": 17,
++    "epochs": 10,
++    "embedding_size": 32,
++    "train_batch_size": 2048,
++    "learning_rate": 0.01,
++    "validation_early_stopping": true,
++    "stopping_step": 2
++  },
++  "chosen_bpr_checkpoint_sha256": "c4dbd2d88e71689b1d447f314fe6b9dc1a90af95499d2cafdba5eec03b36720a",
++  "chosen_bpr_id_maps_sha256": "f0af46aaa5a1877b0e86078c46d315e639a4c46f7b0308a3fc0472a4e1f7ce99",
++  "bpr_versions": {
++    "python": "3.10.11",
++    "torch": "2.5.1+cpu",
++    "recbole": "1.2.1",
++    "numpy": "1.26.4"
++  },
++  "selected_alpha": 0.25,
++  "component_hashes": {
++    "bpr": "e081969efc358d1d5af2bbc54c17d3de403f31515ce4cf0b7dbb9d0fadfdd101",
++    "content": "d265b4be73db3806d64b229490658c321ff7c3fd6b72afdba52d805d5853d6f1"
++  },
++  "versions": {
++    "python": "3.10.11",
++    "numpy": "1.26.4",
++    "pandas": "2.3.3",
++    "scikit-learn": "1.7.2",
++    "pyarrow": "25.0.1"
++  },
++  "git_revision": "e101b67b0911c0674b364fcc1e7a5bb1b6673645",
++  "metrics": {
++    "popularity": {
++      "NDCG@10": 0.053299742395911856,
++      "HitRate@10": 0.08961550105964275,
++      "Recall@10": 0.08961550105964275,
++      "Precision@10": 0.008961550105964198,
++      "Coverage@10": 0.01237432327919567
++    },
++    "content": {
++      "NDCG@10": 0.08230373486780361,
++      "HitRate@10": 0.13472600666061157,
++      "Recall@10": 0.13472600666061157,
++      "Precision@10": 0.013472600666060824,
++      "Coverage@10": 0.922660479505027
++    },
++    "bpr": {
++      "NDCG@10": 0.0774493614401512,
++      "HitRate@10": 0.13957008779897062,
++      "Recall@10": 0.13957008779897062,
++      "Precision@10": 0.013957008779896703,
++      "Coverage@10": 0.6774941995359629
++    },
++    "hybrid": {
++      "NDCG@10": 0.10850833307518327,
++      "HitRate@10": 0.17822181854879401,
++      "Recall@10": 0.17822181854879401,
++      "Precision@10": 0.017822181854878823,
++      "Coverage@10": 0.8364269141531323
++    }
++  },
++  "audit": {
++    "four_model_compatibility": true,
++    "endpoint_rankings_match": true,
++    "seen_mask_pass": true,
++    "checkpoint_reload_exact": true,
++    "independent_per_user_metrics_pass": true,
++    "four_model_and_five_alpha_runs_verified": true,
++    "frozen_validation_guard_pass": true,
++    "published_artifact_hashes_pass": true
++  }
++}
+\ No newline at end of file
+diff --git a/results/pilot/dataset_report.md b/results/pilot/dataset_report.md
+new file mode 100644
+index 0000000..aefb0fa
+--- /dev/null
++++ b/results/pilot/dataset_report.md
+@@ -0,0 +1,117 @@
++# Pilot MOOCCubeX thật — dữ liệu và split
++
++Đo ngày 16/10/2026. Đây là dữ liệu thật từ hai file `course.json`, `user.json`,
++không phải fixture. Chỉ xử lý đăng ký khóa học; không tải 296 triệu log hành vi.
++Kết quả model ở [validation_report](validation_report.md).
++
++## Nguồn và quyền sử dụng
++
++Hai URL trong raw manifest khớp link tải của
++[MOOCCubeX chính thức](https://github.com/THU-KEG/MOOCCubeX):
++[course](https://lfs.aminer.cn/misc/moocdata/data/mooccube2/entities/course.json),
++[user](https://lfs.aminer.cn/misc/moocdata/data/mooccube2/entities/user.json).
++File đã tải ngày 09/10/2026; prepare đọc lại và kiểm hash trước/sau xử lý.
++Hash do dự án tự đo để nhận diện bản tải, không phải checksum có chứng thực từ nguồn.
++Repo nguồn có [GPL-3.0](https://github.com/THU-KEG/MOOCCubeX/blob/main/LICENSE).
++HEAD nguồn lúc kiểm tra: `ff6fb71304b4eaadde51956b7977d49c72a3ac1e`.
++Chưa xác minh giấy phép riêng áp dụng cho từng file dữ liệu; báo cáo không coi
++giấy phép code là sự cho phép phát hành hồ sơ người học. Raw, ID người học,
++Parquet, checkpoint và ranking cá nhân chỉ giữ local, ngoài Git.
++
++| File | Byte | SHA-256 |
++| --- | ---: | --- |
++| course.json | 44.660.123 | `ed7fba469a102a825afd5369da8b4fabc1f24fc1b9a13bdec1106bec27b052fc` |
++| user.json | 806.781.726 | `614c5f2753cc23f344bd51968f052564cfbe61694cd3eb7bccb0756a529f61c9` |
++
++## Làm sạch và chọn pilot
++
++Prepare quét cả 3.330.294 hồ sơ, nối khóa học vào catalog, kiểm timestamp,
++giữ lần đăng ký hợp lệ sớm nhất khi trùng và cách ly lỗi. Có 680.131 người có
++ít nhất ba khóa khác nhau hợp lệ; reservoir sampling seed `20261016` chọn
++đúng 10.000 người. Pilot có **126.827 tương tác**, catalog 3.781 khóa.
++
++| Chỉ tiêu trên toàn raw đã quét | Số lượng |
++| --- | ---: |
++| Slot đăng ký nguồn | 11.807.090 |
++| Tương tác hợp lệ trước/sau gộp trùng | 11.523.119 / 11.523.119 |
++| Slot có khóa không nằm trong catalog | 283.971 |
++| Người thiếu ba khóa hợp lệ | 2.650.163 |
++| Dòng rejects (hai loại lỗi trên) | 2.934.134 |
++| Khóa có tên / about không rỗng trong catalog | 3.781 / 3.692 |
++
++Các số reject là số trên toàn raw, không phải riêng 10.000 người pilot.
++Không ghi nhận lỗi timestamp hoặc duplicate trong lần chạy này. Metadata
++không rỗng không đồng nghĩa nội dung đầy đủ hoặc được kiểm duyệt.
++
++Timestamp dùng giả định versioned `source_local_naive`: giữ đồng hồ nguồn,
++chỉ so thứ tự trong cùng người; chưa tuyên bố múi giờ nguồn hay UTC.
++
++## Split và kiểm tra
++
++`leave_last_two_out_v1`: khóa cuối là test, áp chót là valid, trước đó là train.
++**35 người** có timestamp hòa ở ranh giới bị loại (180 tương tác), còn 9.965
++người. Kiểm tra train/valid/test không chồng cặp user–course và thứ tự thời gian
++tăng nghiêm ngặt; candidate universe đúng tập khóa xuất hiện trong train.
++
++| Phần | Số dòng/người |
++| --- | ---: |
++| Train | 106.717 tương tác |
++| Valid | 9.965 target; 9.909 warm, 56 cold |
++| Test (chỉ thống kê split, chưa đánh giá) | 9.965 target; 9.858 warm, 107 cold |
++| Candidate universe | 2.586 khóa |
++
++Warm nghĩa là target có tương tác train ở ít nhất một người. Benchmark
++validation dùng đúng 9.909 người warm; không đổi cohort theo kết quả model.
++Ở validation, profile và seen mask chỉ lấy train. Test vẫn được giữ kín về metric.
++
++## Dung lượng và thời gian đo được
++
++| Artifact local | Byte |
++| --- | ---: |
++| processed/courses.parquet | 650.662 |
++| processed/interactions.parquet | 2.677.217 |
++| processed/cohort_users.parquet | 61.389 |
++| processed/rejects.parquet | 24.945.557 |
++| split/train.parquet | 2.850.991 |
++| split/valid.parquet | 405.874 |
++| split/test.parquet | 407.292 |
++| split/valid_cohort.parquet | 403.075 |
++| split/test_cohort.parquet | 402.744 |
++| split/candidate_universe.parquet | 16.553 |
++
++Máy Windows, Python 3.10.11, RAM vật lý 34.086.969.344 byte (~31,75 GiB), CPU.
++Prepare lần đầu: **35,66 giây**. Chạy lặp độc lập cùng raw/seed/config:
++**37,90 giây**, cả dataset manifest và mọi hash đầu ra giống hệt.
++Split: **1,30 giây**. Ước lượng RAM đỉnh lấy tổng RSS tiến trình con mỗi 0,2 giây:
++prepare lặp **640.491.520 byte**, split **250.871.808 byte**.
++Đây là lấy mẫu RSS, có thể bỏ lỡ đỉnh rất ngắn; không phải bộ nhớ GPU hay
++giới hạn RAM bảo đảm. Lần prepare đầu chỉ đo launcher, nên không dùng số RAM
++đó làm bằng chứng; số prepare ở đây đến từ lần lặp đã sửa bộ đo cây tiến trình.
++
++## Nhận diện bản dữ liệu
++
++- Dataset version: `mooccubex-pilot-v1`.
++- Dataset hash: `215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c`.
++- Split version: `mooccubex-pilot-v1-split-v1`.
++- Split hash: `7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617`.
++- Interactions Parquet SHA-256: `6e534dec34cc2a680c120f8d51f73eaebdbeae644e546a893f83216082e8af42`.
++- Courses Parquet SHA-256: `ee424bfdb579e42920ce4d279a67739188f725c2cbe229b5e1cee3c0a0f399fb`.
++
++Manifest đầy đủ nằm local trong `data/processed/mooccubex-pilot-v1/` và
++`data/splits/mooccubex-pilot-v1-split-v1/`. Manifest raw/dataset có đường dẫn
++máy chạy nên không commit. Nếu chạy ở máy khác, dataset hash chứa provenance
++đường dẫn có thể đổi; so raw hash, cấu hình, số dòng và từng hash Parquet để
++kiểm nội dung trước khi tạo freeze mới.
++
++## Chạy lại
++
++Từ root, Python môi trường dự án, sau khi đã tải raw vào `data/raw/`:
++
++```powershell
++python -m recsysedu.cli data prepare --config configs/prepare.yaml
++python -m recsysedu.cli data split --config configs/split.yaml
++```
++
++Output đã có sẽ bị từ chối ghi đè; dùng thư mục/version mới cho lần độc lập.
++Lần đo này chỉ đổi raw_dir bằng config local để đọc nguyên file gốc có sẵn,
++không sao chép hay chỉnh sửa raw.
+diff --git a/results/pilot/validation_report.md b/results/pilot/validation_report.md
+new file mode 100644
+index 0000000..bcca1e5
+--- /dev/null
++++ b/results/pilot/validation_report.md
+@@ -0,0 +1,152 @@
++# Pilot thật — so sánh validation và khóa P0
++
++Ngày đo: 16/10/2026. Dữ liệu, cách chọn 10.000 người và split được mô tả ở
++[dataset_report](dataset_report.md). Đây là kết quả **validation**, chưa phải
++test cuối và chưa chứng minh hiệu quả học tập. Task 13 mới được mở test sau
++khi kiểm tra cấu hình đã khóa.
++
++**Trạng thái: đã khóa cấu hình P0 sau validation và audit.** Đây là khóa dữ
++liệu/protocol/model để mở test; chưa phải nghiệm thu toàn bộ P0.
++
++## Cách so sánh công bằng
++
++Bốn model cùng dùng `leave_last_two_out_v1`, seed model `17`, 9.909 người
++có target warm và 2.586 khóa từng xuất hiện trong train. Mỗi người có một
++target validation; mọi model xếp hạng toàn bộ candidate, loại khóa đã có
++trong train rồi lấy Top-10. Hòa điểm được xếp theo `course_id` tăng dần.
++Model và hồ sơ Content chỉ dùng train. Không thêm valid vào hồ sơ hoặc train.
++HitRate@10 và Recall@10 bằng nhau vì mỗi người chỉ có một target.
++
++Content dùng TF-IDF `name + about`, char n-gram 2–4, min_df=1. Có 400.950
++đặc trưng và 859.171 phần tử khác 0; không có khóa train vector rỗng.
++Hybrid chuẩn hóa min–max trên toàn bộ candidate của từng người trước khi
++lọc seen, rồi tính `alpha * BPR + (1-alpha) * Content`.
++
++## Tìm cấu hình BPR trong ngân sách
++
++Một epoch là một lượt học qua train. Embedding là vector số biểu diễn người
++và khóa; số chiều càng lớn thì có thêm tham số cần học. Learning rate quy
++định mức điều chỉnh tham số mỗi bước.
++
++Khai báo trước ba cấu hình, dưới mức tối đa sáu của kế hoạch; không thử thêm
++sau khi xem test. Cùng seed 17, CPU, batch 2.048, tối đa 10 epoch,
++early stopping theo warm validation NDCG@10, stopping_step=2. Adapter dùng
++chính ranking/metric/policy của dự án để chọn tensor tốt nhất rồi lưu checkpoint.
++Điều kiện dừng của RecBole là quá 2 lần giảm liên tiếp; bằng điểm đặt lại bộ đếm.
++
++| Lần | Embedding | Learning rate | Epoch tốt nhất / đã chạy | NDCG@10 | Thời gian CLI (giây) | RSS lấy mẫu (byte) |
++| --- | ---: | ---: | ---: | ---: | ---: | ---: |
++| 1 | 32 | 0,001 | 10 / 10 | 0,0574574866 | 307,68 | 481.726.464 |
++| 2 | 64 | 0,001 | 10 / 10 | 0,0613409454 | 307,21 | 504.586.240 |
++| 3 — chọn | 32 | 0,01 | 10 / 10 | 0,0774493614 | 293,92 | 493.481.984 |
++
++Cả ba lần thành công; không có lần train lỗi bị bỏ khỏi bảng. Cả ba chạm
++giới hạn 10 epoch trước khi điều kiện dừng kích hoạt; đây là tìm kiếm có giới
++hạn, không phải bằng chứng đã hội tụ hoặc tham số tối ưu. Checkpoint lần3
++được dùng lại nguyên vẹn cho batch bốn model, không huấn luyện lại.
++Negative sampling là uniform trong train universe, loại positive train của user;
++không dùng tập held-out để quyết định negative.
++
++## Bảng kết quả trong batch chung
++
++| Model | NDCG@10 | HitRate/Recall@10 | Precision@10 | Coverage@10 | Giây đánh giá |
++| --- | ---: | ---: | ---: | ---: | ---: |
++| MostPopular | 0,0532997424 | 0,0896155011 | 0,0089615501 | 0,0123743233 | 16,86 |
++| Content TF-IDF | 0,0823037349 | 0,1347260067 | 0,0134726007 | 0,9226604795 | 194,15 |
++| BPR đã chọn | 0,0774493614 | 0,1395700878 | 0,0139570088 | 0,6774941995 | 28,91 |
++| Hybrid alpha 0,25 | 0,1085083331 | 0,1782218185 | 0,0178221819 | 0,8364269142 | 256,36 |
++
++NDCG ưu tiên đưa khóa đúng lên đầu danh sách; HitRate là tỷ lệ người có target
++trong Top-10. Precision chia số khóa đúng cho 10. Coverage là tỷ lệ khóa trong
++candidate universe xuất hiện ít nhất một lần ở Top-10 của cả cohort.
++
++Thời gian từng dòng là thời gian evaluator, không gồm toàn bộ fit/đọc/ghi;
++BPR dùng checkpoint đã train. RSS là tổng working set lấy mẫu mỗi 0,2 giây,
++có thể tính trùng trang nhớ chia sẻ và bỏ lỡ đỉnh ngắn. Các số thời gian là
++đo wall-time trên máy phát triển có công việc khác chạy cùng, không phải
++benchmark phần cứng tách biệt.
++
++Grid alpha validation:
++
++| Alpha | NDCG@10 |
++| --- | ---: |
++| 0 | 0,0823037349 |
++| 0,25 | 0,1085083331 |
++| 0,5 | 0,1040513657 |
++| 0,75 | 0,0928847806 |
++| 1 | 0,0774493614 |
++
++Alpha càng lớn thì BPR đóng góp càng nhiều. Chọn alpha 0,25 theo NDCG@10
++validation lớn nhất (nếu hòa, chọn alpha nhỏ hơn). Hybrid có NDCG cao hơn
++Content trong pilot này, nhưng Coverage thấp hơn. Không diễn giải kết quả
++validation đã dùng để chọn alpha thành kết quả test hoặc bằng chứng tổng quát.
++
++## Kiểm tra checkpoint
++
++Checkpoint SHA-256: `c4dbd2d88e71689b1d447f314fe6b9dc1a90af95499d2cafdba5eec03b36720a`.
++ID-map SHA-256: `f0af46aaa5a1877b0e86078c46d315e639a4c46f7b0308a3fc0472a4e1f7ce99`.
++Hai lần load cùng file tạo score NumPy giống hệt; toàn bộ tensor embedding
++nạp vào scorer và model RecBole giống hệt. Đối chiếu độc lập với
++RecBole `BPR.predict` sau nạp tensor và với phép nhân cộng float64: 5 người
++× 2.586 candidate; sai số tuyệt đối lớn nhất NumPy/Torch là `9,54e-7`, so
++với float64 là `7,02e-7`; tolerance công bố `rtol=1e-6, atol=2e-6`.
++Thứ tự đầy đủ của cả 5 người giống nhau. Sai khác float32 nhỏ do thứ tự cộng;
++không tuyên bố bit-exact giữa hai thư viện. Không thay tolerance của test fixture.
++
++## Audit và bản cấu hình đã khóa
++
++- Tám run lưu riêng (ba thành phần và năm alpha), mỗi run đủ 9.909 người,
++  đúng 10 khóa khác nhau/người, không có khóa train lọt vào Top-10, không có
++  ID ngoài candidate universe, score hữu hạn, rank liên tục và phá hòa đúng.
++  Run Hybrid chính trỏ đến trial alpha 0,25, không nhân đôi kết quả đánh giá.
++- Kiểm lại SHA-256 mọi artifact được manifest công bố. Dataset, split,
++  protocol, seed, config, cohort, universe, profile và seen policy khớp.
++- Tính độc lập lại từng metric của từng người từ target và thứ tự Top-10,
++  so với Parquet và trung bình trong manifest; tính Coverage bằng hợp các
++  khóa đã gợi ý. Tất cả khớp với sai số tuyệt đối tối đa cho phép `1e-12`.
++- Alpha 0 khớp thứ tự Content và alpha 1 khớp BPR cho toàn bộ 9.909 người.
++- Kiểm guard của freeze thành công mà không gọi chấm điểm test. Chưa có
++  thư mục output test nào được tạo bởi Task 11.
++
++Batch authority: `valid-2e93583494064297adaa556b9bc21d64`.
++Toàn bộ lệnh cuối mất **1.526,85 giây (~25,45 phút)**; tổng RSS lấy mẫu đỉnh
++**403.980.288 byte**. Một lần trước đó bị gián đoạn khi đang đánh giá alpha0,
++chưa có experiment manifest; không dùng phần dở đó làm kết quả. Lần chạy lại
++giữ nguyên checkpoint BPR đã chọn, không train thêm hoặc xem test.
++
++| Nhận diện freeze | SHA-256 |
++| --- | --- |
++| Dataset | `215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c` |
++| Split | `7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617` |
++| Effective config | `7e895cc5d88e203cf20c597c6ff349d16b5266910d148108ca4a3f1c22f603cc` |
++| Validation experiment manifest | `379b3ae18de0b2a3859f705be5ce3727284d29fa4a8ddab1326982ba597d3baf` |
++
++[Cấu hình cuối](../../configs/final_experiments.yaml) đặt `frozen: true`, trỏ
++đúng batch và bốn hash trên. [Core manifest công khai](core_manifest.json)
++chỉ lưu tham số/hash/metric tổng hợp, không chứa learner ID hoặc đường dẫn
++tuyệt đối. Manifest/ranking/feature/checkpoint đầy đủ nằm local dưới
++`results/local/pilot-final/valid/` và phải được chuyển riêng khi bàn giao;
++clone Git không tự tải các artifact này. Nếu tạo dữ liệu mới ở máy khác,
++phải chạy validation và tạo freeze mới, không sửa manifest cũ để ép khớp.
++
++Batch ghi Git revision `e101b67b0911c0674b364fcc1e7a5bb1b6673645`,
++`git_dirty: true` vì đang soạn cấu hình và báo cáo; không có thay đổi source
++P0 chưa commit khi chạy. Python 3.10.11, NumPy 1.26.4, pandas 2.3.3,
++scikit-learn 1.7.2, PyArrow 25.0.1, Torch 2.5.1+cpu, RecBole 1.2.1.
++Sau Task 12, kiểm tra lại toàn nhánh: **262 test pass**, 64 cảnh báo upstream;
++Ruff và `git diff --check` pass. Chưa xác nhận môi trường sạch bằng số này.
++
++## Giới hạn và bước tiếp theo
++
++- Chỉ một pilot, một seed, ba cấu hình BPR; chưa có khoảng tin cậy hay kiểm
++  định thống kê. Mức hơn/kém chỉ là kết quả offline của cohort này.
++- Split theo từng người vẫn cho phép train của người khác nằm sau target
++  của một người; không phải đánh giá theo một mốc thời gian toàn hệ thống.
++- Catalog tĩnh không mô tả thời điểm mở/đóng khóa; đăng ký không đo mức
++  thành thạo, hoàn thành hoặc lợi ích học tập.
++- Timestamp dùng giả định source-local naive; xem báo cáo dữ liệu.
++- Chưa đánh giá test, chưa xuất snapshot thật hoặc xác nhận trình duyệt của
++  snapshot đó, chưa tái lập trong môi trường sạch. Các việc này thuộc Task 13.
++- Manifest/ranking/ID/checkpoint lớn chỉ giữ local. Git chỉ chứa báo cáo tổng
++  hợp, hash và cấu hình; người nhận phải tải/tạo lại dữ liệu hoặc được bàn giao
++  artifact riêng. Không coi giấy phép code nguồn là giấy phép phát hành hồ sơ.
+diff --git a/tasks/todo.md b/tasks/todo.md
+index 0e27122..2ff4f1c 100644
+--- a/tasks/todo.md
++++ b/tasks/todo.md
+@@ -1,6 +1,23 @@
+ # Tiến độ RecSysEdu
+ 
+-Ngày cập nhật: 09/10/2026. Dấu `[x]` chỉ ghi việc có bằng chứng; mã task tương ứng [plan](plan.md).
++Ngày cập nhật: 16/10/2026. Dấu `[x]` chỉ ghi việc có bằng chứng; mã task tương ứng [plan](plan.md).
++
++## Hàng đợi hiện tại — triển khai Pipeline-first
++
++Theo [kế hoạch đã duyệt](../docs/superpowers/plans/2026-10-16-recsysedu-pipeline-first.md).
++Các mục ngày 09/10 bên dưới là nhật ký lịch sử; dùng bảng này để biết trạng thái hiện tại.
++
++| Task | Trạng thái và đầu ra | Bằng chứng / bước còn lại |
++| --- | --- | --- |
++| 0–10 | Đã triển khai, kiểm thử và review từng task: contract, prepare/split, evaluator, bốn model, runner, snapshot exporter | Fixture/integration đã chạy; không đồng nghĩa demo thật và test cuối đã nghiệm thu |
++| 11 | Đã chạy pilot 10.000 người, bốn model và năm alpha; khóa cấu hình sau audit | [Dữ liệu](../results/pilot/dataset_report.md), [validation](../results/pilot/validation_report.md), [core manifest](../results/pilot/core_manifest.json); 9.909 warm valid, 2.586 candidate; chưa mở test |
++| 12 | Đã triển khai công cụ audit; dữ liệu graph thật chưa chạy vì thiếu cả ba nguồn | [Quyết định P1_STOP_INSUFFICIENT_EVIDENCE](../results/graph_audit.md); không bật rerank/path |
++| 13 | Chưa chạy; freeze Task 11 đã sẵn sàng để review | Test cuối, snapshot thật, xem trình duyệt, môi trường sạch và báo cáo bàn giao |
++| GitHub | Chờ kiểm tra cuối toàn nhánh | Sau khi xong, đưa về main và push remote người dùng đã chỉ định |
++
++Phân biệt: code đã viết, fixture chạy được, dữ liệu thật đã chạy và hiệu quả
++được chứng minh là bốn mức bằng chứng khác nhau. Không tick toàn bộ cổng sáu
++tuần chỉ vì thư viện và bộ kiểm thử đã chạy.
+ 
+ ## Đợt khởi tạo tài liệu
+ 

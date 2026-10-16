@@ -1,0 +1,107 @@
+[
+  {
+    "label": "bpr-1",
+    "parameters": {
+      "seed": 17,
+      "epochs": 10,
+      "embedding_size": 32,
+      "train_batch_size": 2048,
+      "learning_rate": 0.001,
+      "validation_early_stopping": true,
+      "stopping_step": 2
+    },
+    "exit_code": 0,
+    "metrics": {
+      "NDCG@10": 0.057457486599153645,
+      "HitRate@10": 0.10071652033504895,
+      "Recall@10": 0.10071652033504895,
+      "Precision@10": 0.010071652033504753,
+      "Coverage@10": 0.39559164733178653
+    },
+    "batch": "C:\\Users\\Vu\\.codex\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\pilot-search\\bpr-1\\valid-bb282527340f43cfaa6ae1788bd0bfcd",
+    "best_epoch": 10,
+    "epochs_completed": 10,
+    "validation_ndcg_history": [
+      0.0018868644643701413,
+      0.010177849766968564,
+      0.02593381054641881,
+      0.034667325040835924,
+      0.03822784744006467,
+      0.04297251820015414,
+      0.04789167657407411,
+      0.05289701427467873,
+      0.05485753570733576,
+      0.05745748659915376
+    ]
+  },
+  {
+    "label": "bpr-2",
+    "parameters": {
+      "seed": 17,
+      "epochs": 10,
+      "embedding_size": 64,
+      "train_batch_size": 2048,
+      "learning_rate": 0.001,
+      "validation_early_stopping": true,
+      "stopping_step": 2
+    },
+    "exit_code": 0,
+    "metrics": {
+      "NDCG@10": 0.06134094543097583,
+      "HitRate@10": 0.10969825411242305,
+      "Recall@10": 0.10969825411242305,
+      "Precision@10": 0.010969825411242112,
+      "Coverage@10": 0.41415313225058004
+    },
+    "batch": "C:\\Users\\Vu\\.codex\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\pilot-search\\bpr-2\\valid-8af2e27e3aae4aa4bcd1dca3c9d26ddd",
+    "best_epoch": 10,
+    "epochs_completed": 10,
+    "validation_ndcg_history": [
+      0.0012748807059124881,
+      0.010102110229357553,
+      0.02688748378106686,
+      0.035909729198839176,
+      0.042011801965431646,
+      0.04967165686382288,
+      0.05490091616359112,
+      0.05867747302073775,
+      0.06019156533436617,
+      0.06134094543097587
+    ]
+  },
+  {
+    "label": "bpr-3",
+    "parameters": {
+      "seed": 17,
+      "epochs": 10,
+      "embedding_size": 32,
+      "train_batch_size": 2048,
+      "learning_rate": 0.01,
+      "validation_early_stopping": true,
+      "stopping_step": 2
+    },
+    "exit_code": 0,
+    "metrics": {
+      "NDCG@10": 0.0774493614401512,
+      "HitRate@10": 0.13957008779897062,
+      "Recall@10": 0.13957008779897062,
+      "Precision@10": 0.013957008779896703,
+      "Coverage@10": 0.6774941995359629
+    },
+    "batch": "C:\\Users\\Vu\\.codex\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\pilot-search\\bpr-3\\valid-cbcf720e67144f10a735e06b0a717763",
+    "best_epoch": 10,
+    "epochs_completed": 10,
+    "validation_ndcg_history": [
+      0.0282469186854422,
+      0.05582986909127953,
+      0.06419376326238894,
+      0.06769837032021689,
+      0.07009366759678973,
+      0.07209498366254621,
+      0.07459716211519435,
+      0.0774394232927823,
+      0.07649870147254727,
+      0.0774493614401514
+    ]
+  }
+]

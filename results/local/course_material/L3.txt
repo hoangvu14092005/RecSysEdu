@@ -1,0 +1,498 @@
+=== PDF PAGE 1 ===
+
+
+=== PDF PAGE 2 ===
+HỆ GỢI Ý
+(IT4613)
+
+=== PDF PAGE 3 ===
+3
+HỆ GỢI Ý
+LỌC CỘNG TÁC NÂNG CAO
+
+
+=== PDF PAGE 4 ===
+4
+Nội dung môn học
+• Giới thiệu về Hệ gợi ý
+• Gợi ý dựa trên lọc cộng tác: Cơ bản và Các kỹ thuật nâng cao
+• Gợi ý dựa trên nội dung 
+• Gợi ý dựa trên tri thức
+• Gợi ý dựa trên phiên
+• Kết hợp các kỹ thuật gợi ý 
+• Đánh giá hiệu quả đối với hệ gợi ý
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Bài toán gợi ý tin tức
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Học tương phản
+
+=== PDF PAGE 5 ===
+5
+Lọc cộng tác (collaborative filtering)
+
+=== PDF PAGE 6 ===
+6
+Nội dung
+• Ôn tập các kỹ thuật học máy
+• Lọc cộng tác dựa trên các mô hình học máy cơ bản
+• Lọc cộng tác dựa trên mô hình học sâu để học biểu diễn ẩn 
+• Dữ liệu phản hồi tiềm ẩn và rõ ràng (implicit và explicit feedback)
+• Tài liệu tham khảo
+
+=== PDF PAGE 7 ===
+7
+Lọc cộng tác
+• Input
+• Only a matrix of given user–item ratings 
+• Output types
+• A (numerical) prediction indicating to what degree the current user will like or dislike a certain 
+item
+• A top-N list of recommended items
+
+=== PDF PAGE 8 ===
+8
+1. Ôn tập các kỹ thuật học máy
+• Các phương pháp Naïve Bayes, cây quyết định (decision tree), mạng nơ-ron nhân tạo (neural 
+networks)
+
+=== PDF PAGE 9 ===
+9
+2. Lọc cộng tác dựa trên các phương pháp học máy cơ bản
+• Ý tưởng:
+• Biểu diễn user là các vector mà mỗi chiều là các items
+• Mỗi thuộc tính (item) đều có thể là thuộc tính nhãn
+• Xây dựng bộ phân loại theo mỗi thuộc tính nhãn để dự đoán giá trị của user cho item tương 
+ứng
+• Số lượng bộ phân loại bằng số lượng items
+
+=== PDF PAGE 10 ===
+10
+Lọc cộng tác dựa trên Naïve Bayes (1)
+• Áp dụng khi dữ liệu user-item feedback rời rạc (có thể mở rộng với user-item feedback liên tục với
+Gaussian Naïve Bayes)
+• Xem xét user như data instance với các features là items
+• Khác biệt với Naïve Bayes truyền thống: Bất kỳ feature nào cũng có thể là label.
+Item1 Item2 Item3 Item4 Item5
+Alice 5 3 4 4 ?
+User1 3 1 2 3 3
+User2 4 3 4 3 5
+User3 3 3 1 5 4
+User4 1 5 5 2 1
+
+=== PDF PAGE 11 ===
+11
+Lọc cộng tác dựa trên Naïve Bayes (2)
+
+
+=== PDF PAGE 12 ===
+12
+Lọc cộng tác dựa trên Naïve Bayes (3)
+
+
+=== PDF PAGE 13 ===
+13
+Lọc cộng tác dựa trên Naïve Bayes (4)
+
+
+=== PDF PAGE 14 ===
+14
+Lọc cộng tác dựa trên cây quyết định, mạng nơ-ron
+• Ý tưởng tương tự với Naïve Bayes
+• Xem xét user như data instance với các features là items
+• Khác biệt với mô hình truyền thống: Bất kỳ feature nào cũng có thể là label.
+• Phải xây dựng số lượng cây quyết định hoặc mạng nơ-ron nhân tạo  bằng số lượng items
+Item1 Item2 Item3 Item4 Item5
+Alice 5 3 4 4 ?
+User1 3 1 2 3 3
+User2 4 3 4 3 5
+User3 3 3 1 5 4
+User4 1 5 5 2 1
+
+=== PDF PAGE 15 ===
+15
+3. Lọc cộng tác nâng cao: Học biểu diễn ẩn
+• Phân tích ma trận (matrix factorization) được sử dụng để học biểu diễn cho mỗi 
+user và item
+• Phân tích ma trận được có thể xem là một mạng nơ-ron nhân tạo đơn giản 
+• Một số cách khác dựa trên sử dụng học sâu trong phân tích ma trận 
+• Neural matrix factorization [He et.al 2017] 
+• Deep matrix factorization [Xue et.al. 2017] 
+• LightGCN [He et.al 2020]
+
+=== PDF PAGE 16 ===
+16
+Nhắc lại: Phân tích ma trận
+• Phân tích ma trận được sử dụng để học biểu diễn user và item trên cùng không gian biểu diễn
+Figures from Koren et al. (2009)
+
+=== PDF PAGE 17 ===
+17
+Phân tích ma trận
+• Biểu diễn của user u:
+• Biểu diễn của item i:
+• Rating của user u cho item i:
+Figures from Koren et al. (2009)
+Matrix$factorization$as$SGD$V$why$does$
+this$work?$$Here’s$the$key$claim: 
+Figures from Gemulla et al. (2011)
+
+
+=== PDF PAGE 18 ===
+• User vectors:
+• Item vectors:
+• Dự đoán Rating:
+18
+Phân tích ma trận
+Figures from Koren et al. (2009)
+
+
+=== PDF PAGE 19 ===
+19
+Phân tích ma trận
+• Dữ liệu huấn luyện: Z là tập các cặp user-item có tương tác:
+• Hàm mục tiêu:
+Figures from Koren et al. (2009)
+
+
+=== PDF PAGE 20 ===
+20
+Phân tích ma trận
+• Hàm mục tiêu với đại lượng hiệu chỉnh :
+SGD update for random (u,i):
+Figures from Koren et al. (2009)
+
+
+=== PDF PAGE 21 ===
+21
+Phân tích ma trận
+• Hàm mục tiêu:
+• Sử dụng SGD (stochastic gradient descent) để học:
+ Figures from Koren et al. (2009)
+
+
+=== PDF PAGE 22 ===
+22
+Phân tích ma trận: Góc nhìn của mạng nơ-ron
+Mô hình Generalized Matrix factorization
+▪ Đầu vào: vector one-hot mã hóa định danh cho user, item. 
+▪ Tầng embedding biểu diễn u, i:
+▪ Hàm kết hợp:
+▪ Đầu ra mô hình:
+
+
+=== PDF PAGE 23 ===
+23
+Phân tích ma trận: Góc nhìn của mạng nơ-ron
+• Trọng số h: mô tả được mức độ quan trọng 
+khác nhau của các thuộc tính ẩn.
+• aout là hàm đồng nhất, các trọng số trong h đều 
+bằng 1 => MF. 
+• aout có thể là hàm phi tuyến (sigmoid,..) thu được 
+mô hình MF phi tuyến.
+
+
+=== PDF PAGE 24 ===
+24
+Multi-layer Perceptron Matrix Factorization
+• Đầu vào là vector one-hot
+➢ ax , Wx, bx : là hàm kích hoạt, ma trận trọng số, 
+bias của tầng thứ x.
+➢ Sử dụng ReLU làm hàm kích hoạt.
+
+
+=== PDF PAGE 25 ===
+25
+Neural Matrix Factorization (NeuMF)
+• Kết hợp 2 mô hình GMF, MLP:
+•  GMF: mô hình tuyến tính.
+•  MLP: mô hình phi tuyến.
+•   Sử dụng tầng embedding riêng cho 
+mỗi mô hình. 
+ 
+
+
+=== PDF PAGE 26 ===
+26
+Neural Matrix Factorization
+- Sử dụng tầng embedding riêng cho mỗi 
+mô hình và tổ hợp lại: 
+❖ pu
+G , pu
+M :vector thuộc tính ẩn của u 
+trong GMF, MLP
+❖ qi
+G , qi
+M :vector thuộc tính ẩn của item 
+i.
+❖ aout : sử dụng hàm sigmoid.
+
+
+=== PDF PAGE 27 ===
+27
+Minh họa kết quả: NeuMF
+
+
+=== PDF PAGE 28 ===
+28
+Minh họa kết quả: NeuMF
+
+
+=== PDF PAGE 29 ===
+29
+Deep Matrix Factorization
+- Biểu diễn user là vector của các item
+- Biểu diễn item là vector của các user
+- Sử dụng mạng MLP để học các tầng biểu 
+diễn của user và item
+- Kết hợp biểu diễn của user và item để đưa 
+ra điểm phù hợp
+Deep matrix factorization
+
+=== PDF PAGE 30 ===
+30
+Minh họa kết quả: DMF
+
+
+=== PDF PAGE 31 ===
+31
+LightGCN (He et.al 2020)
+• Tương tác của user-item có thể biểu diễn thành đồ thị 2 phía (user-item bipartite 
+graph).
+• Sử dụng đồ thị có thể bắt được tương tác bậc cao hơn (high-order connectivity) 
+
+
+=== PDF PAGE 32 ===
+32
+Graph convolutional network (GCN)
+
+
+=== PDF PAGE 33 ===
+33
+Graph convolutional network (GCN)
+
+
+=== PDF PAGE 34 ===
+34
+Sử dụng GCN cho lọc cộng tác
+
+
+=== PDF PAGE 35 ===
+35
+LightGCN
+• LightGCN dựa vào thực nghiệm để đưa ra một số lược giảm của GCN gốc cho gợi 
+ý:
+• Loại bỏ biến đổi phi tuyến
+• Không sử dụng activation phi tuyến
+• Loại bỏ liên kết tự kết nối của đỉnh tới chính nó
+
+=== PDF PAGE 36 ===
+36
+LightGCN
+• LightGCN thực hiện các bước như sau:
+• Lấy thông tin láng giềng
+• Kết hợp tuyến tính  biểu diễn các layers k
+• Loại bỏ liên kết tự kết nối của đỉnh tới chính nó
+• Với R là interaction matrix và
+
+
+=== PDF PAGE 37 ===
+37
+LightGCN
+
+
+=== PDF PAGE 38 ===
+38
+Minh họa hiệu quả: LightGCN
+
+
+=== PDF PAGE 39 ===
+39
+4. Dữ liệu explicit và implicit feedback
+• Dữ liệu explicit feedback (ratings, purchas, like)
+• Dữ liệu quý giá, thể hiện sở thích của user
+• Thưa, ít, khó thu thập
+• Khó khăn khi học các mô hình
+• Dữ liệu implicit feedback (click, view)
+• Dữ liệu nhiều, dễ thu thập
+• Phản ánh tiềm ẩn mức độ ưa thích của người dùng
+• Có thể có nhiễu
+
+=== PDF PAGE 40 ===
+40
+Weighted Matrix Factorization
+- Weighted Matrix Factorization (Yifan Hu el at -2008)
+- Dữ liệu tiềm ẩn: số lần xem một video, thời lượng xem một video, lịch sử mua sắm,… của người 
+dùng.
+❖ Dữ liệu tương tác tường minh cho ta biết sở thích người dùng (like, dislike). Tương tác ẩn, dữ 
+liệu tương tác tiềm ẩn thì đều là các phản hồi tích cực.
+➢ VD: rui cho biết số lần u xem toàn bộ một bộ phim i. Khi r ui = 0.7, tức u đã xem 70% video.
+➢ Các tương tác tiềm ẩn có các mức độ khác nhau.
+
+=== PDF PAGE 41 ===
+41
+Weighted Matrix Factorization
+- Sử dụng có dữ liệu implicit
+❖ Đưa dữ liệu tiềm ẩn về dạng tương tác nhị phân: 
+❖ Dữ liệu tiềm ẩn có các mức độ khác nhau, sử dụng trọng số thể hiện độ tin cậy:
+❖ Hàm mục tiêu:
+❖Công thức nghiệm (hồi quy tuyến tính):
+
+
+=== PDF PAGE 42 ===
+42
+Bayesian Personalized Ranking
+- Bayesian Personalized Ranking (Rendle el at -2009)
+- Đưa ra một danh sách có xếp hạng các sản phẩm cho mỗi người dùng.
+❖ Thứ tự này có thể suy ra từ nhóm hành vi tiềm ẩn của người dùng.
+❖ Tiếp cận theo cặp item, khác so với phương pháp MF truyền thống.
+❖ Dữ liệu tiềm ẩn:
+• Dữ liệu quan sát được là positive.
+• Các cặp user-item không quan sát được: có thể thực sự không thích (negative), chưa biết (missing value).
+
+=== PDF PAGE 43 ===
+43
+Bayesian Personalized Ranking
+- MF truyền thống: Dự đoán giá trị         thể hiện mức độ ưa thích của u cho i.
+
+
+=== PDF PAGE 44 ===
+44
+Bayesian Personalized Ranking
+Mối quan hệ thứ tự i >u j giữa các cặp sản phẩm:
+• (+):  u ưa thích sản phẩm i hơn j.
+• (-): u ưa thích sản phẩm j hơn i.
+❖ Mỗi u, xác định thứ tự sản phẩm theo thứ tự sẽ được yêu thích bởi u. Xác suất hậu nghiệm:
+ϴ: tham số của mô hình.
+
+
+=== PDF PAGE 45 ===
+45
+Bayesian Personalized Ranking
+- Sử dụng hàm sigmoid để mô hình hóa xác suất u thích sản phẩm i hơn j.
+❖ruij mô tả sự khác nhau giữa dự đoán cho sản phẩm và sản phẩm j:
+
+
+=== PDF PAGE 46 ===
+46
+Bayesian Personalized Ranking (Rendle el at -2009)
+- Hàm mục tiêu
+
+
+=== PDF PAGE 47 ===
+47
+Bayesian Personalized Ranking
+- Loss: 
+❖ Cập nhật tham số:
+
+
+=== PDF PAGE 48 ===
+48
+Sử dụng đồng thời Implicit và explicit feedback
+- Co-rating [Nathan et al 2010]: Sử dụng cả dữ liệu implicit Y và explicit X:
+Sử dụng trọng số eta thể hiện mức độ quan trọng giữa các tương tác ẩn và tường minh.
+
+
+=== PDF PAGE 49 ===
+49
+Neural Multi-Task Recommendation  
+- Có R loại hành vi khác nhau biểu diễn cho R loại tương tác.
+❖ Mỗi loại hành vi được biểu diễn dưới dạng ma trận cỡ MxN, với giá trị mỗi phần tử là giá trị nhị phân.
+❖ Các loại hành vi có tính thứ tự từ thấp đến cao, trong đó hành vi cuối cùng được gọi là hành vi mục 
+tiêu.
+
+=== PDF PAGE 50 ===
+50
+Neural Multi-Task Recommendation 
+• Mã hóa được tính thứ tự của hành vi bằng:  
+Hành vi loại sau phụ thuộc vào hành vi loại 
+trước: 
+
+
+=== PDF PAGE 51 ===
+51
+Neural Multi-Task Recommendation 
+- Hàm lỗi để học cho tất cả các mô hình con, 
+mỗi mô hình con để tối ưu cho 1 loại hành vi:
+❖ λr trọng số biểu diễn mức độ ảnh hưởng của 
+từng loại hành vi. 
+
+
+=== PDF PAGE 52 ===
+52
+Implict to Explict model
+- Mô hình hóa tính thứ tự của hành vi người 
+dùng.
+❖ Tầng cuối cùng trong mô hình tương tác 
+tiềm ẩn làm đầu vào cho tầng khác với giá trị 
+đầu ra dự đoán điểm cho tương tác hành vi 
+rõ ràng.
+❖ ITE-one hot: vector đầu vào là vector one 
+hot mã hóa định danh cho người dùng, sản 
+phẩm.
+
+
+=== PDF PAGE 53 ===
+53
+Implict to Explict model
+- Các công thức biểu diễn: 
+❖ φI :vector đầu ra cuối cùng của mô 
+hình con trong dự đoán tương tác tiềm 
+ẩn.
+
+
+=== PDF PAGE 54 ===
+54
+Implict to Explict model
+- Các công thức biểu diễn: 
+❖ φITE :vector đầu ra cuối cùng của mô hình ở tầng 
+cuối cùng trong các tầng đẩy thông qua ITE.
+❖ các giá trị dự đoán của hành vi tiềm ẩn và 
+rõ ràng, a với c là hàm sigmoid.
+
+
+=== PDF PAGE 55 ===
+55
+Implict to Explict model
+- Công thức dự đoán mô hình: 
+❖ Điểm số dự đoán cho tương tác người dùng, 
+sản phẩm: 
+
+
+=== PDF PAGE 56 ===
+56
+Implict to Explict model
+- Hàm mục tiêu:
+➢ hàm lỗi của hành vi tường ẩn và rõ ràng.
+
+
+=== PDF PAGE 57 ===
+57
+Tài liệu tham khảo
+• Slide
+• http://www.recommenderbook.net/teaching-material/slides
+• Book
+• Dietmar Jannach, Markus Zanker, Alexander Felfernig, Gerhard Friedrich (2010). Recommender Systems: An 
+Introduction. Cambridge University Press.
+• Francesco Ricci, Lior Rokach, Bracha Shapira, Paul B. Kantor (2015). Recommender Systems Handbook (2nd 
+edition). Springer.
+• Charu C. Aggarwal (2016). Recommender Systems: The Textbook. Springer
+
+=== PDF PAGE 58 ===
+58
+Tài liệu tham khảo
+• [He et.al 2017] He, Xiangnan, Lizi Liao, Hanwang Zhang, Liqiang Nie, Xia Hu, and Tat-Seng Chua. "Neural collaborative filtering." In Proceedings 
+of the 26th international conference on world wide web, pp. 173-182. 2017.
+• [Xue et.al. 2017] Xue, Hong-Jian, Xinyu Dai, Jianbing Zhang, Shujian Huang, and Jiajun Chen. "Deep Matrix Factorization Models for 
+Recommender Systems." In IJCAI, vol. 17, pp. 3203-3209. 2017.
+• [Tuan et al 2019] Tuan, Anh Phan, Nhat Nguyen Trong, Duong Bui Trong, Linh Ngo Van, and Khoat Than. "From Implicit to Explicit Feedback: 
+A deep neural network for modeling the sequential behavior of online users." In Asian Conference on Machine Learning, pp. 1188-1203. 2019.
+• [Nathan et al 2010] Nathan N Liu, Evan W Xiang, Min Zhao, and Qiang Yang. Unifying explicit and implicit feedback for collaborative filtering. 
+In Proceedings of the 19th ACM international conference on Information and knowledge management, pages 1445{1448. ACM, 2010
+• [Chen et al 2019] Chen Gao, Xiangnan He, Dahua Gan, Xiangning Chen, Fuli Feng, Yong Li, Tat-Seng Chua, and Depeng Jin. Neural multi-task 
+recommendation from multi-behavior data. In 2019 IEEE 35th International Conference on Data Engineering (ICDE), pages 1554-1557. IEEE, 
+2019.
+• [He et al 2020] He, X., Deng, K., Wang, X., Li, Y., Zhang, Y., & Wang, M. (2020, July). Lightgcn: Simplifying and powering graph convolution 
+network for recommendation. In Proceedings of the 43rd International ACM SIGIR conference on research and development in Information 
+Retrieval(pp. 639-648).
+
+=== PDF PAGE 59 ===
+THANK YOU !
+59

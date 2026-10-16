@@ -1,0 +1,14 @@
+{
+  "label": "final-test-once",
+  "args": [
+    "experiments",
+    "--split",
+    "test",
+    "--config",
+    "configs/final_experiments.yaml"
+  ],
+  "exit_code": 0,
+  "seconds": 520.1935353000008,
+  "sampled_peak_rss_bytes": 388657152,
+  "peak_sampling_interval_seconds": 0.2
+}

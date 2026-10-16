@@ -1,0 +1,18 @@
+{
+  "label": "bpr-3",
+  "args": [
+    "evaluate",
+    "--model",
+    "bpr",
+    "--split",
+    "valid",
+    "--config",
+    "C:\\Users\\Vu\\.codex\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\bpr-3.yaml",
+    "--output",
+    "results/local/pilot-search/bpr-3"
+  ],
+  "exit_code": 0,
+  "seconds": 293.91854919999605,
+  "sampled_peak_rss_bytes": 493481984,
+  "peak_sampling_interval_seconds": 0.2
+}

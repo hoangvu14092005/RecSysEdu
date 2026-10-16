@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "dataset_version": "mooccubex-pilot-v1",
+  "time_basis": "source_local_naive",
+  "seed": 20261016,
+  "requested_user_count": 10000,
+  "selected_user_count": 10000,
+  "users_scanned": 3330294,
+  "eligible_user_count": 680131,
+  "raw_enrollment_slots": 11807090,
+  "valid_enrollments_before_dedup": 11523119,
+  "clean_interaction_count_before_sampling": 11523119,
+  "raw_files": {
+    "course.json": {
+      "path": "D:\\VuLapTrinh2\\RecSysEdu\\data\\raw\\course.json",
+      "bytes": 44660123,
+      "sha256": "ed7fba469a102a825afd5369da8b4fabc1f24fc1b9a13bdec1106bec27b052fc"
+    },
+    "user.json": {
+      "path": "D:\\VuLapTrinh2\\RecSysEdu\\data\\raw\\user.json",
+      "bytes": 806781726,
+      "sha256": "614c5f2753cc23f344bd51968f052564cfbe61694cd3eb7bccb0756a529f61c9"
+    }
+  },
+  "row_counts": {
+    "courses": 3781,
+    "interactions": 126827,
+    "rejects": 2934134,
+    "cohort_users": 10000
+  },
+  "error_counts": {
+    "insufficient_history": 2650163,
+    "unknown_course_id": 283971
+  },
+  "schemas": {
+    "courses": [
+      {
+        "name": "course_id",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "about",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "fields",
+        "type": "list<item: string>",
+        "nullable": true
+      },
+      {
+        "name": "prerequisite_text",
+        "type": "string",
+        "nullable": true
+      }
+    ],
+    "interactions": [
+      {
+        "name": "user_id",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "course_id",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "event_time",
+        "type": "timestamp[us]",
+        "nullable": true
+      },
+      {
+        "name": "event_time_raw",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "interaction",
+        "type": "int8",
+        "nullable": true
+      },
+      {
+        "name": "source_record",
+        "type": "string",
+        "nullable": true
+      }
+    ],
+    "rejects": [
+      {
+        "name": "reason_code",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "user_id",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "raw_course_id",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "event_time_raw",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "source_record",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "count",
+        "type": "int64",
+        "nullable": true
+      }
+    ],
+    "cohort_users": [
+      {
+        "name": "user_id",
+        "type": "string",
+        "nullable": true
+      },
+      {
+        "name": "history_length",
+        "type": "int64",
+        "nullable": true
+      }
+    ]
+  },
+  "output_hashes": {
+    "courses.parquet": "ee424bfdb579e42920ce4d279a67739188f725c2cbe229b5e1cee3c0a0f399fb",
+    "interactions.parquet": "6e534dec34cc2a680c120f8d51f73eaebdbeae644e546a893f83216082e8af42",
+    "rejects.parquet": "4e07e2e3fbcde686df5a5fdf42fad2aec05d93aa923b9572dba6b9d10d7a1cef",
+    "cohort_users.parquet": "2a1e14a2a00418dc54bc5550c5571810669b3269587115e6881a20072806e897"
+  },
+  "course_id_rule": "exact string or integer matched to an existing C_<digits> catalog ID",
+  "eligibility_rule": "at least 3 distinct valid catalog courses after cleaning",
+  "sampling_rule": "seeded reservoir over eligible users in source encounter order; 0=all",
+  "output_order": "source user encounter order; event_time, course_id within each user",
+  "fields_source": "course.json:field",
+  "temporal_dataset_ready": false
+}

@@ -1,0 +1,133 @@
+{
+  "run_id": "valid-2e93583494064297adaa556b9bc21d64",
+  "model_id": "experiment",
+  "dataset_hash": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+  "split_hash": "7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617",
+  "protocol_id": "leave_last_two_out_v1",
+  "seed": 17,
+  "schema_version": 1,
+  "evaluation_split": "valid",
+  "config_hash": "7e895cc5d88e203cf20c597c6ff349d16b5266910d148108ca4a3f1c22f603cc",
+  "effective_config": {
+    "seed": 17,
+    "content": {
+      "analyzer": "char",
+      "ngram_range": [
+        2,
+        4
+      ],
+      "min_df": 1
+    },
+    "bpr": {
+      "seed": 17,
+      "epochs": 10,
+      "embedding_size": 32,
+      "train_batch_size": 2048,
+      "learning_rate": 0.01,
+      "validation_early_stopping": true,
+      "stopping_step": 2
+    },
+    "hybrid": {
+      "alphas": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "normalization": "per_user_full_candidates_minmax_constant_zero",
+      "formula": "alpha * normalized_bpr + (1 - alpha) * normalized_content"
+    },
+    "protocol_id": "leave_last_two_out_v1",
+    "k": 10
+  },
+  "git_revision": "e101b67b0911c0674b364fcc1e7a5bb1b6673645",
+  "git_status": "revision_available",
+  "git_dirty": true,
+  "versions": {
+    "python": "3.10.11",
+    "numpy": "1.26.4",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.7.2",
+    "pyarrow": "25.0.1"
+  },
+  "duration_seconds": 1524.9218708999979,
+  "output_root": "C:\\Users\\Vu\\.codex\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\pilot-final\\valid",
+  "runs": {
+    "popularity": "runs/popularity",
+    "content": "runs/content",
+    "bpr": "runs/bpr",
+    "hybrid": "alpha_trials/0.25"
+  },
+  "alpha_trials": {
+    "0.0": "alpha_trials/0.0",
+    "0.25": "alpha_trials/0.25",
+    "0.5": "alpha_trials/0.5",
+    "0.75": "alpha_trials/0.75",
+    "1.0": "alpha_trials/1.0"
+  },
+  "snapshot_inputs": {
+    "dataset_manifest": "snapshot_inputs/dataset_manifest.json",
+    "split_manifest": "snapshot_inputs/split_manifest.json",
+    "courses": "snapshot_inputs/courses.parquet",
+    "train": "snapshot_inputs/train.parquet",
+    "valid": "snapshot_inputs/valid.parquet"
+  },
+  "selected_alpha": 0.25,
+  "component_hashes": {
+    "bpr": "e081969efc358d1d5af2bbc54c17d3de403f31515ce4cf0b7dbb9d0fadfdd101",
+    "content": "d265b4be73db3806d64b229490658c321ff7c3fd6b72afdba52d805d5853d6f1"
+  },
+  "freeze_candidate": {
+    "dataset_hash": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+    "split_hash": "7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617",
+    "config_hash": "7e895cc5d88e203cf20c597c6ff349d16b5266910d148108ca4a3f1c22f603cc"
+  },
+  "output_hashes": {
+    "alpha_selection.json": "50c1315e3089167a47002def02fe3a7308869177642a5c3c1266ef5d2e72f264",
+    "alpha_trials/0.0/metrics.csv": "1a7c96c392825513c83d5813fe62a7d16a3a05f2455561251d4c4f157e23e7db",
+    "alpha_trials/0.0/per_user_metrics.parquet": "90fd0d76434ee49ae9f2f6e923b81c091f9f3a36fae9e2606bfcceafa6c3f9fe",
+    "alpha_trials/0.0/recommendations.jsonl": "50b58339319924549b2cffa1ffd5af3a898c25fe10657689f9cc678b3a9cc024",
+    "alpha_trials/0.0/run_manifest.json": "ac1c3bbddb7b6f489598df9052b4b8b8c0a06e3087afd8e5424cc356a985bd69",
+    "alpha_trials/0.25/metrics.csv": "0254e0e3cf17500d2609a02044931bdd2a501ee507cea71a357924b0ad5482ce",
+    "alpha_trials/0.25/per_user_metrics.parquet": "6b98b6250404287e604a91be6d2bed45c8342be083eafda7501ec4776136504a",
+    "alpha_trials/0.25/recommendations.jsonl": "fab3d6bbee855c38e174eb76ca5d4470b85f8a7a5d844574aa0fd361be978a7d",
+    "alpha_trials/0.25/run_manifest.json": "9330137f0f462a8c0c855e82138107ec9765d48c60a756ad6536ef6f15670a77",
+    "alpha_trials/0.5/metrics.csv": "6e2d160f2d0c4bd10c2a7b2693834ad2c55c2178708e4d245ab92ac978ca543b",
+    "alpha_trials/0.5/per_user_metrics.parquet": "c94e5ce498b6f5c842019523f06446e5a99ae9b6673bc80570bc96be306b38ce",
+    "alpha_trials/0.5/recommendations.jsonl": "e969aef0ceb15ff5551e9e4397bc5d8f8e4f3cfe626366460f7e7ed871e59ba8",
+    "alpha_trials/0.5/run_manifest.json": "3211383dbc75cd5f848dc4ed66ea4053e4956c56c4a1d52d4fc404d9e8c2ef4d",
+    "alpha_trials/0.75/metrics.csv": "57c576fc638fb4e936e3f1e55dd78b1d079efd84c79cb1faa1a1f4b0f7a4c5aa",
+    "alpha_trials/0.75/per_user_metrics.parquet": "bdd4f70421b679480460981d67dd37c980ee01b796743885a170abde4cb1ad43",
+    "alpha_trials/0.75/recommendations.jsonl": "0975ed955d74e537cfa90a1021533a6051f5dd11e4f56e1fc57ee9240f4621c9",
+    "alpha_trials/0.75/run_manifest.json": "b7a00bd007ead1d1f77f4258cd828375226da72383789ace63a202c88a7e320b",
+    "alpha_trials/1.0/metrics.csv": "a01f2773b265123268f94c25476545ef6b034934de543a11945b927b722ffcd4",
+    "alpha_trials/1.0/per_user_metrics.parquet": "de92e24ab5ee36d9686044ecf95c6d5d48dc7286cb027b4dfdf9ca70fb3d6b09",
+    "alpha_trials/1.0/recommendations.jsonl": "2dcef213c660956c3ef6a10ed55e1dac1722c6fce04b48c2e67a60eb80abde37",
+    "alpha_trials/1.0/run_manifest.json": "bd723372dc4861c4876d280257c5b923c8ffb044c76bae0d5d1da6a42f5008bd",
+    "artifacts/bpr/bpr.pth": "c4dbd2d88e71689b1d447f314fe6b9dc1a90af95499d2cafdba5eec03b36720a",
+    "artifacts/bpr/bpr_manifest.json": "e081969efc358d1d5af2bbc54c17d3de403f31515ce4cf0b7dbb9d0fadfdd101",
+    "artifacts/bpr/id_maps.json": "f0af46aaa5a1877b0e86078c46d315e639a4c46f7b0308a3fc0472a4e1f7ce99",
+    "artifacts/content/course_features.npz": "a8fc0ef87d2e57a8a870067f129f6c92a4faa1a30c433dcbcac4d0dbd65f0440",
+    "artifacts/content/course_order.json": "4c41f7dac1a70fb506d389f683cdf4a79a77fdebadd46c7d13aac76b36f7dc77",
+    "artifacts/content/feature_manifest.json": "d265b4be73db3806d64b229490658c321ff7c3fd6b72afdba52d805d5853d6f1",
+    "artifacts/content/vectorizer.joblib": "c229dde475e73c87ba7dbc08bfc654ba752b0cf6333c68d8b2817bb9f9993005",
+    "runs/bpr/metrics.csv": "c2c3d3ccb27fff51a9cf4727c37527f69ad392790292b4cd5d9e2cc9a98e2d1c",
+    "runs/bpr/per_user_metrics.parquet": "de92e24ab5ee36d9686044ecf95c6d5d48dc7286cb027b4dfdf9ca70fb3d6b09",
+    "runs/bpr/recommendations.jsonl": "60b3bf09e037544004060a88b6667e72763c31a80ee12226c4ff2c9b1e9f08f0",
+    "runs/bpr/run_manifest.json": "6a18287df9c87c6eaea0e9e4e42f31bd3840ff0842cc5fe7dc5ef5c935bb14d3",
+    "runs/content/metrics.csv": "5c60f5d58605df6df1fcd8e4342c2d3fcce4ab9c5fcd0f651de69d9bff6d694a",
+    "runs/content/per_user_metrics.parquet": "90fd0d76434ee49ae9f2f6e923b81c091f9f3a36fae9e2606bfcceafa6c3f9fe",
+    "runs/content/recommendations.jsonl": "c4f27ded63ae22e1ee47150133a454f4df695079adbe6243bf87a20c9b81af93",
+    "runs/content/run_manifest.json": "fe6959b3764c7834840758382bc5b67f70c4cceada53e8bfc7b738cb7b7ddd6c",
+    "runs/popularity/metrics.csv": "61a84b5c5437842feac1bae9fdd9d7017c0eb3661376431eec77dac25627db3c",
+    "runs/popularity/per_user_metrics.parquet": "78b5f383852ad0fe760cc6f2c5124ff1eb1132d331e8bc47732c85026768e0c2",
+    "runs/popularity/recommendations.jsonl": "33af0dc07dc9cd9da809e07f986136975a36d03057cdc69208e0f522371562ab",
+    "runs/popularity/run_manifest.json": "34b7b9a92f694cb4a5f0e949f6baf9f48d0d6fc4d7bbb6d6f900d37e42a7ae98",
+    "snapshot_inputs/courses.parquet": "ee424bfdb579e42920ce4d279a67739188f725c2cbe229b5e1cee3c0a0f399fb",
+    "snapshot_inputs/dataset_manifest.json": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+    "snapshot_inputs/split_manifest.json": "bd20e5177753ab99971c7892072d236fbf0035153d50001328f0321eba1881a1",
+    "snapshot_inputs/train.parquet": "30dd414c7f4dda8b5ea4634a346f901f774f7e2b6b525e7c4ac71e1823c268e2",
+    "snapshot_inputs/valid.parquet": "411fc3d91a94ca03cfbf3c9bddb87bd61fd861d5ee1009c18dba0607d5ddf5bc"
+  }
+}

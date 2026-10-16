@@ -1,0 +1,388 @@
+=== PDF PAGE 1 ===
+
+
+=== PDF PAGE 2 ===
+HỆ GỢI Ý
+(IT4613)
+
+=== PDF PAGE 3 ===
+3
+HỆ GỢI Ý
+LỌC DỰA TRÊN TRI THỨC
+
+
+=== PDF PAGE 4 ===
+4
+Nội dung môn học
+• Giới thiệu về Hệ gợi ý
+• Gợi ý dựa trên lọc cộng tác: Cơ bản và Các kỹ thuật nâng cao
+• Gợi ý dựa trên nội dung
+• Gợi ý dựa trên tri thức
+• Gợi ý dựa trên phiên
+• Kết hợp các kỹ thuật gợi ý 
+• Đánh giá hiệu quả đối với hệ gợi ý
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Bài toán gợi ý tin tức
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Học tương phản
+
+=== PDF PAGE 5 ===
+5
+Gợi ý dựa trên tri thức
+Knowledge-based: "Tell me what fits 
+based on my needs"
+
+=== PDF PAGE 6 ===
+6
+Tại sao cần gợi ý dựa vào tri thức?
+• Giải quyết các items có số lượng đánh giá ít?
+• Khoảng thời gian đóng một vai trò quan trọng
+• Các đánh giá có từ 5 năm trước cho sản phẩm công nghệ
+• Hành vi hoặc hoàn cảnh của user thay đổi
+• Khách hàng muốn định nghĩa rõ nhu cầu của họ một các rõ ràng 
+• “Màu của chiếc xe phải là màu đen"
+
+
+=== PDF PAGE 7 ===
+7
+Các hệ thống gợi ý dựa trên tri thức
+• Dựa trên rằng buộc (constraint- based)
+• Dựa trên tập luật gợi ý đã được định nghĩa rõ ràng
+• thực hiện theo các luật
+• Dựa trên trường hợp (case- based)
+• Dựa trên các kiểu độ đo tương đồng khác nhau
+• Truy xuất items tương đồng với yêu cầu cụ thể
+• Cả hai cách tiếp cận trên tương tự trong quá trình gợi ý hội thoại
+• user xác định yêu cầu
+• hệ thống tìm kiếm giải pháp
+• nếu không có giải pháp phù hợp, thì user sẽ thay đổi yêu cầu 
+
+=== PDF PAGE 8 ===
+8
+Hệ thống gợi ý dựa trên ràng buộc
+• Cơ sở tri thức
+• Trung gian giữa user model (hoặc yêu cầu của user) và thuộc tính của item
+• Biến số
+• đặc trưng của user model (các yêu cầu), đặc trưng của items
+• Tập các ràng buộc
+• quan hệ kéo theo (Nếu … thì …): (IF user requires A THEN proposed item should possess 
+feature B)
+• ràng buộc chặt hoặc lỏng (có trọng số)
+• ràng buộc ưu tiên
+
+=== PDF PAGE 9 ===
+9
+Hệ thống gợi ý dựa trên ràng buộc
+• Đưa ra một tập các items có thể gợi ý
+• thực hiện một chuỗi các ràng buộc có thể áp dụng
+• khả năng áp dụng các ràng buộc phụ thuộc vào user model hiện tại
+• giải thích - lập luận minh bạch
+
+=== PDF PAGE 10 ===
+10
+Nhiệm vụ của gợi ý dựa trên ràng buộc
+• Tìm một tập các yêu cầu của user sao cho tồn tại một tập con các items thỏa mãn tất cả các ràng 
+buộc trong tập yêu cầu đó
+• Hỏi user những yêu cầu nào nên được nới lỏng / sửa đổi để một số items tồn tại không vi phạm bất kỳ 
+ràng buộc nào
+• Tìm một tập con các items thỏa mãn tập các ràng buộc có trọng số lớn nhất
+• tương tự như tìm một truy vấn con có khả năng thành công lớn nhất (XSS)
+• tất cả các items được đề xuất phải thỏa mãn trên cùng một tập các ràng buộc
+• tính toán nới lỏng dựa trên trọng số định nghĩa trước
+• Xếp hạng các item theo trọng số thỏa mãn các ràng buộc mềm
+• xếp hạng các items dựa trên tỷ lệ các ràng buộc thỏa mãn
+
+=== PDF PAGE 11 ===
+11
+Vấn đề của gợi ý dựa trên ràng buộc
+• Chọn các items từ danh mục phù hợp với yêu cầu của user
+• Ví dụ, yêu cầu của user có thể là:
+• “Giá phải nhỏ hơn 200 €" 
+• “Kích thước LCD phải lớn hơn 2.0"
+id price(€) mpix opt-zoom LCD-size movies sound waterproof
+P1 148 8.0 4× 2.5 no no yes
+P2 182 8.0 5× 2.7 yes yes no
+P3 189 8.0 10× 2.5 yes yes no
+P4 196 10.0 12× 2.7 yes no yes
+P5 151 7.1 3× 3.0 yes yes no
+P6 199 9.0 3× 3.0 yes yes no
+P7 259 10.0 3× 3.0 yes yes no
+P8 278 9.1 10× 3.0 yes yes yes
+
+=== PDF PAGE 12 ===
+12
+Vấn đề thỏa mãn ràng buộc (CSP)
+• Một hệ gợi ý dựa trên tri thức với biểu diễn tri thức khai báo như sau
+Constraint satisfaction problem:
+• Định nghĩa. 
+• XI, XU: Biểu diễn cho sản phẩm và user trong miền D
+• KB: Cơ sở kiến thức có miền giới hạn (e.g. Nếu purpose=on travel thì lower focal length < 28mm)
+• SRS: Yêu cầu cụ thể của user(e.g. purpose = on travel) 
+• I: Danh mục sản phẩm
+• Giải pháp: Xác định tập thỏa mãn
+),,( IKBSRSDXXCSP UI 
+)()( xdomvvxXx I = 
+ IKBSRSts ..
+
+
+=== PDF PAGE 13 ===
+13
+Biểu diễn cho bài toán thỏa mãn ràng buộc
+• Customer properties (𝑉𝑐): Mô tả yêu cầu có thể có của khách hàng
+• Product properties (𝑉𝑃𝑅𝑂𝐷): Mô tả tính chất của sản phẩm. Thuộc tính của khách hàng và thuộc tính 
+của sản phẩm thuộc miền biểu diễn khác nhau.
+• Compatibility constraints (𝐶𝑅): Định nghĩa các yêu cầu của khác hàng
+• Filter conditions (𝐶𝐹): Xác định theo điều kiện nào sản phẩm sẽ được chọn – nói cách khác, điều 
+kiện lọc xác định mối quan hệ giữa thuộc tính khách hàng và thuộc tính sản phẩm
+• Product constraints (𝐶𝑃𝑅𝑂𝐷): Định nghĩa các sản phẩm hiện có
+• REQ: Tập yêu cầu của user
+• RES: Tập kết quả trả về
+•
+
+=== PDF PAGE 14 ===
+14
+Ví dụ: Các trường yêu cầu 
+
+
+=== PDF PAGE 15 ===
+15
+Liên kết truy vấn
+• Khác với cách tiếp cận với ràng buộc 
+• không phải đi tìm kiếm các hợp lệ cho một CSP
+• Truy vấn liên kết được thực thi trong danh mục các item
+• truy vấn liên kết cơ sở dữ liệu
+• một tập các tiêu chuẩn lựa chọn được liên kết với nhau
+• σ[criteria](P)
+• P: Loại sản phẩm
+• Ví dụ: σ[mpix≥10, price<300](P) = {p4, p7} 
+
+=== PDF PAGE 16 ===
+16
+Tương tác trong hệ gợi ý dựa trên ràng buộc
+• user xác định yêu cầu
+• tất cả yêu cầu cùng một lúc hoặc
+• tăng dần theo “wizard-style”
+• hộp thoại tương tác
+• user sẽ được cung cấp một tập các item phù hợp
+• kèm theo giải thích tại sao
+• user có thể sửa đổi các yêu cầu của mình
+• các kết quả thay thế
+• thu hẹp số lượng item phù hợp
+
+=== PDF PAGE 17 ===
+17
+Các yêu cầu không hợp lệ
+• "no solution could be found"
+• Nới lỏng ràng buộc 
+• mục tiêu là xác định tập rằng buộc nên được nới lỏng từ tập ràng buộc ban đầu
+• nới lỏng các ràng buộc của vấn đề gợi ý cho đến khi tìm được kết quả tương ứng
+• user cũng có thể quan tâm đến đề xuất
+• hệ gợi ý có thể tính toán một giải pháp để thích nghi với các yêu cầu đề xuất
+
+=== PDF PAGE 18 ===
+18
+Xử lý các yêu cầu không hợp lệ
+• Tính toán chẩn đoán cho các yêu cầu không hợp lệ
+• Các chẩn đoán được sinh ra từ các tập xung đột {CS1,CS2,CS3} là {d1:{r1, r2}, d2:{r1, r4},d3:{r2, r3}}
+
+
+=== PDF PAGE 19 ===
+19
+Phục hồi các yêu cầu không hợp lệ
+• Xác định các cách thích nghi có thể được
+• Hoặc truy vấn bảng sản phẩm P với π[attributes(d)]σ[REQ−d](P)
+• π[attributes(d1)]σ[REQ−d1](P) = {price=278, opt-zoom=10×}
+• π[attributes(d2)]σ[REQ−d2](P) = {price=182, waterproof=no}
+• π[attributes(d3)]σ[REQ−d3](P) = {opt-zoom=4×, sound=no}
+repair price(€) opt-zoom sound waterproof 
+Rep1 278 10× √ √
+Rep2 182 √ √ no
+Rep3 √ 4× no √
+
+=== PDF PAGE 20 ===
+20
+Xếp hạng item
+• Nguyên lý định lượng lợi ích đa thuộc tính
+• mỗi item được đánh giá dựa trên một tập các đại lượng đã được xác định trước, cung cấp cái nhìn tổng 
+quát về các thuộc tính cơ bản nó
+• E.g. chất lượng và giá cả là các đại lượngtrong lĩnh vực máy ảnh kỹ thuật số
+id value quality economy
+price ≤250
+>250
+5
+10 
+10
+5
+mpix ≤8
+>8
+4
+10
+10
+6
+opt-zoom ≤9
+>9
+6
+10
+9
+6
+LCD-size ≤2.7
+>2.7
+6
+9
+10
+5
+movies Yes
+no 
+10
+3
+7
+10
+sound Yes
+no
+10
+7
+8
+10
+waterproof Yes
+no
+10
+8
+6
+10
+
+=== PDF PAGE 21 ===
+21
+Item utility cho khách hàng
+• Mối quan tâm cụ thể của khách hàng
+• Tính toán utility
+Customer quality economy 
+Cu1 80% 20%
+Cu2 40% 60%
+quality economy cu1 cu2
+P1 Σ(5,4,6,6,3,7,10) = 41 Σ (10,10,9,10,10,10,6) = 65 45.8 [8] 55.4 [6]
+P2 Σ(5,4,6,6,10,10,8) = 49 Σ (10,10,9,10,7,8,10) = 64 52.0 [7] 58.0 [1]
+P3 Σ(5,4,10,6,10,10,8) = 53 Σ (10,10,6,10,7,8,10) = 61 54.6 [5] 57.8 [2]
+P4 Σ(5,10,10,6,10,7,10) = 58 Σ (10,6,6,10,7,10,6) = 55 57.4 [4] 56.2 [4]
+P5 Σ(5,4,6,10,10,10,8) = 53 Σ (10,10,9,6,7,8,10) = 60 54.4 [6] 57.2 [3]
+P6 Σ(5,10,6,9,10,10,8) = 58 Σ (10,6,9,5,7,8,10) = 55 57.4 [3] 56.2 [5]
+P7 Σ(10,10,6,9,10,10,8) = 63 Σ (5,6,9,5,7,8,10) = 50 60.4 [2] 55.2 [7]
+P8 Σ(10,10,10,9,10,10,10) = 69 Σ (5,6,6,5,7,8,6) = 43 63.8 [1] 53.4 [8]
+
+=== PDF PAGE 22 ===
+22
+Hệ gợi ý dựa trên trường hợp
+• Các item được đề xuất bằng cách sử dụng độ đo tương đồng
+• Khoảng cách về độ tương đồng
+• Định nghĩa 
+• sim (p, r) thể hiện cho từng giá trị của thuộc tính mặt hàng φr (p) khoảng cách của nó đến yêu cầu của customers r ∈
+REQ.
+• wr là trọng số quan trọng cho yêu cầu r
+• Thực tế customers muốn
+• tối đa một số thuộc tính nhất định. i.e. chất lượng của một chiếc máy ảnh, "more is better"(MIB)
+• tối thiểu một số thuộc tính. i.e. giá của một chiếc máy ảnh, "less is better"(LIB)
+
+
+=== PDF PAGE 23 ===
+23
+Tương tác trong hệ gợi ý dựa trên trường hợp
+• Customers có thể không biết những gì họ đang tìm kiếm
+• Critiquing có thể hiệu quả để hỗ trợ định hướng
+• Customers xác định thay đổi yêu cầu không được đáp ứng của current item
+Critique on price
+
+
+=== PDF PAGE 24 ===
+24
+Tổng hợp nhiều tiêu chuẩn
+• Tính toán trên nhiều thuộc tính có thể cải thiện khả năng gợi ý
+
+
+=== PDF PAGE 25 ===
+25
+Tiêu chuẩn động
+• Association rule mining
+• Các bước trong dynamic critiques:
+• q: initial set of requirements
+• CI: all the available items
+• K: maximum number of compound critiques
+• σmin: minimum support value for calculated association rules.
+Algorithm 4.4 DynamicCritiquing(q,CI)
+Input: Initial user query q; Candidate items CI;
+number of compound critiques per cycle k;
+minimum support for identified association rules σmin
+procedure DynamicCritiquing(q, CI, k, σmin)
+repeat
+r ←ItemRecommend(q, CI);
+CC ←CompoundCritiques(r, CI, k, σmin);
+q ←UserReview(r, CI, CC);
+until empty(q)
+end procedure
+procedure ItemRecommend(q, CI)
+CI ← {ci ∈ CI: satisfies(ci, q)};
+r ←mostsimilar(CI, q);
+return r;
+end procedure
+procedure UserReview(r, CI, CC)
+q ←critique(r, CC);
+CI ←CI − r;
+return q;
+end procedure
+procedure CompoundCritiques(r, CI, k, σmin)
+CP ←CritiquePatterns(r, CI);
+CC ←Apriori(CP, σmin);
+SC ←SelectCritiques(CC, k);
+return SC;
+end procedure
+
+=== PDF PAGE 26 ===
+26
+Ví dụ: sales dialogue financial services
+• Trong lĩnh vực dịch vụ tài chính
+• không biết dịch vụ nào nên được gợi ý
+• cải thiện năng suất tổng thể của sales representatives
+• Resembles call-center scripting
+• best-practice sales dialogues
+• states, transitions with predicates
+• Kết quả nghiên cứu
+• Hỗ trợ cho KA và tối ưu
+• thuộc tính node (có thể truy cập, có thể mở rộng, xác định)
+
+
+=== PDF PAGE 27 ===
+27
+Ví dụ: VITA sales support
+
+
+=== PDF PAGE 28 ===
+28
+Ví dụ: Critiquing
+• Điều hướng dựa trên sự tương tự trong không gian items
+• Compound critiques
+• điều hướng hiệu quả hơn so với các critiques đơn vị
+• khai thác các mẫu thường xuyên
+• Dynamic critiques
+• chỉ thích hợp với compound critiques
+• Incremental critiques
+• xem xét đến lịch sử
+• Adaptive suggestions
+• gợi ý các items cho phép lọc tốt nhất user's preference model 
+
+
+=== PDF PAGE 29 ===
+29
+Kết luận
+• Hệ gợi ý dựa trên tri thức
+• Dựa trên ràng buộc (constraint-based)
+• Dựa trên trường hợp (case-based)
+• Hạn chế
+• chi phí tích lũy tri thức
+• từ chuyên gia
+• từ users
+• từ các tài nguyên web
+• Độ chính xác của preference models
+• đòi hỏi nhiều chu kì tương tác
+• mô hình lọc cộng tác thường implicitly
+• Các thách thức từ việc giả định độc lập
+• sở thích không phải lúc nào cũng độc lập với nhau
+
+=== PDF PAGE 30 ===
+THANK YOU !
+30

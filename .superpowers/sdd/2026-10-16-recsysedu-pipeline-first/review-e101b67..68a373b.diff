@@ -1,0 +1,422 @@
+diff --git a/results/graph_audit.md b/results/graph_audit.md
+new file mode 100644
+index 0000000..49636c7
+--- /dev/null
++++ b/results/graph_audit.md
+@@ -0,0 +1,98 @@
++# Kiểm tra dữ liệu tri thức P1
++
++Ngày kiểm tra: 16/10/2026. **Kiểm tra dữ liệu graph thật: chưa chạy (`not run`).**
++P0 (gợi ý khóa học bằng Popularity, Content, BPR và Hybrid) tiếp tục độc lập.
++Chưa có bằng chứng để bật cảnh báo tiền đề hoặc tạo lộ trình học.
++
++## Những nguồn đang có và đang thiếu
++
++Đã kiểm tra thư mục `data/raw/` của checkout chính
++`D:/VuLapTrinh2/RecSysEdu` và worktree `pipeline-first/RecSysEdu`.
++Checkout chính có `course.json` (44.660.123 byte), `user.json`
++(806.781.726 byte), `raw_manifest.json` (776 byte). Worktree chưa có
++`data/raw/`. Không tìm thấy ba nguồn graph sau trong hai kho dữ liệu này:
++
++| Nguồn cần | Dùng để làm gì | Tình trạng thực tế |
++| --- | --- | --- |
++| `entities/concept.json` | Danh sách mã kiến thức để đối chiếu | Chưa có |
++| `relations/concept-course.txt` | Nối kiến thức với khóa học | Chưa có |
++| `prerequisites/cs.json` | Quan hệ kiến thức trước–sau có nhãn | Chưa có |
++
++Việc tìm file chỉ bao phủ hai kho dữ liệu dự án trên, không khẳng định file
++không tồn tại ở máy khác. Chưa tải thêm graph trong bước này.
++Văn bản `course.prerequisites` không được thay thế cho ba nguồn trên.
++
++Đã đối chiếu cấu trúc với nguồn chính thức:
++[concept](https://github.com/THU-KEG/MOOCCubeX/blob/main/docs/concept-en.md),
++[prerequisite](https://github.com/THU-KEG/MOOCCubeX/blob/main/docs/prerequisites-en.md),
++[script concept–course](https://github.com/THU-KEG/MOOCCubeX/blob/main/scripts/concept_course.py).
++Đây là đối chiếu tài liệu, chưa phải đo dữ liệu tải về.
++
++## Công cụ đã triển khai
++
++`audit_knowledge_sources(concepts_path, mapping_path, prerequisites_path,
++courses_path=...)` đọc file, trả về báo cáo dạng dictionary, không sửa nguồn.
++Ba đối số đầu là bắt buộc; `courses_path` là catalog khóa học tùy chọn.
++Cần truyền thêm catalog để xác nhận mã khóa học có tồn tại hay không.
++Nếu thiếu catalog, độ phủ khóa học và danh sách khóa không nối được là `null`,
++trạng thái `not_available`, và công cụ giữ P1 ở trạng thái dừng.
++
++Ví dụ khi đã lấy được đủ file thật, chạy bằng Python:
++
++```python
++import json
++from pathlib import Path
++from recsysedu.knowledge import audit_knowledge_sources
++
++raw = Path('data/raw')
++report = audit_knowledge_sources(
++    raw / 'entities/concept.json',
++    raw / 'relations/concept-course.txt',
++    raw / 'prerequisites/cs.json',
++    courses_path=raw / 'entities/course.json',
++)
++print(json.dumps(report, ensure_ascii=False, indent=2))
++```
++
++Nếu catalog đang lưu phẳng ở `data/raw/course.json`, truyền đúng đường dẫn đó.
++Không tự dò đường dẫn hoặc đoán quy tắc chuyển mã.
++
++Công cụ ghi rõ hash SHA-256, kích thước, đường dẫn từng nguồn; số concept;
++số cặp concept–course, cặp trùng, cặp hợp lệ và độ phủ; nhãn dương, nhãn 0,
++nhãn chưa rõ; mã không nối được; self-loop và các cụm có chu trình.
++Độ phủ concept lấy số concept có ít nhất một cặp hợp lệ chia tổng catalog
++concept; độ phủ course dùng cùng cách tính trên catalog khóa học.
++Khi thiếu catalog course, số cặp mới chỉ được đối chiếu phía concept.
++
++Chỉ `ground_truth` dạng số bằng 1 được nhận là cạnh dương. Nhãn 0 không là
++cạnh; -1, thiếu nhãn, chuỗi `"1"`, boolean và nhãn khác đều là chưa rõ.
++`text_predict` và `graph_predict` không thay nhãn xác nhận.
++So mã bằng chuỗi chính xác; không tự nối theo tên hoặc bỏ tiền tố.
++
++`usable_edges` chỉ là các cạnh dương có hai đầu trong catalog và không tự
++nối, phục vụ kiểm tra cấu trúc; chưa phải graph được phát hành cho ứng dụng.
++**Các cạnh tạo chu trình vẫn được giữ nguyên** trong danh sách này.
++`cycles` liệt kê từng cụm liên thông mạnh có hơn một concept (mọi concept
++trong cụm đều có thể đi vòng về nhau), không liệt kê mọi vòng đơn vì số vòng
++có thể rất lớn. Self-loop được báo riêng, không đưa vào `usable_edges`.
++
++Công cụ dừng nếu thiếu catalog course, nguồn rỗng, không có cặp nối/cạnh dương,
++ID không nối được, concept tiền đề chưa nối khóa học, nhãn lạ, self-loop hoặc
++chu trình. Khi không có lỗi này, `P1_READY_FOR_SEPARATE_PLAN` chỉ có nghĩa là
++đủ để **lập kế hoạch P1 riêng**; chưa chứng minh độ phủ đủ cho người dùng hay
++quan hệ tiên quyết đúng về học thuật. Kế hoạch sau phải chốt phạm vi và mức
++độ phủ chấp nhận được. Không có ngưỡng độ phủ tự đặt trong đợt triển khai này.
++
++## Bằng chứng và quyết định
++
++Các kiểm thử dùng dữ liệu nhỏ do test tạo ra để kiểm chứng parser, nhãn,
++độ phủ, mã không nối được, self-loop, chu trình, nguồn lỗi/thiếu và đồ thị dài.
++Kết quả test chỉ chứng minh công cụ hoạt động trên các tình huống đó.
++**Không có số đo độ phủ, số cạnh hay số chu trình của MOOCCubeX thật trong báo cáo này.**
++
++Muốn mở P1: lấy đủ ba nguồn, giữ nguồn gốc/hash, chạy công cụ với catalog course,
++xem các mã không nối được và cách xử lý chu trình, rồi lập kế hoạch riêng.
++Không thêm reranking hoặc lộ trình học trong Task 12.
++
++Quyết định cuối: **`P1_STOP_INSUFFICIENT_EVIDENCE`** — thiếu cả ba nguồn graph,
++nên chưa đo được độ phủ mapping, nhãn và tính hợp lệ của đồ thị thật.
+diff --git a/src/recsysedu/knowledge/__init__.py b/src/recsysedu/knowledge/__init__.py
+new file mode 100644
+index 0000000..b5f58ca
+--- /dev/null
++++ b/src/recsysedu/knowledge/__init__.py
+@@ -0,0 +1,5 @@
++"""Optional P1 source audits; no recommendation or learning-path behavior."""
++
++from recsysedu.knowledge.audit import audit_knowledge_sources
++
++__all__ = ['audit_knowledge_sources']
+diff --git a/src/recsysedu/knowledge/audit.py b/src/recsysedu/knowledge/audit.py
+new file mode 100644
+index 0000000..802204c
+--- /dev/null
++++ b/src/recsysedu/knowledge/audit.py
+@@ -0,0 +1,176 @@
++"""Read-only audit of exact MOOCCubeX concept IDs and labelled prerequisites."""
++
++import hashlib
++from pathlib import Path
++
++from recsysedu.data.audit import iter_records
++
++
++def _source(path):
++    path = Path(path)
++    digest = hashlib.sha256()
++    with path.open('rb') as stream:
++        for block in iter(lambda: stream.read(1024 * 1024), b''):
++            digest.update(block)
++    return {'path': str(path.resolve()), 'bytes': path.stat().st_size,
++            'sha256': digest.hexdigest()}
++
++
++def _id(value, location):
++    if not isinstance(value, str) or not value.strip() or value != value.strip():
++        raise ValueError(f'ID phải là chuỗi không rỗng, không thêm khoảng trắng: {location}')
++    return value
++
++
++def _catalog(path):
++    ids = set()
++    for row, record in enumerate(iter_records(Path(path)), 1):
++        key = _id(record.get('id'), f'{path}:{row}')
++        if key in ids:
++            raise ValueError(f'ID catalog trùng: {path}:{row}: {key}')
++        ids.add(key)
++    return ids
++
++
++def _cycle_components(edges):
++    """Iterative Kosaraju: report cyclic SCCs, not exponentially many simple cycles."""
++    forward, reverse = {}, {}
++    for start, end in edges:
++        forward.setdefault(start, set()).add(end)
++        forward.setdefault(end, set())
++        reverse.setdefault(end, set()).add(start)
++        reverse.setdefault(start, set())
++    visited, order = set(), []
++    for root in sorted(forward):
++        if root in visited:
++            continue
++        visited.add(root)
++        stack = [(root, iter(sorted(forward[root])))]
++        while stack:
++            node, children = stack[-1]
++            child = next(children, None)
++            if child is None:
++                order.append(node)
++                stack.pop()
++            elif child not in visited:
++                visited.add(child)
++                stack.append((child, iter(sorted(forward[child]))))
++    visited, cycles = set(), []
++    for root in reversed(order):
++        if root in visited:
++            continue
++        visited.add(root)
++        stack, component = [root], []
++        while stack:
++            node = stack.pop()
++            component.append(node)
++            for child in reverse[node]:
++                if child not in visited:
++                    visited.add(child)
++                    stack.append(child)
++        if len(component) > 1:
++            cycles.append(sorted(component))
++    return sorted(cycles)
++
++
++def audit_knowledge_sources(concepts_path, mapping_path, prerequisites_path, *,
++                            courses_path=None) -> dict:
++    """Audit files without modifying them or guessing ID/name equivalence.
++
++    Concepts/courses use raw JSONL or JSON arrays with ``id``. Mapping is headerless
++    ``concept_id TAB course_id``. Prerequisites use ``c1``, ``c2``, ``ground_truth``.
++    Course linkage requires the optional catalog; without it the gate stays closed.
++    ``usable_edges`` means positive, known, non-self edges for topology inspection;
++    cycles remain in that list and prevent readiness. It is not a released graph.
++    Missing/malformed inputs raise rather than masquerading as measured zero rows.
++    """
++    paths = {'concepts': concepts_path, 'mapping': mapping_path,
++             'prerequisites': prerequisites_path}
++    if courses_path is not None:
++        paths['courses'] = courses_path
++    sources = {name: _source(path) for name, path in paths.items()}
++    concepts = _catalog(concepts_path)
++    courses = _catalog(courses_path) if courses_path is not None else None
++    pairs, mapping_rows = set(), 0
++    with Path(mapping_path).open(encoding='utf-8-sig') as stream:
++        for line_number, line in enumerate(stream, 1):
++            if not line.strip():
++                continue
++            parts = line.rstrip('\r\n').split('\t')
++            if len(parts) != 2:
++                raise ValueError(f'concept-course cần đúng hai cột TAB: {line_number}')
++            pair = tuple(_id(value, f'concept-course:{line_number}') for value in parts)
++            mapping_rows += 1
++            pairs.add(pair)
++    unknown_concepts = sorted({concept for concept, _ in pairs} - concepts)
++    unknown_courses = (sorted({course for _, course in pairs} - courses)
++                       if courses is not None else None)
++    valid_pairs = {(concept, course) for concept, course in pairs
++                   if concept in concepts and (courses is None or course in courses)}
++    mapped_concepts = {concept for concept, _ in valid_pairs}
++    mapped_courses = {course for _, course in valid_pairs}
++    labels = dict(positive=0, zero=0, unknown=0)
++    unknown_label_rows, prerequisite_ids = [], set()
++    positive_edges, positive_rows = set(), 0
++    for row, record in enumerate(iter_records(Path(prerequisites_path)), 1):
++        start = _id(record.get('c1'), f'prerequisites:{row}:c1')
++        end = _id(record.get('c2'), f'prerequisites:{row}:c2')
++        prerequisite_ids.update((start, end))
++        label = record.get('ground_truth')
++        if type(label) in (int, float) and label == 1:
++            labels['positive'] += 1
++            positive_rows += 1
++            positive_edges.add((start, end))
++        elif type(label) in (int, float) and label == 0:
++            labels['zero'] += 1
++        else:
++            labels['unknown'] += 1
++            unknown_label_rows.append(row)
++    self_loops = sorted(edge for edge in positive_edges if edge[0] == edge[1])
++    usable = {edge for edge in positive_edges
++              if edge[0] in concepts and edge[1] in concepts and edge[0] != edge[1]}
++    cycles = _cycle_components(usable)
++    unmapped_prerequisites = sorted(prerequisite_ids - concepts)
++    no_course_mapping = sorted(prerequisite_ids - mapped_concepts)
++    reasons = []
++    for condition, reason in [
++        (not concepts, 'empty_concept_catalog'),
++        (courses is None, 'course_catalog_not_available'),
++        (courses is not None and not courses, 'empty_course_catalog'),
++        (not valid_pairs, 'no_valid_concept_course_mapping'),
++        (not usable, 'no_usable_positive_edges'),
++        (bool(unknown_concepts), 'unmapped_mapping_concepts'),
++        (bool(unknown_courses), 'unmapped_mapping_courses'),
++        (bool(unmapped_prerequisites), 'unmapped_prerequisite_concepts'),
++        (bool(no_course_mapping), 'prerequisite_concepts_without_course_mapping'),
++        (bool(labels['unknown']), 'unknown_prerequisite_labels'),
++        (bool(self_loops), 'positive_self_loops'),
++        (bool(cycles), 'positive_cycles'),
++    ]:
++        if condition:
++            reasons.append(reason)
++    return {
++        'audit_status': 'measured', 'sources': sources,
++        'id_policy': 'exact_string_match_no_name_or_numeric_inference',
++        'concept_count': len(concepts), 'course_count': len(courses) if courses is not None else None,
++        'mapping': {
++            'rows': mapping_rows, 'unique_pairs': len(pairs),
++            'duplicate_rows': mapping_rows - len(pairs), 'valid_pairs': len(valid_pairs),
++            'mapped_concepts': len(mapped_concepts), 'mapped_courses': len(mapped_courses),
++            'concept_coverage': len(mapped_concepts) / len(concepts) if concepts else None,
++            'course_coverage': len(mapped_courses) / len(courses) if courses else None,
++            'course_catalog_status': 'measured' if courses is not None else 'not_available',
++        },
++        'labels': labels, 'unknown_label_rows': unknown_label_rows,
++        'positive_unique_edges': len(positive_edges),
++        'duplicate_positive_rows': positive_rows - len(positive_edges),
++        'self_loops': [list(edge) for edge in self_loops],
++        'cycles': cycles, 'cycle_semantics': 'strongly_connected_components_size_greater_than_one',
++        'usable_edges': [list(edge) for edge in sorted(usable)],
++        'unmapped_ids': {'mapping_concepts': unknown_concepts, 'mapping_courses': unknown_courses,
++                         'prerequisite_concepts': unmapped_prerequisites},
++        'prerequisite_concepts_without_course_mapping': no_course_mapping,
++        'decision': ('P1_STOP_INSUFFICIENT_EVIDENCE' if reasons
++                     else 'P1_READY_FOR_SEPARATE_PLAN'),
++        'decision_reasons': reasons,
++    }
+diff --git a/tests/test_knowledge_audit.py b/tests/test_knowledge_audit.py
+new file mode 100644
+index 0000000..2d5844d
+--- /dev/null
++++ b/tests/test_knowledge_audit.py
+@@ -0,0 +1,119 @@
++import json
++
++import pytest
++
++from recsysedu.knowledge.audit import audit_knowledge_sources
++
++
++def sources(tmp_path, edges, mapping='A\tC_1\nB\tC_2\nC\tC_2\n'):
++    paths = [tmp_path / name for name in ('concept.json', 'concept-course.txt', 'cs.json')]
++    paths[0].write_text('\n'.join(json.dumps({'id': key}) for key in 'ABC'), encoding='utf-8')
++    paths[1].write_text(mapping, encoding='utf-8')
++    paths[2].write_text(json.dumps(edges), encoding='utf-8')
++    courses = tmp_path / 'course.json'
++    courses.write_text(json.dumps([{'id': 'C_1'}, {'id': 'C_2'}]), encoding='utf-8')
++    return paths, courses
++
++
++def edge(start, end, label=1):
++    return {'c1': start, 'c2': end, 'ground_truth': label, 'graph_predict': 1}
++
++
++def test_chain_coverage_and_source_preservation(tmp_path):
++    paths, courses = sources(tmp_path, [edge('A', 'B'), edge('B', 'C')])
++    before = [path.read_bytes() for path in [*paths, courses]]
++    report = audit_knowledge_sources(*paths, courses_path=courses)
++    assert report['labels'] == {'positive': 2, 'zero': 0, 'unknown': 0}
++    assert report['usable_edges'] == [['A', 'B'], ['B', 'C']]
++    assert report['mapping']['concept_coverage'] == 1
++    assert report['mapping']['course_coverage'] == 1
++    assert report['cycles'] == []
++    assert report['decision'] == 'P1_READY_FOR_SEPARATE_PLAN'
++    assert [path.read_bytes() for path in [*paths, courses]] == before
++    assert all(source['sha256'] for source in report['sources'].values())
++
++
++def test_only_numeric_label_one_is_usable_even_when_predictions_are_positive(tmp_path):
++    paths, courses = sources(tmp_path, [edge('A', 'B'), edge('B', 'C', 0),
++                                        edge('C', 'A', -1), edge('C', 'B', '1'),
++                                        edge('A', 'C', True)])
++    report = audit_knowledge_sources(*paths, courses_path=courses)
++    assert report['labels'] == {'positive': 1, 'zero': 1, 'unknown': 3}
++    assert report['usable_edges'] == [['A', 'B']]
++    assert report['unknown_label_rows'] == [3, 4, 5]
++    assert report['decision'] == 'P1_STOP_INSUFFICIENT_EVIDENCE'
++
++
++def test_cycles_are_reported_without_removing_their_edges(tmp_path):
++    paths, courses = sources(tmp_path, [edge('A', 'B'), edge('B', 'C'), edge('C', 'A'),
++                                        edge('A', 'A')])
++    report = audit_knowledge_sources(*paths, courses_path=courses)
++    assert report['self_loops'] == [['A', 'A']]
++    assert report['cycles'] == [['A', 'B', 'C']]
++    assert report['usable_edges'] == [['A', 'B'], ['B', 'C'], ['C', 'A']]
++    assert report['decision'] == 'P1_STOP_INSUFFICIENT_EVIDENCE'
++
++
++def test_unmapped_ids_and_duplicate_mapping_are_explicit(tmp_path):
++    paths, courses = sources(tmp_path, [edge('A', 'missing'), edge('B', 'C')],
++                             'A\tC_1\nA\tC_1\nunknown\tC_2\nB\tC_missing\n')
++    report = audit_knowledge_sources(*paths, courses_path=courses)
++    assert report['unmapped_ids'] == {'mapping_concepts': ['unknown'],
++                                      'mapping_courses': ['C_missing'],
++                                      'prerequisite_concepts': ['missing']}
++    assert report['mapping']['duplicate_rows'] == 1
++    assert report['mapping']['valid_pairs'] == 1
++    assert report['mapping']['concept_coverage'] == pytest.approx(1 / 3)
++    assert report['mapping']['course_coverage'] == .5
++    assert report['usable_edges'] == [['B', 'C']]
++    assert report['decision'] == 'P1_STOP_INSUFFICIENT_EVIDENCE'
++
++
++def test_no_catalog_never_claims_course_validation_or_readiness(tmp_path):
++    paths, _ = sources(tmp_path, [edge('A', 'B')])
++    report = audit_knowledge_sources(*paths)
++    assert report['mapping']['course_catalog_status'] == 'not_available'
++    assert report['mapping']['course_coverage'] is None
++    assert report['unmapped_ids']['mapping_courses'] is None
++    assert report['decision'] == 'P1_STOP_INSUFFICIENT_EVIDENCE'
++
++
++@pytest.mark.parametrize('bad_mapping', ['A C_1\n', 'A\tC_1\textra\n', '\tC_1\n'])
++def test_malformed_mapping_fails_closed(tmp_path, bad_mapping):
++    paths, courses = sources(tmp_path, [], bad_mapping)
++    with pytest.raises(ValueError, match='concept-course'):
++        audit_knowledge_sources(*paths, courses_path=courses)
++
++
++def test_empty_sources_do_not_pass_gate(tmp_path):
++    paths, courses = sources(tmp_path, [], '')
++    paths[0].write_text('[]', encoding='utf-8')
++    report = audit_knowledge_sources(*paths, courses_path=courses)
++    assert report['mapping']['concept_coverage'] is None
++    assert report['decision'] == 'P1_STOP_INSUFFICIENT_EVIDENCE'
++
++
++def test_missing_file_is_an_error_not_a_measured_empty_graph(tmp_path):
++    paths, _ = sources(tmp_path, [])
++    paths[2].unlink()
++    with pytest.raises(FileNotFoundError):
++        audit_knowledge_sources(*paths)
++
++
++def test_long_graph_audit_does_not_depend_on_python_recursion_limit(tmp_path):
++    keys = [f'K_{index}' for index in range(1500)]
++    edges = [edge(start, end) for start, end in zip(keys, keys[1:])]
++    edges.append(edge(keys[-1], keys[0]))
++    paths, courses = sources(tmp_path, edges, ''.join(f'{key}\tC_1\n' for key in keys))
++    paths[0].write_text(json.dumps([{'id': key} for key in keys]), encoding='utf-8')
++    report = audit_knowledge_sources(*paths, courses_path=courses)
++    assert len(report['usable_edges']) == 1500
++    assert report['cycles'] == [sorted(keys)]
++
++
++@pytest.mark.parametrize('records', [[{'name': 'missing id'}], [{'id': 'A'}, {'id': 'A'}]])
++def test_invalid_or_duplicate_catalog_ids_are_not_silently_merged(tmp_path, records):
++    paths, courses = sources(tmp_path, [])
++    paths[0].write_text(json.dumps(records), encoding='utf-8')
++    with pytest.raises(ValueError, match='ID'):
++        audit_knowledge_sources(*paths, courses_path=courses)

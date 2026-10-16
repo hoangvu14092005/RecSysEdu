@@ -1,0 +1,403 @@
+=== PDF PAGE 1 ===
+
+
+=== PDF PAGE 2 ===
+HỆ GỢI Ý
+(IT4613)
+
+=== PDF PAGE 3 ===
+3
+HỆ GỢI Ý
+GỢI Ý DỰA TRÊN NỘI DUNG
+
+
+=== PDF PAGE 4 ===
+4
+Nội dung môn học
+• Giới thiệu về Hệ gợi ý
+• Gợi ý dựa trên lọc cộng tác: Cơ bản và Các kỹ thuật nâng cao
+• Gợi ý dựa trên nội dung
+• Gợi ý dựa trên tri thức
+• Gợi ý dựa trên phiên
+• Kết hợp các kỹ thuật gợi ý 
+• Đánh giá hiệu quả đối với hệ gợi ý
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Bài toán gợi ý tin tức
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Học tương phản
+
+=== PDF PAGE 5 ===
+5
+Gợi ý dựa trên nội dung
+• Trong khi các phương pháp lọc cộng tác không yêu cầu bất kỳ thông tin nào về các items:
+• Tuy nhiên, có thể hiệu quả hơn khi khai thác các thông tin này
+• E.g: Gợi ý tiểu thuyết giả tưởng cho những người đã từng thích tiểu thuyết giả tưởng 
+• Chúng ta cần:
+• Thông tin về các items có sẵn như thể loại (“nội dung’’- content)
+• Một số loại user profile mô tả những gì user thích (xu hướng/sở thích)
+• Nhiệm vụ:
+• Học xu hướng sở thích của user
+• Xác định/gợi ý các items tương đồng với sở thích của user
+
+=== PDF PAGE 6 ===
+6
+“Nội dung- content” là gì?
+• Hầu hết các kỹ thuật gợi ý dựa trên nội dung được áp dụng để gợi ý ‘text documents’.
+• Ví dụ như các trang web hoặc tin tức.
+• Nội dung của các items cũng có thể được biểu diễn dưới dạng ‘text documents’.
+• Bằng những mô tả bằng văn bản về các đặc điểm cơ bản của chúng.
+• Có cấu trúc: Mỗi item được biểu diễn với cùng một tập các thuộc tính (attributes)
+• Phi cấu trúc: mô tả tự do (free-text).
+Title Genre Author Type Price Keywords
+The Night of
+the Gun
+Memoir David Carr Paperback 29.90 Press and journalism, drug
+addiction, personal memoirs, 
+New York
+The Lace
+Reader
+Fiction, 
+Mystery
+Brunonia Barry Hardcover 49.90 American contemporary
+fiction, detective, historical
+Into the Fire Romance, 
+Suspense
+Suzanne 
+Brockmann
+Hardcover 45.90 American fiction, murder, 
+neo-Nazism
+
+=== PDF PAGE 7 ===
+7
+Biểu diễn nội dung
+• Nội dung được sử dụng để biểu diễn cho item và user
+▪ Item representation
+Title Genre Author Type Price Keywords
+The Night of the
+Gun
+Memoir David Carr Paperback 29.90 Press and journalism, drug addiction, 
+personal memoirs, New York
+The Lace Reader Fiction, 
+Mystery
+Brunonia Barry Hardcover 49.90 American contemporary fiction, 
+detective, historical
+Into the Fire Romance, 
+Suspense
+Suzanne 
+Brockmann
+Hardcover 45.90 American fiction, murder, neo-Nazism
+▪ User profile
+Title Genre Author Type Price Keywords
+… Fiction Brunonia, Barry, 
+Ken Follett
+Paperback 25.65 Detective, murder, 
+New York
+
+=== PDF PAGE 8 ===
+8
+Độ tương đồng của item với user
+• Các cách tiếp cận cơ bản
+• Tính mức độ tương đồng của một ‘unseen item’ với một user dựa trên sự trùng lặp từ khóa (e.g. sử dụng Dice 
+coefficient)
+• Hoặc sử dụng và kết hợp nhiều số liệu
+
+
+=== PDF PAGE 9 ===
+9
+Biểu diễn TF-IDF cho mô tả dạng văn bản
+• Biểu diễn từ khóa một cách đơn giản gặp nhiều vấn đề
+• Đặc biệt trong quá trình tự động trích xuất vì
+• không phải mọi ‘từ’ đều có tầm quan trọng như nhau
+• văn bản dài thường dễ trùng lặp với user profile
+• Tiêu chuẩn đánh giá: TF-IDF (term frequency – inverse document frequency)
+• Mã hóa các ‘text document’ trong không gian Euclid đa chiều
+• Sửu dụng vector trọng số
+• TF: Đo lường tần suất xuất hiện (mật độ) của một thuật ngữ trong 1 văn bản
+• giả định rằng các thuật ngữ quan trọng thường xuất hiện thường xuyên
+• chuẩn hóa phải được thực hiện khi tính đến độ dài của văn bản
+• IDF: Mục đích nhằm giảm trọng số của các thuật ngữ xuất hiện trong tất cả các văn bản
+
+=== PDF PAGE 10 ===
+10
+TF- IDF (2)
+
+
+=== PDF PAGE 11 ===
+11
+Ví dụ TF- IDF
+Antony and
+Cleopatra
+Julius Caesar The Tempest Hamlet Othello Macbeth
+Antony 157 73 0 0 0 0
+Brutus 4 157 0 1 0 0
+Caesar 232 227 0 2 1 1
+Calpurnia 0 10 0 0 0 0
+Cleopatra 57 0 0 0 0 0
+mercy 1.51 0 3 5 5 1
+worser 1.37 0 1 1 1 0
+Example taken from http://informationretrieval.org
+
+=== PDF PAGE 12 ===
+12
+Ví dụ TF- IDF
+Example taken from http://informationretrieval.org
+Antony and
+Cleopatra
+Julius 
+Caesar
+The 
+Tempest
+Hamlet Othello Macbeth
+Antony 157 73 0 0 0 0
+Brutus 4 157 0 1 0 0
+Caesar 232 227 0 2 1 1
+Calpurnia 0 10 0 0 0 0
+Cleopatra 57 0 0 0 0 0
+mercy 1.51 0 3 5 5 1
+worser 1.37 0 1 1 1 0
+Antony and
+Cleopatra
+Julius 
+Caesar
+The 
+Tempest
+Hamlet Othello Macbeth
+Antony 5.25 3.18 0 0 0 0.35
+Brutus 1.21 6.1 0 1 0 0
+Caesar 8.59 2.54 0 1.51 0.25 0
+Calpurnia 0 1.54 0 0 0 0
+Cleopatra 2.85 0 0 0 0 0
+mercy 1.51 0 1.9 0.12 5.25 0.88
+worser 1.37 0 0.11 4.15 0.25 1.95
+
+=== PDF PAGE 13 ===
+13
+Cải thiện không gian vector
+• Các vectơ thường dài và thưa
+• Loại bỏ “stop words” 
+• Các từ xuất hiện hầu hết trong mọi văn bản.
+• ví dụ: "a", "the", "on“, …
+• Sử dụng “stemming”
+• Nhằm mục đích thay thế các biến thể của các từ bằng từ gốc chung
+• ví dụ: "went“ - "go", "stemming" - "stem", …
+• Giảm kích thước 
+• chỉ sử dụng n từ tiêu biểu nhất để loại bỏ "nhiễu" khỏi dữ liệu. Ví dụ. Top 100 từ
+• Sử dụng kiến thức từ vựng, các phương pháp phức tạp hơn để trích chọn đặc trưng
+• Xóa các từ không thuộc lĩnh vực
+• Phát hiện các cụm từ dưới dạng thuật ngữ
+• Mô tả tốt cho một văn bản hơn là chỉ dùng các từ đơn lẻ
+• e.g. "United Nations"
+• Các hạn chế
+• Không cung cấp thông tin về ngữ nghĩa
+
+=== PDF PAGE 14 ===
+14
+Độ tương đồng Cosine
+• Độ tương đồng giữa các vector: độ tương đồng Cosine (góc)
+• Tính toán dựa trên góc giữa các vectors
+• 𝑠𝑖𝑚 Ԧ𝑎, 𝑏 =
+𝑎∙𝑏
+𝑎 ∗ 𝑏
+• Thiết lâp độ tương đồng cosine
+• Trung bình đánh giá của người dùng ( ҧ𝑟𝑢), tính toán từ ratings gốc
+• U: tập các users đánh giá cả 2 mục a và b
+• 𝑠𝑖𝑚 Ԧ𝑎, 𝑏 =
+σ𝑢∈𝑈 𝑟𝑢,𝑎− ҧ𝑟𝑢 𝑟𝑢,𝑏− ҧ𝑟𝑢
+σ𝑢∈𝑈 𝑟𝑢,𝑎− ҧ𝑟𝑢
+2 σ𝑢∈𝑈 𝑟𝑢,𝑏− ҧ𝑟𝑢
+2
+
+=== PDF PAGE 15 ===
+15
+Gợi ý items
+• Phương pháp đơn giản: láng giềng gần nhất - nearest neighbors
+• Tập văn bản 𝐷 đã được đáng giá bởi user (thích/không thích)
+• Tường minh
+• Ngầm ẩn
+• Tìm 𝑛 láng giềng gần nhất trong 𝐷 của một item 𝑖
+• Sử dụng thước đo độ tương đồng (như độ đo cosine) để năm bắt độ tương đồng giữa hai văn bản
+• Sử dụng các láng giếng này để đánh giá cho 𝑖
+• e.g. 𝑘 = 5 items tương tự 𝑖 nhất. 
+4 trong 𝑘 được thích bởi user đang xem xét => item 𝑖 cũng có thể được thích bởi user này
+• Biến: 
+• Thay đổi kích thước vùng lân cận k
+• Tăng/giảm ngưỡng độ đo tương đồng để ngăn hệ thống gợi ý ra các items mà user đã biết đến
+• Phù hợp để mô hình hóa short-term interests / follow-up stories
+• Được sử dụng kết hợp với phương pháp khác để mô hình hóa các xu hướng dài hạn
+
+=== PDF PAGE 16 ===
+16
+Gợi ý items
+• Chất lượng truy hồi phụ thuộc vào khả năng cá nhân để tạo ra các truy vấn với từ khóa phù hợp.
+❑Truy xuất dựa trên truy vấn: Phương pháp Rocchio
+• Hê thống SMART: users được phép đánh giá (thích hợp/ không thích hợp) các tài liệu đã truy xuất (phản 
+hồi)
+• Sau đó, hệ thống sẽ học một nguyên mẫu của các văn bản có thích hợp/ không thích hợp
+• Các truy vấn sau đó sẽ tự động được mở rộng với các điều khoản / trọng số của các văn bản thích hợp
+
+=== PDF PAGE 17 ===
+17
+Gợi ý items
+• Tư tưởng của gợi ý dựa trên nội dung:
+• Biểu diễn của item là biểu diễn từ đặc trưng trên nội dung (khác với lọc cộng tác, biểu diễn của item được học từ ma 
+trận tương tác)
+• Học biểu diễn của user theo biểu diễn của nội dung của item (giúp hiểu được user thích các thuộc tính của item như 
+thế nào)
+• Tính độ tương đồng user và item
+
+=== PDF PAGE 18 ===
+18
+Phương pháp Rocchio
+• Tập các văn bản D+ (được thích) và D- (không được thích)
+• Tính toán vectơ nguyên mẫu cho các danh mục này.
+• Tính toán truy vấn đã sửa đổi Qi+1 từ
+truy vấn hiện tại Qi :
+• Thường chỉ sử dụng các phản hồi tích cực vì chúng có giá trị hơn các phản hồi tiêu cực.
+▪ , ,  sử dụng để “fine-tune” phản 
+hồi 
+–  trọng số cho truy vấn gốc
+–  trọng số cho phản hồi tích cực
+–  trọng số cho phản hồi tiêu cực
+𝑸𝒊+𝟏 =  𝜶 ∗ 𝑸𝒊 +  𝜷 𝟏
+𝑫+  ෍
+𝒅+∈𝑫+
+𝒅+ −  𝛄 𝟏
+𝑫− ෍
+𝒅−∈𝑫−
+𝒅−
+
+=== PDF PAGE 19 ===
+19
+Những thách thức của phương pháp Rocchio
+• Số lượng xếp hạng items là cần thiết để xây dựng mô hình
+• Có thể được tự động hóa bằng cách cố gắng nắm bắt các đánh giá “implicit” của user (như click vào văn
+bản)
+• Pseudo relevance Feedback: Giả sử rằng 𝑛 tài liệu đầu tiên phù hợp nhất để truy vấn. Tập 𝐷− không được 
+sử dụng cho đến khi có phản hồi tiêu cực.
+• Cần có sự tương tác của user trong giai đoạn truy xuất
+• Tinh chỉnh truy vấn tương tác có thể tạo ra cơ hội mới trong việc thu thập thông tin
+• Giúp user biết được từ nào nên được sử dụng để có thể nhận thông tin mong muốn
+
+=== PDF PAGE 20 ===
+20
+Phương pháp xác suất
+• Gợi ý giống như bài toán phân loại văn bản cổ điển
+• Tiếp cận đơn giản:
+• 2 lớp: 0/1
+• Biểu diễn văn bản dưới dạng logic 0/1
+• Tính xác xuất để văn bản đó là 0 hoặc 1 dựa vào định lý Bayes
+
+
+=== PDF PAGE 21 ===
+21
+Phân loại tuyến tính
+• Hầu hết các phương pháp học đều nhằm mục đích tìm các hệ số của một mô hình tuyến tính
+• Bộ phân loại đơn giản trong không gian hai chiều, có thể được biểu diễn dưới dạng một đường thẳng phân
+tách
+▪ Các phương pháp khác:
+– Phân loại Naive Bayes, phương pháp Rocchio, giải thuật Windrow-Hoff, Support vector 
+machines 
+▪ Đường phân tách có dạng 𝒘𝟏𝒙𝟏 + 𝒘𝟐𝒙𝟐 = 𝒃
+– 𝑥1 và 𝑥2 tương ứng với vector biểu diễn của 
+một tài liệu (e.g. trọng số TF-IDF)
+– 𝑤1, 𝑤2 và 𝑏 là các tham số phải học
+– Phân loại một văn bản bằng cách kiểm tra
+𝑤1𝑥1 + 𝑤2𝑥2 > 𝑏
+▪ Trong không gian n chiều, hàm phân loại có 
+dạng 𝑤𝑇 Ԧ𝑥 = 𝑏 
+
+=== PDF PAGE 22 ===
+22
+Cải tiến
+• Lưu ý: Sự độc lập có điều kiện của các sự kiện trên thực tế không được quan tâm
+• "New York", "Hong Kong"
+• Tuy nhiên, vẫn có thể đạt được độ chính xác tốt
+• Cách biểu diễn logic 0/1 đơn giản
+• Vị trí các từ là độc lập
+• Mất mát số lượng từ khóa
+• Các phương pháp xác suất phức tạp hơn
+• e.g., ước tính xác suất của từ v xuất hiện trong văn bản của lớp C bằng tần suất tương đối của v trong tất 
+cả các văn bản cùng lớp
+• Sử dụng các thuật toán phân loại tuyến tính khác (học máy)
+• Support Vector Machines, ..
+• Sử dụng các phương pháp truy xuất thông tin khác (được sử dụng bởi các công cụ tìm kiếm ...)
+
+=== PDF PAGE 23 ===
+23
+Các mô hình quyết định rõ ràng
+• Cây quyết định cho bài toán gợi ý
+• các nút bên trong được gán nhãn bằng các đặc trưng của item (từ khóa)
+• được sử dụng để phân chia các ví dụ thử nghiệm
+• sự tồn tại hay không tồn tại của một từ khóa
+• trong cài đặt cơ bản, chỉ có hai lớp xuất hiện tại các nút lá
+• thích hoặc không thích
+• cây quyết định có thể tự động được xây dựng từ dữ liệu huấn luyện
+• hoạt động tốt nhất với số lượng đặc trưng ít
+• sử dụng các đặc trưng “meta” như tên tác giả, thể loại, ... thay vì TF-IDF.
+
+=== PDF PAGE 24 ===
+24
+Các mô hình quyết định rõ ràng (2)
+• Nguyên tắc quy nạp
+• xây dựng trên giải thuật RIPPER
+• hiệu suất tốt so với các phương pháp phân loại khác
+• kĩ thuật hậu cắt tỉa- postprunning của RIPPER
+• mở rộng cho phân loại e-mail
+xem xét đến cấu trúc của văn bản
+• Ưu điểm chính:
+• các quy tắc quyết định được sử dụng làm cơ sở để tạo ra các giải thích cho gợi ý
+• kiến thức trong các lĩnh vực đã có có thể được tích hợp vào các mô hình
+
+=== PDF PAGE 25 ===
+25
+Trích chọn đặc trưng
+• Là quá trình chọn ra một tập con các đặc trưng sẵn có
+• Tồn tại các chiến lược khác nhau giúp chọn ra các đặc trưng để sử dụng
+• dựa trên kiến thức lĩnh vực và thông tin từ vựng WordNet (Pazzani và Billsus 1997)
+• dựa trên tần suất để loại bỏ các từ xuất hiện "quá hiếm" hoặc "quá thường xuyên" (Chakrabarti 2002)
+• Không thích hợp cho tập văn bản lớn
+• Tốt để đánh giá tầm quan trong của các đặc trưng riêng lẻ (từ khóa) một cách độc lập và xây dựng một 
+danh sách các từ khóa "tốt“ đã được xếp hạng.
+• Đánh giá khả năng sử dụng của các từ khóa: e.g. 𝑿𝟐, đo thông tin qua lại hoặc chỉ số phân loại
+Fisher.
+
+=== PDF PAGE 26 ===
+26
+Hạn chế của gợi ý dựa trên nội dung
+• Chỉ sử dụng từ khóa có thể không đủ để đánh giá chất lượng / mức độ thích hợp của một văn bản
+hoặc trang web
+• tính cập nhật, khả năng sử dụng, tính thẩm mỹ, phong cách viết
+• nội dung cũng có thể bị hạn chế / quá ngắn
+• nội dung có thể không thể trích xuất tự động (đa phương tiện)
+• Đòi hỏi giai đoạn tăng tốc
+• Vẫn yêu cầu một số dữ liệu huấn luyện
+• Web 2.0: sử dụng các nguồn khác để học xu hướng user
+• Chuyên môn hóa quá mức
+• Các thuật toán có xu hướng đề xuất “các thứ giống nhau"
+• Hoặc: các items mới khá giống nhau
+
+=== PDF PAGE 27 ===
+27
+Kết luận
+• Ngược lại với các phương pháp lọc cộng tác, các kỹ thuật dựa trên nội dung không yêu cầu cộng
+đồng user để hoạt động
+• Các phương pháp tiếp cận ở trên nhằm mục đích học một mô hình của xu hướng user dựa trên 
+phản hồi explicit hoặc implicit
+• Suy luận từ phản hồi ngầm của hành vi user có thể khó khăn
+• Các đánh giá cho thấy rằng hệ gợi ý có thể đạt được độ chính xác cao với sự trợ giúp của các kỹ 
+thuật máy học
+• Các kĩ thuật này không yêu cầu cộng đồng user.
+• Danh sách gợi ý chứa quá nhiều mục tương đồng
+• Tất cả các kỹ thuật học đều yêu cầu một lượng dữ liệu huấn luyện nhất định
+• Một số phương pháp học có xu hướng “overfit”
+• Hệ thống dựa trên nội dung thuần túy hiếm khi được tìm thấy trong môi trường thương mại
+
+=== PDF PAGE 28 ===
+28
+Tài liệu tham khảo
+• [Michael Pazzani and Daniel Billsus 1997] Learning and revising user profiles: The identification of interesting 
+web sites, Machine Learning 27 (1997), no. 3, 313-331.
+• [Soumen Chakrabarti 2002] Mining the web: Discovering knowledge from hyper-text data, Science & 
+Technology Books, 2002.
+
+=== PDF PAGE 29 ===
+THANK YOU !
+29

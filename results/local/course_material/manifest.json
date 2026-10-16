@@ -1,0 +1,115 @@
+[
+  {
+    "code": "L0",
+    "path": "D:\\TÀI LIỆU HỌC\\Hệ gợi ý\\L0_Gioi_thieu_mon_hoc_IT4613_1.6m.pdf",
+    "sha256": "38234ef50f1e47b8dc759ba6bd3ab5582b41c74048679565fac015cf34adcf78",
+    "pages": 12,
+    "empty_pages": [
+      1,
+      12
+    ]
+  },
+  {
+    "code": "L1",
+    "path": "D:\\TÀI LIỆU HỌC\\Hệ gợi ý\\L1-Gioi_thieu_RecSys_1.9m.pdf",
+    "sha256": "66eda0b60ab4dc9ff5134d07efc37cdf7e578321779e19a8b8481e279b7c4af8",
+    "pages": 20,
+    "empty_pages": [
+      1,
+      5,
+      20
+    ]
+  },
+  {
+    "code": "L2",
+    "path": "D:\\TÀI LIỆU HỌC\\Hệ gợi ý\\L2_Gợi ý dựa trên lọc cộng tác_Cơ bản_2.5m.pdf",
+    "sha256": "78ac5d3c4c0170af467cfb9c73de5411f98cabcf800f81fbaa1539635baa1ea6",
+    "pages": 43,
+    "empty_pages": [
+      1,
+      43
+    ]
+  },
+  {
+    "code": "L3",
+    "path": "D:\\TÀI LIỆU HỌC\\Hệ gợi ý\\L3_Gợi ý dựa trên lọc cộng tác_Nâng cao_4.0m.pdf",
+    "sha256": "2db3a0fea56d64d6f9d78782dc2ba09c968cd50e9915bb2cf5f61bd2881bdd16",
+    "pages": 59,
+    "empty_pages": [
+      1,
+      37,
+      59
+    ]
+  },
+  {
+    "code": "L4",
+    "path": "D:\\TÀI LIỆU HỌC\\Hệ gợi ý\\L4-Gợi ý dựa trên nội dung_2.0m.pdf",
+    "sha256": "85b0928c7baf9aea4a16e55c1a8ac13504133a800e63336b66d7bfd0ad2361f4",
+    "pages": 29,
+    "empty_pages": [
+      1,
+      10,
+      29
+    ]
+  },
+  {
+    "code": "L5",
+    "path": "D:\\TÀI LIỆU HỌC\\Hệ gợi ý\\L5-Gợi ý dựa trên tri thức_2.4m.pdf",
+    "sha256": "675c3838e6c9ba71bccd3c639d49e0cb7a3261e957834507f9430507d63d7f6b",
+    "pages": 30,
+    "empty_pages": [
+      1,
+      30
+    ]
+  },
+  {
+    "code": "L6",
+    "path": "D:\\TÀI LIỆU HỌC\\Hệ gợi ý\\L6-Gợi ý dựa trên phiên_2.1m.pdf",
+    "sha256": "6e9a59c3cc0db1ce3408cc3fb07c26b8929e39c5c26ce6faec1b159f5bcfeda4",
+    "pages": 44,
+    "empty_pages": [
+      1,
+      44
+    ]
+  },
+  {
+    "code": "L7",
+    "path": "D:\\TÀI LIỆU HỌC\\Hệ gợi ý\\L7_Gợi ý dựa trên lai ghép_1.9m.pdf",
+    "sha256": "614151ac94fc49c0eae40077e95021c30455ba4809b52e39904e073190ab2475",
+    "pages": 23,
+    "empty_pages": [
+      1,
+      23
+    ]
+  },
+  {
+    "code": "L8",
+    "path": "D:\\TÀI LIỆU HỌC\\Hệ gợi ý\\L8_Đánh giá hệ thống gợi ý_2.4m.pdf",
+    "sha256": "dfb6431a856a08c78d3cdac56de03cdfa7fc179cba26a5b630779999a3467b74",
+    "pages": 31,
+    "empty_pages": [
+      1,
+      31
+    ]
+  },
+  {
+    "code": "L9",
+    "path": "D:\\TÀI LIỆU HỌC\\Hệ gợi ý\\L9_Ứng dụng deep learning_gợi ý tin tức_3.4m.pdf",
+    "sha256": "bc553ce8a003cb1e1f960f5875e7fb8ce3c27386e180222b7868950509b0bee4",
+    "pages": 48,
+    "empty_pages": [
+      1,
+      48
+    ]
+  },
+  {
+    "code": "L10",
+    "path": "D:\\TÀI LIỆU HỌC\\Hệ gợi ý\\L10_Ứng dụng deep learning_Học tương phản_3.6m.pdf",
+    "sha256": "e2c7e89178913012a238d8255acb4d0fd1487eff44dcd418524e110ae43e17ac",
+    "pages": 28,
+    "empty_pages": [
+      1,
+      28
+    ]
+  }
+]

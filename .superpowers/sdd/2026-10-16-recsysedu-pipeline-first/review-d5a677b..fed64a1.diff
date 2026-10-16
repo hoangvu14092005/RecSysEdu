@@ -1,0 +1,877 @@
+# Review package: d5a677b..fed64a19421b953ccc7202aec4a1d2cf543736d7
+
+## Commits
+fed64a1 feat: prepare versioned parquet dataset
+
+## Files changed
+ configs/prepare.yaml          |   7 +
+ docs/04_data_contract.md      |  29 +++-
+ pyproject.toml                |   2 +-
+ src/recsysedu/cli.py          |  24 ++-
+ src/recsysedu/data/prepare.py | 338 ++++++++++++++++++++++++++++++++++++++++++
+ tests/test_cli.py             |  25 ++++
+ tests/test_prepare.py         | 237 +++++++++++++++++++++++++++++
+ 7 files changed, 651 insertions(+), 11 deletions(-)
+
+## Diff
+diff --git a/configs/prepare.yaml b/configs/prepare.yaml
+new file mode 100644
+index 0000000..6090f72
+--- /dev/null
++++ b/configs/prepare.yaml
+@@ -0,0 +1,7 @@
++raw_dir: data/raw
++output_dir: data/processed/mooccubex-pilot-v1
++dataset_version: mooccubex-pilot-v1
++# Quy ước thứ tự theo đồng hồ nguồn; chưa xác nhận timezone để quy đổi UTC.
++time_basis: source_local_naive
++sample_users: 10000
++seed: 20261016
+diff --git a/docs/04_data_contract.md b/docs/04_data_contract.md
+index c4791fc..b39b18d 100644
+--- a/docs/04_data_contract.md
++++ b/docs/04_data_contract.md
+@@ -1,13 +1,13 @@
+ # 04 — Quy ước dữ liệu và file bàn giao
+ 
+-Cập nhật: 09/10/2026. Raw user/course đã tải/audit; loader snapshot v1 đã chạy trên fixture. Bảng chuẩn Parquet/split và exporter model chưa xây. Người xử lý dữ liệu, model và UI dùng tài liệu này để thống nhất tên trường. Thuật ngữ ở [trang bắt đầu](README.md).
++Cập nhật: 16/10/2026. Raw user/course đã tải/audit; loader snapshot v1 và bước chuẩn hóa Parquet đã kiểm thử trên fixture. Chưa chạy prepare trên raw đầy đủ, chưa có split hoặc exporter model. Người xử lý dữ liệu, model và UI dùng tài liệu này để thống nhất tên trường. Thuật ngữ ở [trang bắt đầu](README.md).
+ 
+ ## 1. Cần lấy file nào từ MOOCCubeX?
+ 
+ | File nguồn | Dùng để làm gì? | Thời điểm |
+ | --- | --- | --- |
+ | `entities/user.json` | Người học và lịch sử đăng ký | Tuần 1 |
+ | `entities/course.json` | ID, tên, nội dung/lĩnh vực khóa | Tuần 1 |
+ | `relations/course-field.json` | Bổ sung lĩnh vực nếu cần sau đối chiếu | Tuần 1–2 |
+ | `entities/concept.json`, `relations/concept-course.txt` | Concept và khóa có concept đó | P1, tuần 4 |
+ | `prerequisites/cs.json` | Quan hệ kiến thức trước–sau trong CS | P1, tuần 4 |
+@@ -24,40 +24,51 @@ Hai file tải ngày 09/10/2026 là JSON Lines. Catalog có ID string `C_<số>`
+ ## 2. Bảng chuẩn sau làm sạch
+ 
+ **Định dạng chính: Parquet.** CSV/JSON chỉ dùng cho mẫu/báo cáo nhỏ; nếu xuất cột list sang CSV thì mã hóa JSON trong ô, không nối tùy ý bằng dấu phẩy.
+ 
+ ### `interactions.parquet` — mỗi dòng là một lần đăng ký đã gộp
+ 
+ | Cột | Kiểu | Quy tắc |
+ | --- | --- | --- |
+ | `user_id` | string | ID nguồn, không rỗng |
+ | `course_id` | string | ID nguồn, tồn tại trong catalog |
+-| `timestamp` | int64 | Unix seconds; timezone nguồn phải được xác định |
++| `event_time` | timestamp[us] hoặc timestamp[us, UTC] | Naive nếu `source_local_naive`; UTC nếu khai báo IANA timezone |
++| `event_time_raw` | string | Giữ nguyên chuỗi nguồn của lần đăng ký được chọn |
+ | `interaction` | int | 1 = đăng ký; không phải điểm đánh giá/năng lực |
+-| `source_record` | string | File/vị trí nguồn để truy vết |
++| `source_record` | string | `user.json:record:<n>:slot:<i>`; n từ 1 theo object hợp lệ, i từ 0 trong mảng nguồn |
+ 
+-Mỗi cặp `(user_id, course_id)` chỉ có một dòng. Trùng đăng ký giữ thời gian hợp lệ sớm nhất, ghi số đã gộp. Sắp xếp `(user_id, timestamp, course_id)` để output ổn định; ID chỉ phá hòa khi ghi file, không biến hai thời gian bằng nhau thành trước–sau.
++Mỗi cặp `(user_id, course_id)` chỉ có một dòng. Trùng đăng ký giữ thời gian hợp lệ sớm nhất và provenance tương ứng, ghi số đã gộp; hòa thì giữ lần xuất hiện đầu. User theo thứ tự xuất hiện trong nguồn; trong mỗi user sắp `(event_time, course_id)` để output ổn định và có thể ghi từng lô. ID chỉ phá hòa khi ghi file, không biến hai thời gian bằng nhau thành trước–sau.
+ 
+-Ví dụ giả: `(U_demo_01, C_demo_python, 1704067200, 1)` ghi một user đăng ký một khóa tại một thời điểm; số 1 chỉ đánh dấu đăng ký. Không có trường nào trong dòng này chứng minh người đó đã hoàn thành khóa.
++Ví dụ giả: `(U_demo_01, C_demo_python, 2024-01-01 00:00:00, 1)` ghi một user đăng ký một khóa tại một thời điểm; số 1 chỉ đánh dấu đăng ký. Không có trường nào trong dòng này chứng minh người đó đã hoàn thành khóa.
+ 
+-Thời gian không có timezone phải được M1 xác định quy ước và ghi config. Chưa xác định thì báo `timezone_unresolved`, chưa phát hành temporal split. Không dùng timezone của máy chạy để tự suy diễn.
++`time_basis` bắt buộc là `source_local_naive` hoặc một IANA key hợp lệ, ví dụ `Asia/Shanghai`. Với `source_local_naive`, giữ đồng hồ nguồn, không tạo giá trị UTC; timestamp có offset bị cách ly bằng `timestamp_awareness_mismatch`. Với IANA key, gắn timezone đó cho timestamp naive rồi đổi sang UTC; timestamp đã có offset giữ đúng instant và đổi sang UTC. Giờ không tồn tại hoặc nhập nhằng khi chuyển DST bị cách ly bằng `nonexistent_local_time` / `ambiguous_local_time`. Không dùng timezone của máy chạy để suy diễn. Prepare luôn ghi `temporal_dataset_ready=false`: bước này chưa tạo temporal split.
+ 
+ ### `courses.parquet` — danh mục khóa học
+ 
+ | Cột | Kiểu | Quy tắc |
+ | --- | --- | --- |
+ | `course_id` | string | Duy nhất, giữ ID nguồn |
+ | `name` | string | Có thể rỗng; UI dùng ID thay tên khi thiếu |
+ | `about` | string | Chuẩn hóa null thành rỗng, giữ nguồn; dùng cùng name cho Content TF-IDF, thiếu thì name-only |
+ | `fields` | list[string] | Lĩnh vực không trùng, lưu nguồn nhãn trong manifest |
+ | `prerequisite_text` | string | Văn bản tham khảo, tách khỏi graph |
+ 
++`name`, `about`, `prerequisites` null thành chuỗi rỗng; giá trị có cấu trúc được mã hóa JSON để giữ nội dung. `field` string thành một phần tử; array loại trùng và sắp ổn định. Manifest ghi `fields_source=course.json:field`. ID catalog trùng metadata giống nhau được gộp; metadata mâu thuẫn hoặc hai mã như `C_1` và `C_01` cùng nối tới số 1 chặn phát hành.
++
++### `cohort_users.parquet` và `rejects.parquet`
++
++`cohort_users` gồm `user_id: string`, `history_length: int64` cho người được chọn ở prepare. Người đủ điều kiện có ít nhất ba khóa catalog khác nhau sau làm sạch. Đây chưa phải cohort đánh giá: timestamp hòa và target cold được xử lý ở split.
++
++Lấy mẫu reservoir bằng `random.Random(seed)` trên toàn bộ người đủ điều kiện theo thứ tự nguồn; người không đủ điều kiện không tham gia phép chọn. `sample_users=0` giữ tất cả; số dương giới hạn tối đa số người. Pilot cấu hình `sample_users=10000`, `seed=20261016`. Giữ catalog đầy đủ; interactions chỉ chứa người được chọn. Không cần nạp toàn bộ lịch sử raw vào RAM: mỗi lần đọc một user, buffer Parquet tối đa 4096 dòng; reservoir giữ tối đa số user yêu cầu. Catalog và tập ID user đã gặp vẫn được giữ trong bộ nhớ để nối và phát hiện trùng.
++
++`rejects` gồm `reason_code`, `user_id`, `raw_course_id`, `event_time_raw`, `source_record` (string nullable), và `count` (int64). `raw_course_id` mã hóa JSON để phân biệt integer, float, bool và string. Lỗi tương tác giữ vị trí slot; lỗi lịch sử giữ vị trí object. `iter_records` chỉ trả tổng số dòng JSON lỗi/object không hợp lệ nên các lỗi đó được ghi thành dòng tổng hợp theo file với `count`; không tuyên bố có số dòng nguồn chính xác. `duplicate_interaction` ghi lần bị gộp; `insufficient_history` ghi người còn dưới ba khóa. Lỗi và bản gộp của mọi user được thống kê trước lấy mẫu, kể cả người không được chọn; tổng `count` bằng tổng `error_counts` trong manifest.
++
+ ### Feature Content — M4, sẽ xây
+ 
+ Lưu riêng văn bản đã làm sạch, vectorizer/IDF, ma trận feature và `feature_manifest.json`: dataset/hash catalog, course ID đúng thứ tự, nguồn `name/about`, cleaning version, analyzer/ngram/vocabulary config, fit scope universe train và số vector rỗng. Profile chỉ từ train. Cấu hình char n-gram là lựa chọn thử theo [10](10_course_direction.md), không phải yêu cầu nguyên từ slide. Snapshot UI v1 không đổi trong đợt phân tích; nó nhận kết quả/evidence, không nhận ma trận TF-IDF.
+ 
+ ### P1: concept và cạnh tiền đề
+ 
+ Giữ bảng concept có `concept_id`/tên; bảng liên kết có cặp `(concept_id, course_id)` duy nhất. Cạnh gồm `prerequisite_id` từ `c1`, `target_concept_id` từ `c2`, `label` từ `ground_truth`, `provenance` từ file/vị trí nguồn.
+ 
+ Đối chiếu namespace/kiểu ID với catalog và bảng liên kết. Nhãn 0 không là cạnh; nhãn khác, gồm -1 **nếu xuất hiện**, được ghi `unknown_label`. `text_predict/graph_predict` không thay nhãn xác nhận trong MVP. Vòng lặp/self-loop được báo và xử lý theo tài liệu 05, không âm thầm xóa để có path đẹp.
+ 
+@@ -70,21 +81,25 @@ Giữ bảng concept có `concept_id`/tên; bảng liên kết có cặp `(conce
+ | Course không có trong catalog | Cách ly tương tác; user còn lịch sử hợp lệ vẫn được giữ | `unknown_course_id` |
+ | Timestamp lỗi/rỗng | Cách ly tương tác, không điền thời gian giả | `invalid_timestamp` |
+ | Enrollment trùng | Giữ lần sớm nhất hợp lệ, đếm bản gộp | `duplicate_interaction` |
+ | Cùng course ID nhưng metadata mâu thuẫn | Chặn phát hành catalog đến khi giải quyết | `conflicting_course_id` |
+ | Graph tự nối/label lạ/ID lạ | Không đưa vào graph hoạt động, ghi lý do | `self_loop` / `unknown_label` / `unmapped_concept` |
+ 
+ Bảng chuẩn không còn ID mồ côi. Không đặt một tỷ lệ lỗi cố định là “chấp nhận được” trước khi thấy dữ liệu; báo mức lỗi/nguyên nhân để quyết định có đủ dùng không.
+ 
+ ## 4. Dataset, split và manifest
+ 
+-Đặt bảng dưới `data/processed/<dataset_version>/`. Có `interactions.parquet`, `courses.parquet`, `train.parquet`, `valid.parquet`, `test.parquet`, cohort và `split_manifest.json`; P1 có thêm concept/mapping/edges.
++Prepare đặt bảng dưới `data/processed/<dataset_version>/`: `interactions.parquet`, `courses.parquet`, `rejects.parquet`, `cohort_users.parquet`, `dataset_manifest.json`. CLI: `python -m recsysedu.cli data prepare --config configs/prepare.yaml`; `output_dir` là thư mục version cuối cùng, không tự nối thêm version. Cấu hình cần đủ `raw_dir`, `output_dir`, `dataset_version`, `time_basis`, `sample_users`, `seed`. Thư mục output đã tồn tại sẽ bị từ chối; ghi/kiểm tra trong thư mục tạm rồi mới phát hành. Raw chỉ được đọc và kiểm hash trước/sau chạy. DuckDB chỉ kiểm tra Parquet đã ghi: khóa ghép duy nhất, không orphan và độ dài cohort đúng.
++
++Dataset manifest ghi schema version, dataset version, time basis, seed, số user yêu cầu/đủ điều kiện/đã chọn, số user đã quét, enrollment trước dedup, số cặp sạch trước lấy mẫu, số dòng từng bảng, mã lỗi/tổng số lỗi, schema Arrow, đường dẫn/bytes/SHA-256 raw và SHA-256 bốn output Parquet. Manifest không tự hash chính nó; bước sau có thể SHA-256 file manifest để làm dataset identity. Hai lần cùng raw/config/phiên bản thư viện tạo cùng output hash; không hứa hash Parquet giống nhau qua mọi phiên bản PyArrow.
++
++Bước split sau mới thêm `train.parquet`, `valid.parquet`, `test.parquet`, cohort đánh giá, candidate universe và `split_manifest.json`; P1 có thêm concept/mapping/edges.
+ 
+ Audit ghi số user/course, số đăng ký trước/sau lọc, lỗi theo loại, người có ít nhất ba khóa khác nhau, mốc thời gian, độ phủ lĩnh vực và graph. Độ thưa tính bằng `1 - số cặp user–course / (số user * số course)`; phải nói rõ catalog ở mẫu số.
+ 
+ Raw manifest ghi URL, ngày tải, bytes, SHA-256. Split manifest ghi dataset version, hash input/config/output, seed, quy tắc chia và số target cold/timestamp hòa. Nếu đổi cleaning/subset/split, phát hành version mới và chạy lại các model so sánh.
+ 
+ ## 5. Bản xuất cho RecBole
+ 
+ Từ **cùng split Parquet**, xuất TSV UTF-8 `mooc.train.inter`, `mooc.valid.inter`, `mooc.test.inter`. Header:
+ 
+ ```text
+diff --git a/pyproject.toml b/pyproject.toml
+index 4e59445..f3914e9 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,20 +1,20 @@
+ [build-system]
+ requires = ["setuptools>=68"]
+ build-backend = "setuptools.build_meta"
+ 
+ [project]
+ name = "recsysedu"
+ version = "0.1.0"
+ description = "LearnPath: reproducible MOOCCubeX course recommendation project"
+ requires-python = ">=3.10"
+-dependencies = ["ijson>=3.3,<4", "numpy>=1.26,<3", "PyYAML>=6,<7"]
++dependencies = ["ijson>=3.3,<4", "numpy>=1.26,<3", "pandas>=2.2,<3", "PyYAML>=6,<7"]
+ 
+ [project.optional-dependencies]
+ dev = ["pytest>=8,<10", "ruff>=0.9,<1"]
+ demo = ["streamlit>=1.44,<2"]
+ data = ["duckdb>=1.4,<2", "pyarrow>=15"]
+ 
+ [project.scripts]
+ recsysedu = "recsysedu.cli:main"
+ 
+ [tool.setuptools.packages.find]
+diff --git a/src/recsysedu/cli.py b/src/recsysedu/cli.py
+index 9a23e48..1748a48 100644
+--- a/src/recsysedu/cli.py
++++ b/src/recsysedu/cli.py
+@@ -1,11 +1,11 @@
+-"""Commands currently available: download, raw audit and snapshot validation."""
++"""Commands for raw data, versioned preparation and snapshot validation."""
+ 
+ import argparse
+ import json
+ import sys
+ from pathlib import Path
+ 
+ import yaml
+ 
+ from recsysedu.data.audit import audit_dataset
+ from recsysedu.data.download import fetch_sources
+@@ -17,40 +17,58 @@ def _config(path: str) -> dict:
+     if not isinstance(value, dict):
+         raise ValueError('Config phải là object YAML')
+     return value
+ 
+ 
+ def main(argv=None) -> int:
+     parser = argparse.ArgumentParser(description='RecSysEdu base: dữ liệu và demo snapshot')
+     commands = parser.add_subparsers(dest='command', required=True)
+     data = commands.add_parser('data', help='Tải và khảo sát raw MOOCCubeX')
+     actions = data.add_subparsers(dest='action', required=True)
+-    for name in ('download', 'audit'):
++    for name in ('download', 'audit', 'prepare'):
+         action = actions.add_parser(name)
+-        action.add_argument('--config', default='configs/data.yaml')
++        action.add_argument('--config', default=(
++            'configs/prepare.yaml' if name == 'prepare' else 'configs/data.yaml'))
+         if name == 'audit':
+             action.add_argument('--max-users', type=int, default=0, help='0: toàn bộ user')
+             action.add_argument('--output', help='File báo cáo JSON tổng hợp')
+     demo = commands.add_parser('demo', help='Kiểm định dạng snapshot cho UI')
+     demo_actions = demo.add_subparsers(dest='action', required=True)
+     validate = demo_actions.add_parser('validate')
+     validate.add_argument('--bundle', default='tests/fixtures/demo_bundle.json')
+     args = parser.parse_args(argv)
+     try:
+         if args.command == 'demo':
+             bundle = load_bundle(Path(args.bundle))
+             print(f"Snapshot hợp lệ: {bundle['meta']['data_mode']}, "
+                   f"{len(bundle['users'])} hồ sơ; không phải kết quả train thật nếu synthetic.")
+             return 0
+         config = _config(args.config)
+         if args.action == 'download':
+             fetch_sources(config)
++        elif args.action == 'prepare':
++            from recsysedu.data.prepare import prepare_dataset
++
++            required = ('raw_dir', 'output_dir', 'dataset_version', 'time_basis',
++                        'sample_users', 'seed')
++            missing = [key for key in required if key not in config]
++            if missing:
++                raise ValueError(f"Config thiếu trường: {', '.join(missing)}")
++            for key in ('raw_dir', 'output_dir'):
++                if not isinstance(config[key], str) or not config[key].strip():
++                    raise ValueError(f'{key} phải là đường dẫn string không rỗng')
++            raw = Path(config['raw_dir'])
++            output = Path(config['output_dir'])
++            report = prepare_dataset(raw / 'course.json', raw / 'user.json', output,
++                                     **{key: config[key] for key in required[2:]})
++            print(f"Dataset {report['dataset_version']}: {report['selected_user_count']} user; "
++                  f"output: {output}")
+         else:
+             raw = Path(config['raw_dir'])
+             report = audit_dataset(raw / 'course.json', raw / 'user.json',
+                                    max_users=args.max_users)
+             output = Path(args.output or config['audit_output'])
+             output.parent.mkdir(parents=True, exist_ok=True)
+             output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
+             print(f"Audit {report['scope']}: {report['users_scanned']} user, "
+                   f"{report['unique_course_ids']} course; báo cáo: {output}")
+             print(f"Timezone: {report['timezone_status']}; chưa phát hành temporal split.")
+diff --git a/src/recsysedu/data/prepare.py b/src/recsysedu/data/prepare.py
+new file mode 100644
+index 0000000..dcf6fea
+--- /dev/null
++++ b/src/recsysedu/data/prepare.py
+@@ -0,0 +1,338 @@
++"""Stream raw records into an immutable, explicitly timed Parquet dataset."""
++
++import hashlib
++import json
++import random
++import re
++import tempfile
++from collections import Counter
++from contextlib import ExitStack
++from datetime import datetime, timezone
++from pathlib import Path
++from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
++
++from recsysedu.data.audit import iter_records
++
++
++class _TimeError(ValueError):
++    pass
++
++
++def _time_zone(time_basis):
++    if time_basis == 'source_local_naive':
++        return None
++    if not isinstance(time_basis, str) or not time_basis:
++        raise ValueError('time_basis phải là source_local_naive hoặc IANA timezone key')
++    try:
++        return ZoneInfo(time_basis)
++    except (ZoneInfoNotFoundError, ValueError) as exc:
++        raise ValueError(f'time_basis không hợp lệ: {time_basis}') from exc
++
++
++def _event_time(raw, zone):
++    try:
++        if not isinstance(raw, str):
++            raise ValueError()
++        value = datetime.fromisoformat(raw.replace('Z', '+00:00'))
++    except ValueError as exc:
++        raise _TimeError('invalid_timestamp') from exc
++    if zone is None:
++        if value.tzinfo is not None:
++            raise _TimeError('timestamp_awareness_mismatch')
++        return value
++    try:
++        if value.tzinfo is not None:
++            return value.astimezone(timezone.utc)
++        # A round trip catches DST gaps; distinct valid instants indicate a fold.
++        candidates = set()
++        for fold in (0, 1):
++            utc = value.replace(tzinfo=zone, fold=fold).astimezone(timezone.utc)
++            if utc.astimezone(zone).replace(tzinfo=None) == value:
++                candidates.add(utc)
++    except OverflowError as exc:
++        raise _TimeError('invalid_timestamp') from exc
++    if not candidates:
++        raise _TimeError('nonexistent_local_time')
++    if len(candidates) != 1:
++        raise _TimeError('ambiguous_local_time')
++    return candidates.pop()
++
++
++def _sha256(path):
++    digest = hashlib.sha256()
++    with Path(path).open('rb') as stream:
++        for block in iter(lambda: stream.read(1024 * 1024), b''):
++            digest.update(block)
++    return digest.hexdigest()
++
++
++class _ParquetSink:
++    """Bound output buffering independently of raw dataset size."""
++
++    def __init__(self, path, schema):
++        import pyarrow.parquet as pq
++
++        self.schema = schema
++        self.writer = pq.ParquetWriter(path, schema, compression='zstd')
++        self.buffer = []
++        self.count = 0
++
++    def add(self, row):
++        self.buffer.append(row)
++        self.count += 1
++        if len(self.buffer) >= 4096:
++            self.flush()
++
++    def flush(self):
++        import pyarrow as pa
++
++        if self.buffer:
++            self.writer.write_table(pa.Table.from_pylist(self.buffer, schema=self.schema))
++            self.buffer.clear()
++
++    def close(self):
++        try:
++            self.flush()
++        finally:
++            self.writer.close()
++
++
++def _schemas(zone):
++    import pyarrow as pa
++
++    return {
++        'courses': pa.schema([
++            ('course_id', pa.string()), ('name', pa.string()), ('about', pa.string()),
++            ('fields', pa.list_(pa.string())), ('prerequisite_text', pa.string()),
++        ]),
++        'interactions': pa.schema([
++            ('user_id', pa.string()), ('course_id', pa.string()),
++            ('event_time', pa.timestamp('us', tz='UTC' if zone else None)),
++            ('event_time_raw', pa.string()), ('interaction', pa.int8()),
++            ('source_record', pa.string()),
++        ]),
++        'rejects': pa.schema([
++            ('reason_code', pa.string()), ('user_id', pa.string()),
++            ('raw_course_id', pa.string()), ('event_time_raw', pa.string()),
++            ('source_record', pa.string()), ('count', pa.int64()),
++        ]),
++        'cohort_users': pa.schema([('user_id', pa.string()), ('history_length', pa.int64())]),
++    }
++
++
++def _text(value):
++    if value is None:
++        return ''
++    return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, sort_keys=True)
++
++
++def _catalog(path, courses_sink, reject, reader_errors):
++    catalog = {}
++    for index, course in enumerate(iter_records(path, reader_errors), 1):
++        source = f'{path.name}:record:{index}'
++        course_id = course.get('id')
++        if not isinstance(course_id, str) or not course_id.strip():
++            reject('invalid_course_id', source)
++            continue
++        fingerprint = json.dumps(course, ensure_ascii=False, sort_keys=True)
++        if course_id in catalog:
++            if catalog[course_id] != fingerprint:
++                raise ValueError(f'Conflicting catalog course ID: {course_id}')
++            reject('duplicate_course_id', source)
++            continue
++        catalog[course_id] = fingerprint
++        fields = course.get('field') or []
++        fields = fields if isinstance(fields, list) else [fields]
++        courses_sink.add(dict(course_id=course_id, name=_text(course.get('name')),
++                              about=_text(course.get('about')),
++                              fields=sorted({_text(value) for value in fields if value}),
++                              prerequisite_text=_text(course.get('prerequisites'))))
++    numeric = {}
++    for course_id in catalog:
++        if re.fullmatch(r'C_[0-9]+', course_id):
++            number = int(course_id[2:])
++            if number in numeric and numeric[number] != course_id:
++                raise ValueError('Catalog có mã số khóa học nhập nhằng')
++            numeric[number] = course_id
++    return catalog, numeric
++
++
++def _clean_users(path, catalog, numeric, zone, reject, reader_errors, stats):
++    seen = set()
++    for index, user in enumerate(iter_records(path, reader_errors), 1):
++        stats['users_scanned'] += 1
++        source = f'{path.name}:record:{index}'
++        user_id = user.get('id')
++        if not isinstance(user_id, str) or not user_id.strip():
++            reject('invalid_user_id', source)
++            continue
++        if user_id in seen:
++            reject('duplicate_user_id', source, user_id)
++            continue
++        seen.add(user_id)
++        order, times = user.get('course_order'), user.get('enroll_time')
++        if not isinstance(order, list) or not isinstance(times, list):
++            reject('invalid_history_type', source, user_id)
++            continue
++        stats['raw_enrollment_slots'] += len(order)
++        if len(order) != len(times):
++            reject('array_length_mismatch', source, user_id)
++            continue
++        history = {}
++        for slot, (raw_id, stamp) in enumerate(zip(order, times)):
++            event_source = f'{source}:slot:{slot}'
++            course_id = (raw_id if isinstance(raw_id, str) and raw_id in catalog
++                         else numeric.get(raw_id) if type(raw_id) is int else None)
++            if course_id is None:
++                reject('unknown_course_id', event_source, user_id, raw_id, stamp)
++            try:
++                parsed = _event_time(stamp, zone)
++            except _TimeError as exc:
++                reject(str(exc), event_source, user_id, raw_id, stamp)
++                continue
++            if course_id is None:
++                continue
++            stats['valid_enrollments_before_dedup'] += 1
++            row = dict(user_id=user_id, course_id=course_id, event_time=parsed,
++                       event_time_raw=stamp, interaction=1, source_record=event_source)
++            if course_id in history:
++                old = history[course_id]
++                loser = old if parsed < old['event_time'] else row
++                reject('duplicate_interaction', loser['source_record'], user_id,
++                       course_id, loser['event_time_raw'])
++                if parsed < old['event_time']:
++                    history[course_id] = row
++            else:
++                history[course_id] = row
++        stats['clean_interaction_count_before_sampling'] += len(history)
++        if len(history) < 3:
++            reject('insufficient_history', source, user_id)
++            continue
++        stats['eligible_user_count'] += 1
++        yield index, user_id, sorted(history.values(), key=lambda row: (
++            row['event_time'], row['course_id']))
++
++
++def _validate_output(stage):
++    """DuckDB reads only finished Parquet; it never transforms raw data."""
++    import duckdb
++
++    with duckdb.connect() as connection:
++        for name in ('courses', 'interactions', 'cohort_users'):
++            connection.read_parquet(str(stage / f'{name}.parquet')).create_view(name)
++        duplicates = connection.sql('''
++            SELECT COUNT(*) FROM (
++                SELECT user_id, course_id FROM interactions GROUP BY ALL HAVING COUNT(*) > 1
++            )
++        ''').fetchone()[0]
++        orphans = connection.sql('''
++            SELECT COUNT(*) FROM interactions i ANTI JOIN courses c USING (course_id)
++        ''').fetchone()[0]
++        invalid_cohort = connection.sql('''
++            SELECT COUNT(*) FROM (
++                SELECT u.user_id FROM cohort_users u LEFT JOIN interactions i USING (user_id)
++                GROUP BY u.user_id, u.history_length
++                HAVING COUNT(i.course_id) != u.history_length OR u.history_length < 3
++            )
++        ''').fetchone()[0]
++        if duplicates or orphans or invalid_cohort:
++            raise ValueError('Parquet validation failed: duplicate, orphan or invalid cohort')
++
++
++def prepare_dataset(course_path, user_path, output_dir, *, dataset_version, time_basis,
++                    sample_users, seed) -> dict:
++    """Publish selected users with >=3 cleaned courses, without creating a split.
++
++    The reservoir is bounded by sample_users. Zero streams every eligible user.
++    Output users retain source encounter order; each history is time/ID sorted.
++    """
++    zone = _time_zone(time_basis)
++    if not isinstance(dataset_version, str) or not dataset_version.strip():
++        raise ValueError('dataset_version phải là string không rỗng')
++    if type(sample_users) is not int or sample_users < 0:
++        raise ValueError('sample_users phải là integer từ 0; 0 là toàn bộ')
++    if type(seed) is not int:
++        raise ValueError('seed phải là integer')
++    course_path, user_path, output_dir = map(Path, (course_path, user_path, output_dir))
++    if output_dir.exists():
++        raise ValueError(f'Output đã tồn tại: {output_dir}; dùng dataset version mới')
++    raw_files = {path.name: dict(path=str(path.resolve()), bytes=path.stat().st_size,
++                                sha256=_sha256(path)) for path in (course_path, user_path)}
++    schemas = _schemas(zone)
++    output_dir.parent.mkdir(parents=True, exist_ok=True)
++    with tempfile.TemporaryDirectory(prefix='.prepare-', dir=output_dir.parent) as temporary:
++        stage = Path(temporary) / 'dataset'
++        stage.mkdir()
++        errors, stats = Counter(), Counter()
++        with ExitStack() as stack:
++            sinks = {}
++            for name, schema in schemas.items():
++                sink = _ParquetSink(stage / f'{name}.parquet', schema)
++                stack.callback(sink.close)
++                sinks[name] = sink
++
++            def reject(reason, source, user_id=None, raw_id=None, stamp=None, count=1):
++                errors[reason] += count
++                sinks['rejects'].add(dict(
++                    reason_code=reason, user_id=user_id,
++                    raw_course_id=None if raw_id is None else json.dumps(raw_id, ensure_ascii=False),
++                    event_time_raw=None if stamp is None else _text(stamp),
++                    source_record=source, count=count))
++
++            def emit_reader_errors(path, issues):
++                # iter_records counts malformed lines/objects without exposing their offsets.
++                for reason, count in sorted(issues.items()):
++                    reject(reason, path.name, count=count)
++
++            reader_errors = Counter()
++            catalog, numeric = _catalog(course_path, sinks['courses'], reject, reader_errors)
++            emit_reader_errors(course_path, reader_errors)
++            reader_errors = Counter()
++            randomizer, reservoir = random.Random(seed), []
++
++            def write_user(candidate):
++                _, user_id, history = candidate
++                sinks['cohort_users'].add(dict(user_id=user_id, history_length=len(history)))
++                for row in history:
++                    sinks['interactions'].add(row)
++
++            for candidate in _clean_users(user_path, catalog, numeric, zone, reject,
++                                          reader_errors, stats):
++                if sample_users == 0:
++                    write_user(candidate)
++                elif len(reservoir) < sample_users:
++                    reservoir.append(candidate)
++                else:
++                    slot = randomizer.randrange(stats['eligible_user_count'])
++                    if slot < sample_users:
++                        reservoir[slot] = candidate
++            emit_reader_errors(user_path, reader_errors)
++            for candidate in sorted(reservoir, key=lambda candidate: candidate[0]):
++                write_user(candidate)
++        _validate_output(stage)
++        for path in (course_path, user_path):
++            if _sha256(path) != raw_files[path.name]['sha256']:
++                raise ValueError(f'Raw input changed during prepare: {path.name}')
++        manifest = dict(
++            schema_version=1, dataset_version=dataset_version, time_basis=time_basis, seed=seed,
++            requested_user_count=sample_users,
++            selected_user_count=sinks['cohort_users'].count,
++            users_scanned=stats['users_scanned'], eligible_user_count=stats['eligible_user_count'],
++            raw_enrollment_slots=stats['raw_enrollment_slots'],
++            valid_enrollments_before_dedup=stats['valid_enrollments_before_dedup'],
++            clean_interaction_count_before_sampling=stats['clean_interaction_count_before_sampling'],
++            raw_files=raw_files, row_counts={name: sink.count for name, sink in sinks.items()},
++            error_counts=dict(sorted(errors.items())),
++            schemas={name: [dict(name=field.name, type=str(field.type), nullable=field.nullable)
++                            for field in schema] for name, schema in schemas.items()},
++            output_hashes={f'{name}.parquet': _sha256(stage / f'{name}.parquet') for name in schemas},
++            course_id_rule='exact string or integer matched to an existing C_<digits> catalog ID',
++            eligibility_rule='at least 3 distinct valid catalog courses after cleaning',
++            sampling_rule='seeded reservoir over eligible users in source encounter order; 0=all',
++            output_order='source user encounter order; event_time, course_id within each user',
++            fields_source='course.json:field', temporal_dataset_ready=False,
++        )
++        (stage / 'dataset_manifest.json').write_text(
++            json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
++        stage.rename(output_dir)
++    return manifest
+diff --git a/tests/test_cli.py b/tests/test_cli.py
+index 45a87f4..8f3b295 100644
+--- a/tests/test_cli.py
++++ b/tests/test_cli.py
+@@ -1,13 +1,15 @@
+ import subprocess
+ import sys
+ 
++import yaml
++
+ from recsysedu.cli import main
+ 
+ 
+ def test_cli_help_is_available():
+     result = subprocess.run([sys.executable, '-m', 'recsysedu.cli', '--help'],
+                             capture_output=True, text=True)
+     assert result.returncode == 0
+     assert 'data' in result.stdout
+     assert 'demo' in result.stdout
+ 
+@@ -21,10 +23,33 @@ def test_invalid_config_fails_cleanly():
+ 
+ 
+ def test_malformed_json_array_reports_clean_error(tmp_path, capsys):
+     (tmp_path / 'course.json').write_text('[{"id":"C_1"}', encoding='utf-8')
+     (tmp_path / 'user.json').write_text('[]', encoding='utf-8')
+     config = tmp_path / 'config.yaml'
+     config.write_text(f'raw_dir: {tmp_path.as_posix()}\naudit_output: unused.json\n',
+                       encoding='utf-8')
+     assert main(['data', 'audit', '--config', str(config)]) == 1
+     assert 'course.json' in capsys.readouterr().err
++
++
++def test_prepare_cli_writes_versioned_dataset(tmp_path, capsys):
++    (tmp_path / 'course.json').write_text('[{"id":"C_1"}]', encoding='utf-8')
++    (tmp_path / 'user.json').write_text('[]', encoding='utf-8')
++    config = tmp_path / 'prepare.yaml'
++    config.write_text(yaml.safe_dump(dict(
++        raw_dir=str(tmp_path), output_dir=str(tmp_path / 'output'), dataset_version='cli-v1',
++        time_basis='source_local_naive', sample_users=0, seed=20261016)), encoding='utf-8')
++    assert main(['data', 'prepare', '--config', str(config)]) == 0
++    output = capsys.readouterr().out
++    assert 'cli-v1' in output and str(tmp_path / 'output') in output
++    assert (tmp_path / 'output/dataset_manifest.json').exists()
++
++
++def test_prepare_cli_invalid_config_has_no_traceback(tmp_path, capsys):
++    for config_value in [[], {}, {'time_basis': 'Mars/Unknown'},
++                         dict(raw_dir=str(tmp_path), output_dir='unused', dataset_version='v1',
++                              time_basis=None, sample_users='ten', seed=1)]:
++        config = tmp_path / 'prepare.yaml'
++        config.write_text(yaml.safe_dump(config_value), encoding='utf-8')
++        assert main(['data', 'prepare', '--config', str(config)]) == 1
++        assert 'Traceback' not in capsys.readouterr().err
+diff --git a/tests/test_prepare.py b/tests/test_prepare.py
+new file mode 100644
+index 0000000..c43d6ab
+--- /dev/null
++++ b/tests/test_prepare.py
+@@ -0,0 +1,237 @@
++import hashlib
++import json
++from datetime import datetime, timezone
++
++import pyarrow as pa
++import pyarrow.parquet as pq
++import pytest
++
++from recsysedu.data.prepare import prepare_dataset
++
++
++def raw_files(tmp_path, users, courses=None):
++    courses = courses or [
++        {'id': 'C_1', 'name': 'One', 'about': None, 'field': ['CS', 'CS']},
++        {'id': 'C_2'}, {'id': 'C_003'}, {'id': 'special'},
++    ]
++    for filename, records in [('course.json', courses), ('user.json', users)]:
++        (tmp_path / filename).write_text('\n'.join(map(json.dumps, records)), encoding='utf-8')
++    return tmp_path / 'course.json', tmp_path / 'user.json'
++
++
++def user(user_id='U_1', **changes):
++    value = {'id': user_id, 'course_order': ['C_1', 2, 3],
++             'enroll_time': ['2020-01-01', '2020-02-01', '2020-03-01']}
++    return value | changes
++
++
++def prepare(tmp_path, paths, **changes):
++    config = dict(dataset_version='fixture-v1', time_basis='source_local_naive',
++                  sample_users=0, seed=20261016)
++    return prepare_dataset(*paths, tmp_path / 'prepared', **(config | changes))
++
++
++def test_prepare_maps_only_catalog_ids_and_keeps_earliest_duplicate(tmp_path):
++    paths = raw_files(tmp_path, [user(
++        course_order=['C_1', 2, 3, 'special', 'C_1'],
++        enroll_time=['2020-04-01', '2020-02-01', '2020-03-01',
++                     '2020-03-02', '2020-01-01'])])
++    before = [path.read_bytes() for path in paths]
++    manifest = prepare(tmp_path, paths)
++    rows = pq.read_table(tmp_path / 'prepared/interactions.parquet').to_pylist()
++    assert [(row['course_id'], row['event_time']) for row in rows] == [
++        ('C_1', datetime(2020, 1, 1)), ('C_2', datetime(2020, 2, 1)),
++        ('C_003', datetime(2020, 3, 1)), ('special', datetime(2020, 3, 2))]
++    assert rows[0]['event_time_raw'] == '2020-01-01'
++    assert all(row['interaction'] == 1 and row['source_record'] for row in rows)
++    assert len({(row['user_id'], row['course_id']) for row in rows}) == len(rows)
++    courses = pq.read_table(tmp_path / 'prepared/courses.parquet').to_pylist()
++    assert set(row['course_id'] for row in rows) <= set(row['course_id'] for row in courses)
++    assert courses[0]['about'] == ''
++    assert courses[0]['fields'] == ['CS']
++    assert manifest['error_counts']['duplicate_interaction'] == 1
++    assert [path.read_bytes() for path in paths] == before
++
++
++def test_prepare_rejects_unknown_ids_and_bad_histories_with_reason_codes(tmp_path):
++    paths = raw_files(tmp_path, [
++        user(course_order=['C_1', 2, 3, 999, True, 2.0, '2', 'special'],
++             enroll_time=['2020-01-01'] * 7 + ['bad']),
++        user('U_mismatch', enroll_time=[]),
++        user('U_bad_type', course_order=None),
++        user('U_short', course_order=['C_1'], enroll_time=['2020-01-01']),
++        user('U_1'), user('', course_order=[], enroll_time=[]),
++    ])
++    manifest = prepare(tmp_path, paths)
++    counts = manifest['error_counts']
++    assert counts['unknown_course_id'] == 4
++    assert counts['invalid_timestamp'] == 1
++    assert counts['array_length_mismatch'] == 1
++    assert counts['invalid_history_type'] == 1
++    assert counts['insufficient_history'] == 1
++    assert counts['duplicate_user_id'] == 1
++    assert counts['invalid_user_id'] == 1
++    rejects = pq.read_table(tmp_path / 'prepared/rejects.parquet').to_pylist()
++    assert {row['reason_code'] for row in rejects} == set(counts)
++    assert sum(row['count'] for row in rejects) == sum(counts.values())
++    assert manifest['users_scanned'] == 6
++    assert manifest['selected_user_count'] == 1
++
++
++def test_prepare_requires_declared_time_basis_and_is_seed_reproducible(tmp_path):
++    paths = raw_files(tmp_path, [user(f'U_{i:02}') for i in range(30)])
++    for basis in [None, '', 'local', 'Mars/Unknown']:
++        with pytest.raises(ValueError, match='time_basis'):
++            prepare(tmp_path, paths, time_basis=basis)
++    first = prepare(tmp_path, paths, sample_users=5)
++    second = prepare_dataset(*paths, tmp_path / 'repeat', dataset_version='fixture-v1',
++                             time_basis='source_local_naive', sample_users=5, seed=20261016)
++    assert first['output_hashes'] == second['output_hashes']
++    assert first['eligible_user_count'] == 30
++    assert first['selected_user_count'] == 5
++    assert first['row_counts']['interactions'] == 15
++    assert first['requested_user_count'] == 5
++    cohort = pq.read_table(tmp_path / 'prepared/cohort_users.parquet').to_pylist()
++    assert len({row['user_id'] for row in cohort}) == 5
++    prepare_dataset(*paths, tmp_path / 'other-seed', dataset_version='fixture-v1',
++                    time_basis='source_local_naive', sample_users=5, seed=42)
++    other_cohort = pq.read_table(tmp_path / 'other-seed/cohort_users.parquet').to_pylist()
++    assert cohort != other_cohort
++    assert any(int(row['user_id'][2:]) >= 5 for row in cohort)
++    all_users = prepare_dataset(*paths, tmp_path / 'all', dataset_version='all-v1',
++                               time_basis='source_local_naive', sample_users=0, seed=3)
++    assert all_users['selected_user_count'] == 30
++
++
++@pytest.mark.parametrize('basis,arrow_type,expected', [
++    ('source_local_naive', pa.timestamp('us'), datetime(2020, 1, 1)),
++    ('Asia/Shanghai', pa.timestamp('us', tz='UTC'), datetime(2019, 12, 31, 16,
++                                                         tzinfo=timezone.utc)),
++])
++def test_prepare_timestamp_schema_and_manifest_hashes(tmp_path, basis, arrow_type, expected):
++    paths = raw_files(tmp_path, [user()])
++    manifest = prepare(tmp_path, paths, time_basis=basis)
++    table = pq.read_table(tmp_path / 'prepared/interactions.parquet')
++    assert table.schema.field('event_time').type == arrow_type
++    assert table.to_pylist()[0]['event_time'] == expected
++    assert table.to_pylist()[0]['event_time_raw'] == '2020-01-01'
++    assert manifest['time_basis'] == basis
++    assert manifest['temporal_dataset_ready'] is False
++    assert manifest['dataset_version'] == 'fixture-v1'
++    for filename, digest in manifest['output_hashes'].items():
++        assert hashlib.sha256((tmp_path / 'prepared' / filename).read_bytes()).hexdigest() == digest
++    for path in paths:
++        assert manifest['raw_files'][path.name]['sha256'] == hashlib.sha256(
++            path.read_bytes()).hexdigest()
++    saved = json.loads((tmp_path / 'prepared/dataset_manifest.json').read_text(encoding='utf-8'))
++    assert saved == manifest
++    assert set(manifest['schemas']) == {'courses', 'interactions', 'rejects', 'cohort_users'}
++
++
++@pytest.mark.parametrize('changes', [
++    {'sample_users': -1}, {'sample_users': True}, {'sample_users': '5'},
++    {'seed': None}, {'seed': True}, {'dataset_version': ''}, {'dataset_version': None},
++])
++def test_prepare_invalid_options_leave_no_output(tmp_path, changes):
++    paths = raw_files(tmp_path, [user()])
++    with pytest.raises(ValueError):
++        prepare(tmp_path, paths, **changes)
++    assert not (tmp_path / 'prepared').exists()
++
++
++def test_prepare_refuses_overwrite_and_conflicting_or_ambiguous_catalog(tmp_path):
++    paths = raw_files(tmp_path, [user()])
++    prepare(tmp_path, paths)
++    with pytest.raises(ValueError, match='exist|tồn tại'):
++        prepare(tmp_path, paths)
++    for courses in [[{'id': 'C_1', 'name': 'A'}, {'id': 'C_1', 'name': 'B'}],
++                    [{'id': 'C_1'}, {'id': 'C_01'}]]:
++        paths = raw_files(tmp_path, [user()], courses)
++        with pytest.raises(ValueError, match='catalog|Catalog'):
++            prepare_dataset(*paths, tmp_path / 'bad', dataset_version='bad-v1',
++                            time_basis='source_local_naive', sample_users=0, seed=3)
++        assert not (tmp_path / 'bad').exists()
++
++
++def test_prepare_quarantines_reader_errors_and_writes_empty_schemas(tmp_path):
++    paths = raw_files(tmp_path, [])
++    paths[1].write_text('broken\n[]\n' + json.dumps(user('U_short', course_order=[],
++                                                     enroll_time=[])), encoding='utf-8')
++    manifest = prepare(tmp_path, paths)
++    assert manifest['error_counts'] == {'invalid_json': 1, 'invalid_record': 1,
++                                        'insufficient_history': 1}
++    assert manifest['selected_user_count'] == 0
++    assert pq.read_table(tmp_path / 'prepared/interactions.parquet').schema.field(
++        'event_time').type == pa.timestamp('us')
++    assert pq.read_table(tmp_path / 'prepared/cohort_users.parquet').num_rows == 0
++
++
++def test_prepare_sampling_reports_errors_from_unselected_users(tmp_path):
++    paths = raw_files(tmp_path, [user(f'U_{i}') for i in range(10)] + [
++        user('U_bad', enroll_time=[])])
++    manifest = prepare(tmp_path, paths, sample_users=1)
++    assert manifest['users_scanned'] == 11
++    assert manifest['eligible_user_count'] == 10
++    assert manifest['clean_interaction_count_before_sampling'] == 30
++    assert manifest['error_counts']['array_length_mismatch'] == 1
++
++
++def test_prepare_reservoir_ignores_ineligible_users_and_preserves_ties(tmp_path):
++    eligible = [user(f'U_{i}') for i in range(15)]
++    paths = raw_files(tmp_path, eligible)
++    prepare(tmp_path, paths, sample_users=4)
++    expected = pq.read_table(tmp_path / 'prepared/cohort_users.parquet').to_pylist()
++    interleaved = []
++    for index, row in enumerate(eligible):
++        interleaved.extend([user(f'Short_{index}', course_order=[], enroll_time=[]), row])
++    paths = raw_files(tmp_path, interleaved + [user(
++        'U_tie', enroll_time=['2020-01-01', '2020-02-01', '2020-02-01'])])
++    result = prepare_dataset(*paths, tmp_path / 'interleaved', dataset_version='fixture-v1',
++                             time_basis='source_local_naive', sample_users=4, seed=20261016)
++    assert result['eligible_user_count'] == 16
++    assert result['error_counts']['insufficient_history'] == 15
++    # Repeat without the extra tied user: irrelevant invalid histories must not alter sampling.
++    paths = raw_files(tmp_path, interleaved)
++    prepare_dataset(*paths, tmp_path / 'same-eligible', dataset_version='fixture-v1',
++                    time_basis='source_local_naive', sample_users=4, seed=20261016)
++    assert pq.read_table(tmp_path / 'same-eligible/cohort_users.parquet').to_pylist() == expected
++
++
++def test_prepare_json_array_and_identical_catalog_duplicate(tmp_path):
++    courses = [{'id': f'C_{i}'} for i in range(1, 4)]
++    paths = raw_files(tmp_path, [user()], courses)
++    paths[0].write_text(json.dumps(courses + [courses[0]]), encoding='utf-8')
++    paths[1].write_text(json.dumps([user()]), encoding='utf-8')
++    manifest = prepare(tmp_path, paths)
++    assert manifest['selected_user_count'] == 1
++    assert manifest['row_counts']['courses'] == 3
++    assert manifest['error_counts']['duplicate_course_id'] == 1
++
++
++def test_prepare_malformed_array_never_publishes_partial_dataset(tmp_path):
++    paths = raw_files(tmp_path, [user()])
++    paths[1].write_text('[{"id":"U_1"}', encoding='utf-8')
++    with pytest.raises(ValueError, match='JSON array'):
++        prepare(tmp_path, paths)
++    assert not (tmp_path / 'prepared').exists()
++    assert not list(tmp_path.glob('.prepare-*'))
++
++
++@pytest.mark.parametrize('basis,stamp,reason', [
++    ('source_local_naive', '2020-01-01T00:00:00Z', 'timestamp_awareness_mismatch'),
++    ('America/New_York', '2020-03-08T02:30:00', 'nonexistent_local_time'),
++    ('America/New_York', '2020-11-01T01:30:00', 'ambiguous_local_time'),
++])
++def test_prepare_quarantines_unresolvable_time_without_guessing(tmp_path, basis, stamp, reason):
++    paths = raw_files(tmp_path, [user(enroll_time=[stamp, '2020-02-01', '2020-03-01'])])
++    manifest = prepare(tmp_path, paths, time_basis=basis)
++    assert manifest['error_counts'][reason] == 1
++    assert manifest['selected_user_count'] == 0
++
++
++@pytest.mark.parametrize('stamp', ['0001-01-01', '0001-01-01T00:00:00+08:00'])
++def test_prepare_quarantines_timestamp_that_overflows_utc_conversion(tmp_path, stamp):
++    paths = raw_files(tmp_path, [user(enroll_time=[stamp, '2020-02-01', '2020-03-01'])])
++    manifest = prepare(tmp_path, paths, time_basis='Asia/Shanghai')
++    assert manifest['error_counts']['invalid_timestamp'] == 1
++    assert manifest['selected_user_count'] == 0

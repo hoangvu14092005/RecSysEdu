@@ -1,0 +1,69 @@
+{
+  "run_id": "valid-8af2e27e3aae4aa4bcd1dca3c9d26ddd-f1a26c9037d64fe7aaead9ae3e555320",
+  "model_id": "bpr",
+  "dataset_hash": "215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c",
+  "split_hash": "7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617",
+  "protocol_id": "leave_last_two_out_v1",
+  "seed": 17,
+  "schema_version": 1,
+  "evaluation_split": "valid",
+  "k": 10,
+  "primary_metric": "NDCG@10",
+  "metrics": {
+    "NDCG@10": 0.06134094543097583,
+    "HitRate@10": 0.10969825411242305,
+    "Recall@10": 0.10969825411242305,
+    "Precision@10": 0.010969825411242112,
+    "Coverage@10": 0.41415313225058004
+  },
+  "cohort_size": 9909,
+  "candidate_universe_size": 2586,
+  "short_list_user_count": 0,
+  "cold_target_count": 56,
+  "fallback_counts": {
+    "none": 9909
+  },
+  "candidate_policy": "full_train_universe",
+  "profile_policy": "train_only",
+  "seen_policy": "train",
+  "tie_break_policy": "score_desc_course_id_asc",
+  "history_mode": "offline",
+  "metric_status": "measured",
+  "duration_seconds": 28.77224849999766,
+  "split_manifest_hash": "bd20e5177753ab99971c7892072d236fbf0035153d50001328f0321eba1881a1",
+  "output_hashes": {
+    "metrics.csv": "f4043cd3077a5b4824e2edd79b5cc91e54952933dae3f389e291623e9a744b3c",
+    "per_user_metrics.parquet": "964c9705911fd47e5797ffab65c3984775890dfe8d144623f2e16b2a82b6a0be",
+    "recommendations.jsonl": "b3c9b22c844307d46e66247bf7aca023373e520f548aaef7d704e3388b26cb05"
+  },
+  "limitations": [
+    "Per-user temporal split allows cross-user future interactions in train.",
+    "Static catalog has no time-dependent course availability.",
+    "Offline enrollment ranking does not measure mastery or learning gain."
+  ],
+  "config_hash": "1c8657352f78e8480eba5eaee4fd5420185322c467ce26997fdffcb4bf28b16e",
+  "model_config": {
+    "seed": 17,
+    "epochs": 10,
+    "embedding_size": 64,
+    "train_batch_size": 2048,
+    "learning_rate": 0.001,
+    "validation_early_stopping": true,
+    "stopping_step": 2
+  },
+  "model_config_hash": "144b3c9848224cf1dcd7a089a9e2a43e88f844c73f0f2988a3a9eee843846543",
+  "git_revision": "f8ca95b775f509b8b989150bdfedebd9bd066199",
+  "git_status": "revision_available",
+  "git_dirty": true,
+  "versions": {
+    "python": "3.10.11",
+    "numpy": "1.26.4",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.7.2",
+    "pyarrow": "25.0.1"
+  },
+  "experiment_id": "valid-8af2e27e3aae4aa4bcd1dca3c9d26ddd",
+  "component_hashes": {
+    "bpr": "7bd5ed140a29ac1440c5a76ec4971dd684ca73a13747129677a1e620278ecba8"
+  }
+}

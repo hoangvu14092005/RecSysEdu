@@ -1,0 +1,362 @@
+# Review package: e7663cdcc45cdb02344d5fc54ae37de608b504fb..f8ca95b
+
+## Commits
+f8ca95b fix: select bpr checkpoints on shared validation
+
+## Files changed
+ src/recsysedu/adapters/recbole.py   | 70 ++++++++++++++++++++++++++++++++++---
+ src/recsysedu/experiments/runner.py | 12 +++++--
+ tests/test_experiment_runner.py     | 14 ++++++++
+ tests/test_recbole_adapter.py       | 70 +++++++++++++++++++++++++++++++++++++
+ 4 files changed, 159 insertions(+), 7 deletions(-)
+
+## Diff
+diff --git a/src/recsysedu/adapters/recbole.py b/src/recsysedu/adapters/recbole.py
+index b8025a0..a608573 100644
+--- a/src/recsysedu/adapters/recbole.py
++++ b/src/recsysedu/adapters/recbole.py
+@@ -156,20 +156,54 @@ def _build_train_loader(config, dataset, candidate_ids):
+     positives = {}
+     for user, item in zip(dataset.inter_feat['user_id'].numpy(),
+                           dataset.inter_feat['item_id'].numpy()):
+         positives.setdefault(int(user), set()).add(int(item))
+     if any(items >= universe for items in positives.values()):
+         raise ValueError('a train user has no unseen item in the train candidate universe')
+     sampler = Sampler(['train'], [dataset], distribution='popularity', alpha=0.0)
+     return TrainDataLoader(config, dataset, sampler.set_phase('train'), shuffle=True)
+ 
+ 
++def _validation_ndcg(model, train, valid, candidate_ids, user_map, item_map):
++    """Score exact warm validation targets with the shared source-ID ranking policy.
++
++    RecBole's default full-sort includes cold items and breaks ties differently.
++    Only train histories are masked here. Test interactions are never consulted.
++    """
++    from collections import defaultdict
++
++    from recsysedu.evaluation.metrics import metrics_at_k
++    from recsysedu.evaluation.ranking import rank_candidates
++
++    inverse_users = {index: token for token, index in user_map.items()}
++    inverse_items = {index: token for token, index in item_map.items()}
++    histories = defaultdict(list)
++    for user, item in zip(train.inter_feat['user_id'].tolist(),
++                          train.inter_feat['item_id'].tolist()):
++        histories[inverse_users[user]].append(inverse_items[item])
++    scorer = BPRScorer(model.user_embedding.weight.detach().cpu().numpy(),
++                       model.item_embedding.weight.detach().cpu().numpy(), user_map, item_map)
++    values = []
++    for user, target in zip(valid.inter_feat['user_id'].tolist(),
++                            valid.inter_feat['item_id'].tolist()):
++        if target not in inverse_items:
++            continue
++        source_user = inverse_users[user]
++        ranked = rank_candidates(scorer.score(source_user, candidate_ids),
++                                 histories[source_user], k=10)
++        values.append(metrics_at_k([row.course_id for row in ranked], [inverse_items[target]],
++                                   len(candidate_ids), k=10)['NDCG@10'])
++    if not values:
++        raise ValueError('early stopping requires a non-empty warm validation cohort')
++    return float(np.mean(values))
++
++
+ def train_bpr(config_path: Path, output_dir: Path) -> dict:
+     """Train real RecBole BPR on the exact export; project evaluator owns metrics.
+ 
+     The configuration accepts atomic_dir, seed, epochs, embedding_size,
+     train_batch_size and learning_rate. Dataset/split/filter/device settings
+     are owned by this adapter and cannot silently alter the Task 3 split.
+     """
+     import psutil
+     import recbole
+     import torch
+@@ -192,30 +226,35 @@ def train_bpr(config_path: Path, output_dir: Path) -> dict:
+         if _hash(atomic_dir / exported['dataset'] / name) != expected:
+             raise ValueError(f'atomic file hash mismatch: {name}')
+     if exported['benchmark_filename'] != ['train', 'valid', 'test']:
+         raise ValueError('benchmark files must be train/valid/test')
+     parameters = {name: raw[name] for name in (
+         'seed', 'epochs', 'embedding_size', 'train_batch_size', 'learning_rate') if name in raw}
+     if type(parameters.get('epochs')) is not int or not 1 <= parameters['epochs'] <= 100:
+         raise ValueError('epochs must be bounded from 1 to 100')
+     if type(parameters.get('seed')) is not int:
+         raise ValueError('seed must be an integer')
++    early = raw.get('validation_early_stopping', False)
++    patience = raw.get('stopping_step', 3)
++    if type(early) is not bool or type(patience) is not int or patience < 1:
++        raise ValueError('validation_early_stopping must be bool; stopping_step positive integer')
+     parameters.update(
+         data_path=str(atomic_dir.resolve()), benchmark_filename=['train', 'valid', 'test'],
+         USER_ID_FIELD='user_id', ITEM_ID_FIELD='item_id', TIME_FIELD='timestamp',
+         field_separator='\t', load_col={'inter': ['user_id', 'item_id', 'timestamp']},
+         use_gpu=False, worker=0, reproducibility=True, show_progress=False,
+         save_dataset=False, save_dataloaders=False,
+         user_inter_num_interval='[0,inf)', item_inter_num_interval='[0,inf)',
+         eval_args={'split': None, 'order': 'TO', 'group_by': 'user', 'mode': 'full'},
+         train_neg_sample_args={'distribution': 'popularity', 'sample_num': 1, 'alpha': 0.0},
+-        metrics=['Recall'], topk=[1], valid_metric='Recall@1', enable_amp=False)
++        metrics=['NDCG'], topk=[10], valid_metric='NDCG@10', enable_amp=False,
++        eval_step=1, stopping_step=patience)
+     class AdapterConfig(Config):
+         # RecBole normally lets sys.argv override config_dict. The embedding
+         # application's flags must not bypass our CPU/split/epoch constraints.
+         def _load_cmd_line(self):
+             return {}
+ 
+     config = AdapterConfig(model='BPR', dataset='recsysedu', config_dict=parameters)
+     init_seed(config['seed'], True)
+     dataset = create_dataset(config)
+     train, valid, test = dataset.build()
+@@ -237,33 +276,54 @@ def train_bpr(config_path: Path, output_dir: Path) -> dict:
+                 dataset.field2token_id['user_id'].items() if index != 0}
+     item_map = {token: int(dataset.token2id('item_id', token))
+                 for token in exported['candidate_ids']}
+     train_loader = _build_train_loader(config, train, exported['candidate_ids'])
+     output_dir.parent.mkdir(parents=True, exist_ok=True)
+     with tempfile.TemporaryDirectory(prefix='.bpr-', dir=output_dir.parent) as temporary:
+         stage = Path(temporary) / 'model'
+         stage.mkdir()
+         config['checkpoint_dir'] = str(stage)
+         model = BPR(config, train).to('cpu')
+-        trainer = Trainer(config, model)
++        best_state, validation_history = {}, []
++
++        class ValidationTrainer(Trainer):
++            def _valid_epoch(self, valid_data, show_progress=False):
++                self.model.eval()
++                value = _validation_ndcg(self.model, train, valid_data,
++                                         exported['candidate_ids'], user_map, item_map)
++                validation_history.append(value)
++                # Match RecBole's >= update rule, including exact ties.
++                if value >= self.best_valid_score:
++                    best_state.clear()
++                    best_state.update({key: tensor.detach().clone() for key, tensor in
++                                       self.model.state_dict().items()})
++                return value, {'ndcg@10': value}
++
++        trainer = (ValidationTrainer if early else Trainer)(config, model)
+         try:
+-            # No RecBole full-universe validation: held-out-only items are outside
+-            # our train candidate universe. Task 4 evaluator performs comparison.
+-            trainer.fit(train_loader, valid_data=None, verbose=False,
++            trainer.fit(train_loader, valid_data=valid if early else None, verbose=False,
+                         saved=False, show_progress=False)
+         finally:
+             trainer.tensorboard.close()
++        if early:
++            model.load_state_dict(best_state)
+         checkpoint = stage / 'bpr.pth'
+         torch.save(model.state_dict(), checkpoint)
+         _write_json(stage / 'id_maps.json', {'user_id_map': user_map, 'item_id_map': item_map})
+         manifest = dict(schema_version=1, model_id='recbole-bpr', device='cpu',
+                         seed=config['seed'], epochs_completed=len(trainer.train_loss_dict),
++                        epochs_requested=parameters['epochs'],
++                        validation_early_stopping=early, stopping_step=patience,
++                        best_epoch=(max(i + 1 for i, value in enumerate(validation_history)
++                                        if value == max(validation_history)) if early else None),
++                        best_validation_ndcg_at_10=(max(validation_history) if early else None),
++                        validation_ndcg_history=validation_history,
+                         embedding_size=config['embedding_size'],
+                         train_batch_size=config['train_batch_size'],
+                         learning_rate=config['learning_rate'],
+                         training_losses=list(trainer.train_loss_dict.values()),
+                         negative_sampling={'distribution': 'uniform_over_train_items',
+                                            'implementation': 'RecBole popularity alias, alpha=0',
+                                            'positive_exclusion': 'train only', 'sample_num': 1},
+                         split_hash=exported['split_hash'], dataset_hash=exported['dataset_hash'],
+                         export_manifest_sha256=_hash(atomic_dir / 'export_manifest.json'),
+                         loaded_row_counts=loaded_counts, checkpoint='bpr.pth', id_maps='id_maps.json',
+diff --git a/src/recsysedu/experiments/runner.py b/src/recsysedu/experiments/runner.py
+index 1de9045..54b55fd 100644
+--- a/src/recsysedu/experiments/runner.py
++++ b/src/recsysedu/experiments/runner.py
+@@ -108,33 +108,40 @@ def _settings(config: dict):
+     if type(seed) is not int:
+         raise ValueError('seed must be an integer')
+     try:
+         content = ContentConfig(**_section(config, 'content', base))
+     except TypeError as exc:
+         raise ValueError(f'invalid content configuration: {exc}') from exc
+     bpr = _section(config, 'bpr', base)
+     fixed = dict(benchmark_filename=['train', 'valid', 'test'], USER_ID_FIELD='user_id',
+                  ITEM_ID_FIELD='item_id', TIME_FIELD='timestamp', use_gpu=False)
+     allowed = {'seed', 'epochs', 'embedding_size', 'train_batch_size', 'learning_rate',
+-               'manifest_path', 'atomic_dir', 'split_dir', 'output_dir'} | fixed.keys()
++               'manifest_path', 'atomic_dir', 'split_dir', 'output_dir',
++               'validation_early_stopping', 'stopping_step'} | fixed.keys()
+     if set(bpr) - allowed:
+         raise ValueError(f'unsupported BPR settings: {sorted(set(bpr) - allowed)}')
+     for name, value in fixed.items():
+         if name in bpr and (type(bpr[name]) is not type(value) or bpr[name] != value):
+             raise ValueError(f'BPR {name} is owned by the adapter')
+     seed_value = bpr.get('seed', seed)
+     if type(seed_value) is not int or seed_value != seed:
+         raise ValueError('BPR seed must match experiment seed')
+     parameters = dict(seed=seed, epochs=bpr.get('epochs', 10),
+                       embedding_size=bpr.get('embedding_size', 64),
+                       train_batch_size=bpr.get('train_batch_size', 2048),
+                       learning_rate=bpr.get('learning_rate', 0.001))
++    if 'validation_early_stopping' in bpr or 'stopping_step' in bpr:
++        parameters.update(validation_early_stopping=bpr.get('validation_early_stopping', False),
++                          stopping_step=bpr.get('stopping_step', 3))
++        if (type(parameters['validation_early_stopping']) is not bool
++                or type(parameters['stopping_step']) is not int or parameters['stopping_step'] < 1):
++            raise ValueError('invalid BPR early stopping settings')
+     for name in ('epochs', 'embedding_size', 'train_batch_size'):
+         if type(parameters[name]) is not int or parameters[name] < 1:
+             raise ValueError(f'BPR {name} must be a positive integer')
+     if parameters['epochs'] > 100:
+         raise ValueError('BPR epochs must be bounded from 1 to 100')
+     rate = parameters['learning_rate']
+     if type(rate) not in (int, float) or not 0 < rate < float('inf'):
+         raise ValueError('BPR learning_rate must be positive and finite')
+     hybrid = _section(config, 'hybrid', base)
+     hybrid_fixed = dict(primary_metric='NDCG@10', selection_split='valid',
+@@ -163,21 +170,22 @@ def _settings(config: dict):
+ def _bpr_identity(path: Path, identity: RunIdentity, parameters: dict) -> dict:
+     model = _json(path)
+     for field in ('dataset_hash', 'split_hash'):
+         if model.get(field) != getattr(identity, field):
+             raise ValueError(f'BPR artifact {field} mismatch')
+     # Task 7 manifests predate protocol_id. Their exact split_hash already binds
+     # the complete protocol manifest; if explicitly present it must also match.
+     if model.get('protocol_id', identity.protocol_id) != identity.protocol_id:
+         raise ValueError('BPR artifact protocol_id mismatch')
+     for key, value in parameters.items():
+-        field = 'epochs_completed' if key == 'epochs' else key
++        field = ('epochs_requested' if 'epochs_requested' in model else 'epochs_completed'
++                 ) if key == 'epochs' else key
+         if model.get(field) != value:
+             raise ValueError(f'BPR artifact configuration mismatch: {key}')
+     return model
+ 
+ 
+ def _verify_files(root: Path, hashes: dict) -> None:
+     if not isinstance(hashes, dict) or not hashes:
+         raise ValueError('artifact manifest missing output hashes')
+     for name, expected in hashes.items():
+         if not isinstance(name, str) or not isinstance(expected, str):
+diff --git a/tests/test_experiment_runner.py b/tests/test_experiment_runner.py
+index c3554e5..073b1b6 100644
+--- a/tests/test_experiment_runner.py
++++ b/tests/test_experiment_runner.py
+@@ -55,20 +55,34 @@ def _freeze(config, batch):
+                   freeze=freeze)
+     return result
+ 
+ 
+ def test_runner_refuses_test_before_config_is_marked_frozen(tmp_path, experiment_case):
+     with pytest.raises(ValueError, match='frozen'):
+         run_experiment(experiment_case, split='test', output_root=tmp_path / 'test')
+     assert not (tmp_path / 'test').exists()
+ 
+ 
++@pytest.mark.integration
++def test_runner_accepts_early_stopped_checkpoint_budget(tmp_path, experiment_case):
++    experiment_case['bpr'].update(epochs=8, validation_early_stopping=True, stopping_step=1)
++    from recsysedu.experiments.runner import evaluate_model
++    report = evaluate_model(experiment_case, model_id='bpr', split='valid',
++                            output_root=tmp_path / 'early')
++    batch = _batch(tmp_path / 'early')
++    model = _read(batch / 'artifacts/bpr/bpr_manifest.json')
++    assert model['epochs_requested'] == 8
++    assert model['epochs_completed'] <= 8
++    assert report['model_config']['validation_early_stopping'] is True
++    assert report['metrics']['NDCG@10'] == pytest.approx(model['best_validation_ndcg_at_10'])
++
++
+ @pytest.mark.integration
+ def test_runner_runs_four_models_on_one_shared_valid_protocol(tmp_path, experiment_case):
+     root = tmp_path / 'valid'
+     reports = run_experiment(experiment_case, split='valid', output_root=root)
+     assert [r['model_id'] for r in reports] == ['popularity', 'content', 'bpr', 'hybrid']
+     assert len({r['run_id'] for r in reports}) == 4
+     assert len({(r['dataset_hash'], r['split_hash'], r['protocol_id'], r['cohort_size'])
+                 for r in reports}) == 1
+     batch = _batch(root)
+     manifest = _read(batch / 'experiment_manifest.json')
+diff --git a/tests/test_recbole_adapter.py b/tests/test_recbole_adapter.py
+index 0f58b0f..1e43130 100644
+--- a/tests/test_recbole_adapter.py
++++ b/tests/test_recbole_adapter.py
+@@ -180,10 +180,80 @@ def test_training_sampler_uses_train_universe_without_excluding_heldout_positive
+             users = dataset.id2token('user_id', batch['user_id'].numpy())
+             negatives = dataset.id2token('item_id', batch['neg_item_id'].numpy())
+             samples.extend(zip(users, negatives))
+     assert {item for _, item in samples} <= {'C_01', 'C_2', 'C_3', 'C_4'}
+     train_pairs = {(r['user_id'], r['course_id']) for r in
+                    pq.read_table(split_dir / 'train.parquet').to_pylist()}
+     assert not (set(samples) & train_pairs)
+     assert ('U_01', 'C_3') in samples  # validation positive is not a sampler exclusion
+     with pytest.raises(ValueError, match='no unseen item'):
+         _build_train_loader(config, dataset, exported['candidate_ids'])
++
++
++@pytest.mark.integration
++def test_early_stopping_uses_validation_and_restores_best_epoch(split_dir, tmp_path, monkeypatch):
++    import torch
++    from recsysedu.adapters import recbole as adapter
++
++    atomic = tmp_path / 'atomic'
++    export_atomic_files(split_dir, atomic)
++    config = dict(atomic_dir=str(atomic), seed=17, epochs=8, embedding_size=8,
++                  train_batch_size=4, learning_rate=0.001,
++                  validation_early_stopping=True, stopping_step=1)
++    path = tmp_path / 'config.yaml'
++    path.write_text(yaml.safe_dump(config))
++    observed = []
++    best_state = {}
++
++    def validation(model, train, valid, candidates, user_map, item_map):
++        observed.append(valid)
++        if len(observed) == 1:
++            best_state.update({key: value.detach().clone() for key, value in
++                               model.state_dict().items()})
++        return 0.9 if len(observed) == 1 else 0.1
++
++    monkeypatch.setattr(adapter, '_validation_ndcg', validation)
++    result = train_bpr(path, tmp_path / 'model')
++    assert result['epochs_requested'] == 8
++    assert result['epochs_completed'] < 8
++    assert result['best_epoch'] == 1
++    assert result['best_validation_ndcg_at_10'] == 0.9
++    # Exact validation membership is supplied; held-out test is never evaluated.
++    assert all(len(data) == 3 for data in observed)
++    loaded = torch.load(tmp_path / 'model/bpr.pth', weights_only=True)
++    for key, value in best_state.items():
++        torch.testing.assert_close(loaded[key], value, rtol=0, atol=0)
++
++
++@pytest.mark.integration
++def test_project_validation_ndcg_matches_shared_ranking(split_dir, tmp_path):
++    from recbole.config import Config
++    from recbole.data import create_dataset
++    from recbole.model.general_recommender.bpr import BPR
++    from recsysedu.adapters.recbole import _validation_ndcg
++    from recsysedu.evaluation.metrics import metrics_at_k
++    from recsysedu.evaluation.ranking import rank_candidates
++
++    atomic = tmp_path / 'atomic'
++    exported = export_atomic_files(split_dir, atomic)
++    config = Config(model='BPR', dataset='recsysedu', config_dict={
++        'data_path': str(atomic), 'benchmark_filename': ['train', 'valid', 'test'],
++        'use_gpu': False, 'embedding_size': 8})
++    dataset = create_dataset(config)
++    train, valid, _ = dataset.build()
++    users = {str(token): int(index) for token, index in dataset.field2token_id['user_id'].items()
++             if index}
++    items = {item: int(dataset.token2id('item_id', item)) for item in exported['candidate_ids']}
++    model = BPR(config, train)
++    actual = _validation_ndcg(model, train, valid, exported['candidate_ids'], users, items)
++    scorer = BPRScorer(model.user_embedding.weight.detach().numpy(),
++                       model.item_embedding.weight.detach().numpy(), users, items)
++    histories = {}
++    for row in pq.read_table(split_dir / 'train.parquet').to_pylist():
++        histories.setdefault(row['user_id'], []).append(row['course_id'])
++    scores = []
++    for row in pq.read_table(split_dir / 'valid_cohort.parquet').to_pylist():
++        ranked = rank_candidates(scorer.score(row['user_id'], exported['candidate_ids']),
++                                 histories[row['user_id']], k=10)
++        scores.append(metrics_at_k([r.course_id for r in ranked], [row['course_id']],
++                                   len(items), k=10)['NDCG@10'])
++    assert actual == pytest.approx(np.mean(scores))

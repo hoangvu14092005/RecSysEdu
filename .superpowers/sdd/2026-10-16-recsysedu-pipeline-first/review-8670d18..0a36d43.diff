@@ -1,0 +1,74 @@
+# Review package: 8670d1802a940d167e7ae7fe7430907b684c7287..0a36d4332bbea09463391b8d518e7bd4e24d8b0a
+
+## Commits
+0a36d43 chore: update baseline ignore and status
+
+## Files changed
+ .gitignore         | 1 +
+ README.md          | 2 +-
+ docs/09_runbook.md | 2 +-
+ 3 files changed, 3 insertions(+), 2 deletions(-)
+
+## Diff
+diff --git a/.gitignore b/.gitignore
+index dc1f439..3a9d72c 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -11,12 +11,13 @@ __pycache__/
+ .archify/
+ build/
+ dist/
+ .env
+ .env.*
+ !.env.example
+ /data/
+ /artifacts/
+ *.pth
+ *.pt
++*.ckpt
+ *.part
+ /results/local/
+diff --git a/README.md b/README.md
+index f49272f..6e5a7a0 100644
+--- a/README.md
++++ b/README.md
+@@ -58,11 +58,11 @@ Mẫu base giúp kiểm contract `demo_bundle.json` ở tài liệu 04; tích h
+ | 4 | Phân tích lỗi/kết quả lõi; khảo sát graph/lộ trình có điều kiện |
+ | 5 | Ghép UI thật, khóa config D25 |
+ | 6 | Test từ D26, báo cáo, chạy lại và bàn giao |
+ 
+ Việc theo ngày ở [lịch 30 ngày](tasks/six_week_schedule.md); tiêu chí kỹ thuật từng task ở [plan](tasks/plan.md); trạng thái thật ở [todo](tasks/todo.md); phiên code đầu ở [kickoff](tasks/kickoff.md).
+ 
+ ## Cùng làm qua GitHub
+ 
+ Một repo, nhánh theo task và PR nhỏ. Git lưu source/config/lock/docs/fixture nhỏ; raw/processed/checkpoint lớn lưu ngoài Git kèm manifest và cách lấy. Nhận một task có đầu ra/điều kiện xong theo [CONTRIBUTING](CONTRIBUTING.md).
+ 
+-Root đã init Git và có package/CLI/app; chưa có commit hoặc remote GitHub. Raw, `.venv` và báo cáo local được `.gitignore` loại khỏi Git. Các lệnh prepare/split/train/evaluate trong kế hoạch vẫn là phần sẽ xây. [Bằng chứng base](results/base_verification.md) ghi rõ phần đã thử và phần còn thiếu.
++Root đã init Git và có commit baseline chứa package/CLI/app; hiện chưa có remote GitHub. Raw, `.venv` và báo cáo local được `.gitignore` loại khỏi Git. Các lệnh prepare/split/train/evaluate trong kế hoạch vẫn là phần sẽ xây. [Bằng chứng base](results/base_verification.md) ghi rõ phần đã thử và phần còn thiếu.
+diff --git a/docs/09_runbook.md b/docs/09_runbook.md
+index b011ec7..ca2bace 100644
+--- a/docs/09_runbook.md
++++ b/docs/09_runbook.md
+@@ -69,21 +69,21 @@ ID số trong lịch sử chỉ nối sang mã `C_<số>` tồn tại trong cata
+ ```powershell
+ .\.venv\Scripts\python.exe -m pytest -q
+ .\.venv\Scripts\python.exe -m ruff check src app tests
+ .\.venv\Scripts\python.exe -m pip check
+ ```
+ 
+ Kết quả tại lần bàn giao này: 28 tests pass, lint pass, dependency check pass. [Báo cáo kiểm chứng](../results/base_verification.md) phân biệt test tự động, audit thật và UI đã thao tác trên trình duyệt. Chưa thử BPR hoặc chứng minh hiệu quả gợi ý.
+ 
+ ## 6. Ghép việc qua GitHub
+ 
+-Hiện đã init Git local, chưa có commit/remote. Lưu source, lock, configs, docs, fixture và báo cáo tổng hợp. `/data/`, `/artifacts/`, `.venv/`, cache và `results/local/` được ignore; `src/recsysedu/data/` vẫn phải có trong Git.
++Hiện đã init Git local và có commit baseline; chưa có remote GitHub. Lưu source, lock, configs, docs, fixture và báo cáo tổng hợp. `/data/`, `/artifacts/`, `.venv/`, cache và `results/local/` được ignore; `src/recsysedu/data/` vẫn phải có trong Git.
+ 
+ ```powershell
+ git status --short --untracked-files=all
+ git check-ignore data/raw/user.json .venv/Scripts/python.exe
+ ```
+ 
+ Người nhận UI chạy fixture; người nhận dữ liệu dùng downloader để lấy đúng bản rồi đối chiếu hash. Không gửi raw vào commit. Chưa tạo repository GitHub, push hay phát hành dữ liệu trong đợt này. Quy ước nhận task/PR ở [CONTRIBUTING](../CONTRIBUTING.md).
+ 
+ ## 7. Việc tiếp theo
+ 

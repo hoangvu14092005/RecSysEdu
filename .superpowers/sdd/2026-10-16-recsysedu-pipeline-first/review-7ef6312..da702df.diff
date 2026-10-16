@@ -1,0 +1,76 @@
+# Review package: 7ef6312ce79bcf1e8d77bd8af46a30b9287cd922..da702dff2f5f6ad94f3e7a90dc53862dc1bd3a40
+
+## Commits
+da702df fix: enforce evaluation protocol K
+
+## Files changed
+ src/recsysedu/evaluation/run.py |  2 ++
+ tests/test_evaluation.py        | 13 +++++++++++++
+ 2 files changed, 15 insertions(+)
+
+## Diff
+diff --git a/src/recsysedu/evaluation/run.py b/src/recsysedu/evaluation/run.py
+index 0c9099e..392d44c 100644
+--- a/src/recsysedu/evaluation/run.py
++++ b/src/recsysedu/evaluation/run.py
+@@ -119,20 +119,22 @@ def evaluate_run(model: Recommender, split_dir, output_dir, identity: RunIdentit
+     """Evaluate a frozen train-only model on the declared warm valid/test cohort.
+ 
+     The model receives the complete train universe in source-ID order. Only the
+     evaluator masks seen courses. A new output directory is published by a single
+     rename after every artifact is complete; an existing run is never overwritten.
+     """
+     import pyarrow as pa
+     import pyarrow.parquet as pq
+ 
+     _validate_k(k)
++    if k != 10:
++        raise ValueError('evaluate_run requires k=10 for leave_last_two_out_v1')
+     if evaluation_split not in ('valid', 'test'):
+         raise ValueError('evaluation_split must be valid or test')
+     if not isinstance(identity, RunIdentity):
+         raise ValueError('identity must be RunIdentity')
+     split_dir, output_dir = Path(split_dir), Path(output_dir)
+     if output_dir.exists():
+         raise ValueError(f'output already exists: {output_dir}')
+     started = perf_counter()
+     split_manifest = _validate_split(split_dir, identity)
+     manifest_hash = _sha256(split_dir / 'split_manifest.json')
+diff --git a/tests/test_evaluation.py b/tests/test_evaluation.py
+index c4b14d3..c9c46be 100644
+--- a/tests/test_evaluation.py
++++ b/tests/test_evaluation.py
+@@ -192,20 +192,33 @@ def test_failed_run_never_publishes_partial_output(tmp_path, split_case):
+ def test_evaluator_refuses_overwrite(tmp_path, split_case):
+     split, identity, _ = split_case
+     output = tmp_path / 'existing'
+     output.mkdir()
+     (output / 'keep.txt').write_text('keep', encoding='utf-8')
+     with pytest.raises(ValueError, match='exist'):
+         evaluate_run(StaticScorer(), split, output, identity, evaluation_split='valid')
+     assert (output / 'keep.txt').read_text(encoding='utf-8') == 'keep'
+ 
+ 
++def test_evaluator_rejects_non_protocol_k_before_creating_output(tmp_path, split_case):
++    split, identity, _ = split_case
++    output = tmp_path / 'bad-k-run'
++    with pytest.raises(ValueError, match='k=10'):
++        evaluate_run(StaticScorer(), split, output, identity,
++                     evaluation_split='valid', k=1)
++    assert not output.exists()
++    assert not list(tmp_path.glob('.evaluation-*'))
++    accepted = evaluate_run(StaticScorer(), split, tmp_path / 'k10-run', identity,
++                            evaluation_split='valid', k=10)
++    assert accepted['k'] == 10
++
++
+ @pytest.mark.parametrize('evaluation_split,k', [('train', 10), ('valid', 0), ('valid', True)])
+ def test_evaluator_rejects_invalid_evaluation_parameters(
+         tmp_path, split_case, evaluation_split, k):
+     split, identity, _ = split_case
+     with pytest.raises(ValueError):
+         evaluate_run(StaticScorer(), split, tmp_path / 'bad-run', identity,
+                      evaluation_split=evaluation_split, k=k)
+ 
+ 
+ def test_evaluator_preserves_ranked_item_evidence_after_masking_and_sorting(tmp_path, split_case):

@@ -1,0 +1,932 @@
+# Review package: a36ea25d220c244bfb82b24af12c413939fd6bb1..e7663cdcc45cdb02344d5fc54ae37de608b504fb
+
+## Commits
+e7663cd feat: export real recommendation snapshots
+
+## Files changed
+ app/streamlit_app.py                |   6 +-
+ src/recsysedu/cli.py                |  15 ++
+ src/recsysedu/demo/artifacts.py     |  27 ++++
+ src/recsysedu/demo/export.py        | 286 ++++++++++++++++++++++++++++++++++++
+ src/recsysedu/experiments/runner.py |  14 ++
+ tests/conftest.py                   |  39 +++++
+ tests/test_app.py                   |  29 ++++
+ tests/test_cli.py                   |  12 ++
+ tests/test_demo_artifacts.py        |  16 ++
+ tests/test_demo_export.py           | 176 ++++++++++++++++++++++
+ 10 files changed, 619 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/app/streamlit_app.py b/app/streamlit_app.py
+index 9d9bca1..ad4dcdc 100644
+--- a/app/streamlit_app.py
++++ b/app/streamlit_app.py
+@@ -16,21 +16,24 @@ try:
+ except (OSError, ValueError) as exc:
+     st.error(f'Không mở được dữ liệu giao diện: {exc}')
+     st.stop()
+ 
+ meta = bundle['meta']
+ st.title('LearnPath')
+ st.caption('Gợi ý khóa học và xem kết quả mô hình')
+ if meta['data_mode'] == 'synthetic':
+     st.warning('DỮ LIỆU MẪU — ranking và lý do minh họa để dựng UI; chưa huấn luyện mô hình thật.')
+ else:
+-    st.info('KẾT QUẢ THẬT — đọc từ snapshot được cung cấp, không huấn luyện khi bấm giao diện.')
++    st.info('KẾT QUẢ TỪ PIPELINE — mức kiểm chứng: chạy offline trên dataset ghi bên dưới. '
++            'Snapshot này chưa xác nhận pilot hoàn chỉnh hay lợi ích học tập.')
++st.caption(f"Dataset: {meta['dataset_version']} | Snapshot: {meta['snapshot_id']} | "
++           f"History: {meta['history_mode']} | Protocol: {meta['protocol_id']}")
+ 
+ users = {user['user_id']: user for user in bundle['users']}
+ courses = {course['course_id']: course for course in bundle['courses']}
+ if not users:
+     st.info('Chưa có hồ sơ để xem.')
+     st.stop()
+ user_id = st.sidebar.selectbox('Hồ sơ', list(users), key='user',
+                                format_func=lambda value: users[value]['display_name'])
+ options = [rec for rec in bundle['recommendations'] if rec['user_id'] == user_id]
+ model_ids = list(dict.fromkeys(rec['model_id'] for rec in options))
+@@ -42,20 +45,21 @@ if st.session_state.get('model') not in model_ids:
+ model_id = st.sidebar.selectbox('Mô hình', model_ids, key='model',
+                                 format_func=lambda value: MODEL_LABELS[value])
+ user = users[user_id]
+ st.sidebar.subheader('Lịch sử đăng ký')
+ for course_id in user['observed_course_ids']:
+     st.sidebar.text(courses[course_id]['name'] or course_id)
+ if not user['observed_course_ids']:
+     st.sidebar.info('Người mới: chưa có lịch sử đăng ký.')
+ 
+ rec = next(rec for rec in options if rec['model_id'] == model_id)
++st.caption(f"Run ID: {rec['run_id']} | Mô hình: {MODEL_LABELS[model_id]}")
+ portal, lab = st.tabs(['Gợi ý học tập', 'Model Lab'])
+ with portal:
+     st.subheader('Dành cho bạn')
+     if rec['fallback_status'] != 'none':
+         st.info('Hồ sơ chưa đủ dữ liệu cho mô hình này; đang dùng gợi ý dự phòng.')
+     if len(rec['items']) < 10:
+         st.caption(f"Có {len(rec['items'])} khóa trong snapshot này; không thêm khóa để đủ 10.")
+     for item in rec['items']:
+         course = courses[item['course_id']]
+         with st.container(border=True):
+diff --git a/src/recsysedu/cli.py b/src/recsysedu/cli.py
+index 307fb48..ae91197 100644
+--- a/src/recsysedu/cli.py
++++ b/src/recsysedu/cli.py
+@@ -28,36 +28,51 @@ def main(argv=None) -> int:
+         action = actions.add_parser(name)
+         action.add_argument('--config', default=(
+             f'configs/{name}.yaml' if name in ('prepare', 'split') else 'configs/data.yaml'))
+         if name == 'audit':
+             action.add_argument('--max-users', type=int, default=0, help='0: toàn bộ user')
+             action.add_argument('--output', help='File báo cáo JSON tổng hợp')
+     demo = commands.add_parser('demo', help='Kiểm định dạng snapshot cho UI')
+     demo_actions = demo.add_subparsers(dest='action', required=True)
+     validate = demo_actions.add_parser('validate')
+     validate.add_argument('--bundle', default='tests/fixtures/demo_bundle.json')
++    export = demo_actions.add_parser('export', help='Xuất snapshot từ run offline đã hoàn tất')
++    export.add_argument('--run-dir', action='append', required=True,
++                        help='Thư mục run; lặp lại cho từng model đã chọn')
++    export.add_argument('--user-id', action='append', required=True,
++                        help='ID hồ sơ trong cohort; lặp lại để chọn nhiều hồ sơ')
++    export.add_argument('--output', required=True, help='File snapshot nằm ngoài batch kết quả')
+     train = commands.add_parser('train', help='Huấn luyện BPR trên split đã phát hành')
+     train.add_argument('--model', choices=('bpr',), required=True)
+     train.add_argument('--config', default='configs/bpr.yaml')
+     train.add_argument('--output', help='Thư mục model mới; không ghi đè')
+     for name in ('evaluate', 'experiments'):
+         command = commands.add_parser(name, help=(
+             'Đánh giá một model' if name == 'evaluate' else 'Chạy bốn model cùng protocol'))
+         if name == 'evaluate':
+             command.add_argument('--model', choices=('popularity', 'content', 'bpr', 'hybrid'),
+                                  required=True)
+         command.add_argument('--split', choices=('valid', 'test'), required=True)
+         command.add_argument('--config', default='configs/final_experiments.yaml')
+         command.add_argument('--output', help='Root kết quả; mỗi lần chạy tạo batch mới')
+     args = parser.parse_args(argv)
+     try:
+         if args.command == 'demo':
++            if args.action == 'export':
++                from recsysedu.demo.export import export_demo_bundle
++
++                bundle = export_demo_bundle([Path(path) for path in args.run_dir],
++                                            args.user_id, Path(args.output))
++                print(f"Đã xuất snapshot offline: {len(bundle['users'])} hồ sơ, "
++                      f"{len(bundle['runs'])} model; dataset: {bundle['meta']['dataset_version']}; "
++                      f"file: {Path(args.output).resolve()}")
++                return 0
+             bundle = load_bundle(Path(args.bundle))
+             print(f"Snapshot hợp lệ: {bundle['meta']['data_mode']}, "
+                   f"{len(bundle['users'])} hồ sơ; không phải kết quả train thật nếu synthetic.")
+             return 0
+         config = _config(args.config)
+         if args.command == 'train':
+             from recsysedu.experiments.runner import train_from_config
+ 
+             report = train_from_config(Path(args.config),
+                                        output_dir=Path(args.output) if args.output else None)
+diff --git a/src/recsysedu/demo/artifacts.py b/src/recsysedu/demo/artifacts.py
+index c2a95a2..450f80f 100644
+--- a/src/recsysedu/demo/artifacts.py
++++ b/src/recsysedu/demo/artifacts.py
+@@ -42,40 +42,46 @@ def _number(value):
+ 
+ def validate_bundle(bundle: dict) -> dict:
+     """Schema v1: references, seen mask, ranks, scores and run identity must agree."""
+     _require(isinstance(bundle, dict), 'Bundle phải là object')
+     meta = bundle.get('meta', {})
+     _require(isinstance(meta, dict), 'meta phải là object')
+     _require(type(meta.get('schema_version')) is int and meta['schema_version'] == 1,
+              'schema_version chưa hỗ trợ')
+     _require(meta.get('data_mode') in ('synthetic', 'real'), 'data_mode không hợp lệ')
+     _require(meta.get('history_mode') in ('offline', 'demo'), 'history_mode không hợp lệ')
++    real = meta['data_mode'] == 'real'
++    if real:
++        _require(meta.get('evidence_level') == 'offline_run' and meta['history_mode'] == 'offline',
++                 'Snapshot thật P0 cần mức kiểm chứng offline_run và history offline')
+     for key in ('snapshot_id', 'dataset_version', 'dataset_hash', 'split_hash',
+                 'protocol_id', 'generated_at'):
+         _require(isinstance(meta.get(key), str) and bool(meta[key]), f'meta thiếu {key}')
+     courses = _index(bundle.get('courses'), 'course_id')
+     users = _index(bundle.get('users'), 'user_id')
+     runs = _index(bundle.get('runs'), 'run_id')
+     for course in courses.values():
+         _require(isinstance(course.get('name'), str), 'Tên khóa phải là string')
+         _require(isinstance(course.get('fields'), list)
+                  and all(isinstance(x, str) for x in course['fields']), 'fields không hợp lệ')
+     for user in users.values():
+         _require(isinstance(user.get('display_name'), str), 'Hồ sơ thiếu bí danh')
+         for field in ('observed_course_ids', 'profile_course_ids'):
+             values = user.get(field)
+             _require(isinstance(values, list)
+                      and all(isinstance(x, str) and x in courses for x in values),
+                      f'{field} có ID không tồn tại')
+             _require(len(values) == len(set(values)), f'{field} có ID trùng')
+         _require(set(user['profile_course_ids']) <= set(user['observed_course_ids']),
+                  'Profile chứa khóa chưa quan sát')
++    common_real = None
++    real_models = set()
+     for run in runs.values():
+         _require(isinstance(run.get('model_id'), str) and run['model_id'] in MODEL_LABELS,
+                  'model_id chưa hỗ trợ')
+         for key in ('dataset_hash', 'split_hash', 'protocol_id'):
+             _require(run.get(key) == meta[key], f'Run không khớp {key}')
+         _require(run.get('evaluation_split') in ('valid', 'test', 'demo'), 'Split không hợp lệ')
+         for key in ('cohort', 'candidate_policy', 'seen_policy', 'config_hash'):
+             _require(isinstance(run.get(key), str) and bool(run[key]), f'Run thiếu {key}')
+         _require(type(run.get('cohort_size')) is int and run['cohort_size'] >= 0,
+                  'cohort_size không hợp lệ')
+@@ -83,20 +89,37 @@ def validate_bundle(bundle: dict) -> dict:
+                  'seed không hợp lệ hoặc thiếu; dùng null khi không có seed')
+         status, metrics = run.get('metric_status'), run.get('metrics')
+         _require(status in ('measured', 'not_available'), 'metric_status không hợp lệ')
+         if status == 'not_available':
+             _require(metrics is None, 'Metric chưa chạy phải là null')
+         else:
+             _require(isinstance(metrics, dict) and bool(metrics)
+                      and all(_number(value) for value in metrics.values()), 'Metric không hữu hạn')
+         if meta['history_mode'] == 'demo' or run['evaluation_split'] == 'demo':
+             _require(status == 'not_available', 'Demo live không có metric offline')
++        if real:
++            _require(run.get('evidence_level') == 'offline_run'
++                     and run.get('history_mode') == 'offline'
++                     and run.get('profile_policy') == 'train_only',
++                     'Run thật thiếu mức kiểm chứng hoặc sai history/profile policy')
++            split = run['evaluation_split']
++            _require(split in ('valid', 'test')
++                     and run['candidate_policy'] == 'full_train_universe'
++                     and run['seen_policy'] == ('train' if split == 'valid' else 'train_plus_valid'),
++                     'Run thật sai evaluation policy')
++            current = tuple(run.get(key) for key in (
++                'evaluation_split', 'cohort', 'cohort_size', 'candidate_policy', 'seen_policy',
++                'config_hash'))
++            _require(common_real is None or current == common_real, 'Các run thật không tương thích')
++            common_real = current
++            _require(run['model_id'] not in real_models, 'Một model có nhiều run không rõ lựa chọn')
++            real_models.add(run['model_id'])
+     recommendations = bundle.get('recommendations')
+     _require(isinstance(recommendations, list), 'recommendations phải là array')
+     keys = set()
+     for rec in recommendations:
+         _require(isinstance(rec, dict), 'Recommendation phải là object')
+         user_id, run_id = rec.get('user_id'), rec.get('run_id')
+         _require(isinstance(user_id, str) and user_id in users, 'User recommendation không tồn tại')
+         _require(isinstance(run_id, str) and run_id in runs, 'Run recommendation không tồn tại')
+         model_id = rec.get('model_id')
+         _require(model_id == runs[run_id]['model_id'], 'Recommendation khác model của run')
+@@ -114,20 +137,24 @@ def validate_bundle(bundle: dict) -> dict:
+             _require(isinstance(course_id, str) and course_id in courses, 'Course không tồn tại')
+             _require(course_id not in seen and course_id not in returned, 'Course đã xem hoặc trùng')
+             returned.add(course_id)
+             _require(type(item.get('rank')) is int and item['rank'] == rank, 'Rank không liên tục')
+             _require(_number(item.get('score')), 'Score không hữu hạn')
+             _require(isinstance(item.get('prerequisite_status'), str)
+                      and item['prerequisite_status'] in PREREQUISITE_LABELS, 'Trạng thái tiền đề lạ')
+             for field in ('reason_codes', 'evidence'):
+                 _require(isinstance(item.get(field), list)
+                          and all(isinstance(x, str) for x in item[field]), f'{field} phải là array')
++    if real:
++        _require(bool(users) and bool(runs), 'Snapshot thật cần hồ sơ và run')
++        _require(keys == {(user, model) for user in users for model in real_models},
++                 'Snapshot thật thiếu ranking của user/model')
+     _require(isinstance(bundle.get('paths', []), list), 'paths phải là array')
+     _require(not bundle.get('paths'), 'Base chưa hỗ trợ paths; để [] cho đến P1')
+     return bundle
+ 
+ 
+ def load_bundle(path: Path) -> dict:
+     def reject_constant(value):
+         raise ValueError(f'JSON không cho phép {value}')
+     bundle = json.loads(Path(path).read_text(encoding='utf-8-sig'), parse_constant=reject_constant)
+     return validate_bundle(bundle)
+diff --git a/src/recsysedu/demo/export.py b/src/recsysedu/demo/export.py
+new file mode 100644
+index 0000000..39709f4
+--- /dev/null
++++ b/src/recsysedu/demo/export.py
+@@ -0,0 +1,286 @@
++"""Export a portable schema-v1 view of completed, compatible offline runs.
++
++``run_dirs`` are selected run directories inside runner-produced experiment
++batches (including the selected Hybrid alpha trial). The entire batch and
++source copies are verified before export; no model is trained or scored here.
++"""
++
++from __future__ import annotations
++
++import hashlib
++import json
++import os
++import tempfile
++from collections import defaultdict
++from collections.abc import Sequence
++from datetime import datetime, timezone
++from pathlib import Path
++from uuid import uuid4
++
++import pandas as pd
++
++from recsysedu.data.split import PROTOCOL_ID
++from recsysedu.demo.artifacts import validate_bundle
++
++
++def _read(path: Path) -> dict:
++    try:
++        value = json.loads(path.read_text(encoding='utf-8'), parse_constant=_reject_constant)
++    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
++        raise ValueError(f'cannot read artifact: {path}') from exc
++    if not isinstance(value, dict):
++        raise ValueError(f'artifact must be an object: {path}')
++    return value
++
++
++def _reject_constant(value):
++    raise ValueError(f'non-finite JSON value: {value}')
++
++
++def _sha(path: Path) -> str:
++    try:
++        digest = hashlib.sha256()
++        with path.open('rb') as stream:
++            for block in iter(lambda: stream.read(1024 * 1024), b''):
++                digest.update(block)
++        return digest.hexdigest()
++    except OSError as exc:
++        raise ValueError(f'missing artifact: {path}') from exc
++
++
++def _local(root: Path, value) -> Path:
++    if not isinstance(value, str) or not value:
++        raise ValueError('artifact path must be a non-empty relative path')
++    path = (root / value).resolve()
++    if Path(value).is_absolute() or path == root or not path.is_relative_to(root):
++        raise ValueError('artifact path must stay inside the experiment batch')
++    return path
++
++
++def _verify(root: Path, hashes) -> None:
++    if not isinstance(hashes, dict) or not hashes:
++        raise ValueError('missing artifact output_hashes')
++    for name, expected in hashes.items():
++        if not isinstance(expected, str) or _sha(_local(root, name)) != expected:
++            raise ValueError(f'artifact hash mismatch: {name}')
++
++
++def _batch(run_dir: Path):
++    for parent in run_dir.parents:
++        if (parent / 'experiment_manifest.json').is_file():
++            path = parent / 'experiment_manifest.json'
++            manifest_hash = _sha(path)
++            manifest = _read(path)
++            if type(manifest.get('schema_version')) is not int or manifest['schema_version'] != 1:
++                raise ValueError('unsupported experiment schema')
++            _verify(parent, manifest.get('output_hashes'))
++            inventory = {path.relative_to(parent).as_posix() for path in parent.rglob('*')
++                         if path.is_file() and path != parent / 'experiment_manifest.json'}
++            if inventory != set(manifest['output_hashes']):
++                raise ValueError('experiment manifest has incomplete artifact inventory')
++            components = manifest.get('component_hashes')
++            if not isinstance(components, dict) or set(components) - {'content', 'bpr'}:
++                raise ValueError('unsupported component manifest entries')
++            for name, expected in components.items():
++                filename = 'feature_manifest.json' if name == 'content' else 'bpr_manifest.json'
++                path = parent / 'artifacts' / name / filename
++                if _sha(path) != expected:
++                    raise ValueError(f'component manifest hash mismatch: {name}')
++                component = _read(path)
++                if name == 'content':
++                    hashes = component.get('output_hashes')
++                else:
++                    if not all(key in component for key in (
++                            'checkpoint', 'checkpoint_sha256', 'id_maps', 'id_maps_sha256')):
++                        raise ValueError('incomplete BPR component manifest')
++                    hashes = {component[key]: component[f'{key}_sha256']
++                              for key in ('checkpoint', 'id_maps')}
++                _verify(path.parent, hashes)
++            return parent, manifest, manifest_hash
++    raise ValueError('run has no completed experiment manifest')
++
++
++def _sources(root: Path, batch: dict, run: dict):
++    inputs = batch.get('snapshot_inputs')
++    if not isinstance(inputs, dict) or set(inputs) != {
++            'dataset_manifest', 'split_manifest', 'courses', 'train', 'valid'}:
++        raise ValueError('experiment lacks portable snapshot inputs; rerun the experiment')
++    paths = {name: _local(root, value) for name, value in inputs.items()}
++    if not all(path.relative_to(root).as_posix() in batch['output_hashes']
++               for path in paths.values()):
++        raise ValueError('snapshot inputs must be bound by batch output_hashes')
++    dataset, split = _read(paths['dataset_manifest']), _read(paths['split_manifest'])
++    if _sha(paths['dataset_manifest']) != run['dataset_hash']:
++        raise ValueError('snapshot dataset_hash mismatch')
++    if _sha(paths['split_manifest']) != run.get('split_manifest_hash'):
++        raise ValueError('snapshot split manifest hash mismatch')
++    content = {key: value for key, value in split.items() if key != 'split_hash'}
++    digest = hashlib.sha256(json.dumps(content, ensure_ascii=False, sort_keys=True,
++                                      separators=(',', ':')).encode()).hexdigest()
++    if digest != run['split_hash'] or split.get('split_hash') != digest:
++        raise ValueError('snapshot split_hash mismatch')
++    if any(split.get(key) != run[key] for key in ('dataset_hash', 'protocol_id')):
++        raise ValueError('snapshot split identity mismatch')
++    for name in ('courses', 'train', 'valid'):
++        source = dataset if name == 'courses' else split
++        if _sha(paths[name]) != source.get('output_hashes', {}).get(paths[name].name):
++            raise ValueError(f'snapshot source hash mismatch: {name}')
++    version = dataset.get('dataset_version')
++    if not isinstance(version, str) or not version:
++        raise ValueError('snapshot missing dataset_version')
++    return paths, version
++
++
++def _item(item: dict, model: str, fallback: str) -> dict:
++    """Describe only the executed scoring mechanism, preserving numeric evidence."""
++    mechanisms = {
++        'popularity': 'Xếp theo số lượt đăng ký khóa học trong tập train.',
++        'content': 'So độ tương đồng nội dung tên/mô tả với hồ sơ từ các khóa trong train.',
++        'bpr': 'Điểm xếp hạng BPR học từ các cặp người học–khóa học trong train.',
++        'hybrid': 'Kết hợp điểm BPR và nội dung đã chuẩn hóa theo cấu hình của run.',
++    }
++    evidence = item.get('evidence')
++    if not isinstance(evidence, list) or any(not isinstance(x, str) for x in evidence):
++        raise ValueError('item evidence must be a string array')
++    codes = [model + '_mechanism']
++    if fallback != 'none':
++        codes.append('fallback')
++        text = f'Cơ chế dự phòng được ghi trong run: {fallback}.'
++    else:
++        text = mechanisms[model]
++    return dict(item, prerequisite_status='unknown', reason_codes=codes,
++                evidence=evidence + [text])
++
++
++def export_demo_bundle(run_dirs: Sequence[Path], user_ids: Sequence[str],
++                       output_path: Path) -> dict:
++    """Validate completed runs, then atomically write an offline demo snapshot.
++
++    ``real`` means rankings come from executed models. The displayed dataset
++    version and ``offline_run`` evidence label do not certify pilot readiness,
++    learning benefit or that a custom input dataset came from MOOCCubeX.
++    """
++    if (not run_dirs or not user_ids or isinstance(user_ids, (str, bytes))
++            or any(not isinstance(user, str) or not user for user in user_ids)
++            or len(set(user_ids)) != len(user_ids)):
++        raise ValueError('provide runs and unique non-empty user IDs')
++    runs, recommendations, batches, models = [], [], {}, set()
++    common, source_paths, dataset_version = None, None, None
++    identity_fields = ('dataset_hash', 'split_hash', 'protocol_id', 'history_mode',
++                       'evaluation_split', 'candidate_policy', 'seen_policy', 'profile_policy',
++                       'config_hash', 'cohort_size', 'split_manifest_hash')
++    for directory in run_dirs:
++        directory = Path(directory).resolve()
++        root, batch, batch_hash = _batch(directory)
++        if root in batches and batches[root][1] != batch_hash:
++            raise ValueError('experiment manifest changed between snapshot runs')
++        batches[root] = batch, batch_hash
++        run = _read(directory / 'run_manifest.json')
++        model = run.get('model_id')
++        if not isinstance(model, str) or model not in ('popularity', 'content', 'bpr', 'hybrid'):
++            raise ValueError('unsupported P0 model')
++        if model in models:
++            raise ValueError('only one run per model may enter a snapshot')
++        models.add(model)
++        selected = batch.get('runs')
++        if not isinstance(selected, dict) or _local(root, selected.get(model)) != directory:
++            raise ValueError('run is not a selected completed experiment run')
++        relative = (directory / 'run_manifest.json').relative_to(root).as_posix()
++        if relative not in batch['output_hashes']:
++            raise ValueError('run manifest is not bound by experiment output_hashes')
++        for key in ('dataset_hash', 'split_hash', 'protocol_id', 'evaluation_split', 'config_hash'):
++            if run.get(key) != batch.get(key):
++                raise ValueError(f'run/experiment {key} mismatch')
++        if run.get('experiment_id') != batch.get('run_id'):
++            raise ValueError('run belongs to another experiment')
++        if (run.get('history_mode') != 'offline' or run.get('protocol_id') != PROTOCOL_ID
++                or run.get('evaluation_split') not in ('valid', 'test')
++                or run.get('candidate_policy') != 'full_train_universe'
++                or run.get('profile_policy') != 'train_only' or run.get('k') != 10
++                or run.get('seen_policy') != ('train' if run['evaluation_split'] == 'valid'
++                                            else 'train_plus_valid')):
++            raise ValueError('unsupported snapshot evaluation/history policy')
++        current = tuple(run.get(key) for key in identity_fields)
++        if common is not None and current != common:
++            raise ValueError('mixed dataset/split/protocol/history/config/cohort runs')
++        common = current
++        _verify(directory, run.get('output_hashes'))
++        if not {'recommendations.jsonl', 'per_user_metrics.parquet', 'metrics.csv'} <= set(
++                run['output_hashes']):
++            raise ValueError('incomplete evaluator run')
++        paths, version = _sources(root, batch, run)
++        if source_paths is None:
++            source_paths, dataset_version = paths, version
++        runs.append({key: run.get(key) for key in (
++            'run_id', 'model_id', 'dataset_hash', 'split_hash', 'protocol_id', 'evaluation_split',
++            'cohort_size', 'candidate_policy', 'seen_policy', 'config_hash', 'seed',
++            'metric_status', 'metrics', 'git_revision', 'git_dirty', 'limitations',
++            'history_mode', 'profile_policy')}
++            | {'cohort': 'warm', 'evidence_level': 'offline_run'})
++        seen_users, selected_users = set(), set()
++        try:
++            with (directory / 'recommendations.jsonl').open(encoding='utf-8') as stream:
++                for line in stream:
++                    row = json.loads(line, parse_constant=_reject_constant)
++                    user = row.get('user_id')
++                    if not isinstance(user, str) or user in seen_users:
++                        raise ValueError('duplicate or invalid recommendation user')
++                    seen_users.add(user)
++                    if user not in user_ids:
++                        continue
++                    selected_users.add(user)
++                    items = row.get('items')
++                    if not isinstance(items, list):
++                        raise ValueError('recommendation items must be an array')
++                    recommendations.append(dict(
++                        user_id=user, model_id=model, run_id=run['run_id'],
++                        fallback_status=row.get('fallback_status'),
++                        items=[_item(item, model, row.get('fallback_status')) for item in items]))
++        except (OSError, UnicodeError, json.JSONDecodeError, TypeError, AttributeError) as exc:
++            raise ValueError('invalid recommendations artifact') from exc
++        if len(seen_users) != run.get('cohort_size') or selected_users != set(user_ids):
++            raise ValueError('recommendations incomplete or selected user absent from run cohort')
++
++    train = pd.read_parquet(source_paths['train'], columns=['user_id', 'course_id'])
++    valid = pd.read_parquet(source_paths['valid'], columns=['user_id', 'course_id'])
++    histories, seen = defaultdict(set), defaultdict(set)
++    for user, course in train.itertuples(index=False, name=None):
++        if user in user_ids:
++            histories[user].add(course)
++            seen[user].add(course)
++    if runs[0]['evaluation_split'] == 'test':
++        for user, course in valid.itertuples(index=False, name=None):
++            if user in user_ids:
++                seen[user].add(course)
++    users = [dict(user_id=user, display_name=f'Hồ sơ {number}',
++                  observed_course_ids=sorted(seen[user]), profile_course_ids=sorted(histories[user]))
++             for number, user in enumerate(user_ids, 1)]
++    needed = set().union(*seen.values(), *histories.values())
++    needed.update(item.get('course_id') for rec in recommendations for item in rec['items'])
++    courses = pd.read_parquet(source_paths['courses']).to_dict(orient='records')
++    catalog = [dict(course_id=row['course_id'], name=row['name'], fields=list(row['fields']))
++               for row in courses if row['course_id'] in needed]
++    first = runs[0]
++    bundle = dict(
++        meta=dict(schema_version=1, snapshot_id=f'snapshot-{uuid4().hex}',
++                  data_mode='real', history_mode='offline', evidence_level='offline_run',
++                  dataset_version=dataset_version,
++                  generated_at=datetime.now(timezone.utc).isoformat(),
++                  **{key: first[key] for key in ('dataset_hash', 'split_hash', 'protocol_id')}),
++        users=users, courses=catalog, runs=runs, recommendations=recommendations, paths=[])
++    validate_bundle(bundle)
++    # Recheck after reading, so an input changed mid-export is never published.
++    for root, (batch, digest) in batches.items():
++        if _sha(root / 'experiment_manifest.json') != digest:
++            raise ValueError('experiment manifest changed during snapshot export')
++        _verify(root, batch['output_hashes'])
++    output_path = Path(output_path)
++    if any(output_path.resolve().is_relative_to(root) for root in batches):
++        raise ValueError('snapshot output must stay outside immutable experiment batches')
++    output_path.parent.mkdir(parents=True, exist_ok=True)
++    with tempfile.TemporaryDirectory(prefix='.snapshot-', dir=output_path.parent) as temporary:
++        staged = Path(temporary) / 'bundle.json'
++        staged.write_text(json.dumps(bundle, ensure_ascii=False, indent=2, allow_nan=False) + '\n',
++                          encoding='utf-8')
++        os.replace(staged, output_path)
++    return bundle
+diff --git a/src/recsysedu/experiments/runner.py b/src/recsysedu/experiments/runner.py
+index 05bf979..1de9045 100644
+--- a/src/recsysedu/experiments/runner.py
++++ b/src/recsysedu/experiments/runner.py
+@@ -310,20 +310,33 @@ def _run(config, *, split, output_root, model_ids):
+     if supplied_bpr is not None and need_bpr and validation is None:
+         _bpr_identity(supplied_bpr, identity, bpr_config)
+     train = pd.read_parquet(split_dir / 'train.parquet')
+     universe = pd.read_parquet(split_dir / 'candidate_universe.parquet')['course_id'].tolist()
+     popularity = fit_popularity(train, universe)
+     output_root.mkdir(parents=True, exist_ok=True)
+     with tempfile.TemporaryDirectory(prefix='.experiments-', dir=output_root) as temporary:
+         stage = Path(temporary) / batch_id
+         artifacts = stage / 'artifacts'
+         artifacts.mkdir(parents=True)
++        # Small hash-bound copies let the snapshot exporter work after the source
++        # dataset has moved. Raw interactions and personal metadata are excluded.
++        inputs = stage / 'snapshot_inputs'
++        inputs.mkdir()
++        snapshot_inputs = {}
++        for name, path in (
++                ('dataset_manifest', prepared / 'dataset_manifest.json'),
++                ('split_manifest', split_dir / 'split_manifest.json'),
++                ('courses', prepared / 'courses.parquet'),
++                ('train', split_dir / 'train.parquet'),
++                ('valid', split_dir / 'valid.parquet')):
++            shutil.copyfile(path, inputs / path.name)
++            snapshot_inputs[name] = f'snapshot_inputs/{path.name}'
+         content, bpr = None, None
+         if validation is None:
+             if need_content:
+                 content = fit_content(pd.read_parquet(prepared / 'courses.parquet'), train,
+                                       content_config, artifacts / 'content', popularity)
+             if need_bpr and supplied_bpr is None:
+                 export_atomic_files(split_dir, artifacts / 'atomic')
+                 temporary_config = stage / 'training.yaml'
+                 temporary_config.write_text(yaml.safe_dump(
+                     bpr_config | {'atomic_dir': str((artifacts / 'atomic').resolve())}),
+@@ -436,20 +449,21 @@ def _run(config, *, split, output_root, model_ids):
+         for relative, report in completed_runs.items():
+             if _json(stage / relative / 'run_manifest.json') != report:
+                 raise ValueError(f'run manifest changed during experiment: {relative}')
+             _verify_files(stage / relative, report['output_hashes'])
+         manifest = asdict(identity) | dict(
+             schema_version=1, evaluation_split=split, config_hash=config_hash,
+             effective_config=effective, git_revision=revision,
+             git_status='revision_available' if revision else 'no_revision',
+             git_dirty=dirty, versions=versions, duration_seconds=perf_counter() - started,
+             output_root=str(output_root), runs=paths, alpha_trials=trials,
++            snapshot_inputs=snapshot_inputs,
+             selected_alpha=selected_alpha, component_hashes=components,
+             freeze_candidate=dict(dataset_hash=dataset_hash, split_hash=identity.split_hash,
+                                   config_hash=config_hash),
+             output_hashes={p.relative_to(stage).as_posix(): _sha256(p)
+                            for p in sorted(stage.rglob('*')) if p.is_file()})
+         if validation is not None:
+             manifest['validation_manifest_sha256'] = _sha256(
+                 validation_dir / 'experiment_manifest.json')
+         _write(stage / 'experiment_manifest.json', manifest)
+         target = output_root / batch_id
+diff --git a/tests/conftest.py b/tests/conftest.py
+new file mode 100644
+index 0000000..1919779
+--- /dev/null
++++ b/tests/conftest.py
+@@ -0,0 +1,39 @@
++"""Small real pipeline artifacts shared by snapshot and app boundary tests."""
++
++import json
++
++import pytest
++
++from recsysedu.data.prepare import prepare_dataset
++from recsysedu.data.split import build_temporal_split
++from recsysedu.experiments.runner import evaluate_model
++
++
++@pytest.fixture
++def demo_runs(tmp_path):
++    courses, users = tmp_path / 'course.json', tmp_path / 'user.json'
++    courses.write_text(json.dumps([
++        {'id': f'C_{i}', 'name': name, 'about': name, 'field': ['Computer science']}
++        for i, name in enumerate(('Python basic', 'Python advanced', 'Calculus',
++                                   'History ancient', 'History modern'), 1)
++    ]), encoding='utf-8')
++    users.write_text(json.dumps([
++        dict(id=f'U_{i}', course_order=order,
++             enroll_time=['2020-01-01', '2020-02-01', '2020-03-01'])
++        for i, order in enumerate(([1, 2, 3], [2, 3, 1], [3, 1, 2], [4, 5, 1], [5, 4, 2]))
++    ]), encoding='utf-8')
++    prepared, split = tmp_path / 'prepared', tmp_path / 'split'
++    prepare_dataset(courses, users, prepared, dataset_version='snapshot-test-fixture',
++                    time_basis='source_local_naive', sample_users=0, seed=17)
++    build_temporal_split(prepared / 'interactions.parquet', prepared / 'courses.parquet',
++                         split, split_version='snapshot-test-split', seed=17)
++    config = dict(prepared_dir=str(prepared), split_dir=str(split), seed=17,
++                  content={'analyzer': 'char', 'ngram_range': [2, 4], 'min_df': 1})
++    result = []
++    for model in ('popularity', 'content'):
++        root = tmp_path / model
++        evaluate_model(config, model_id=model, split='valid', output_root=root)
++        batch = next(root.iterdir())
++        manifest = json.loads((batch / 'experiment_manifest.json').read_text('utf-8'))
++        result.append(batch / manifest['runs'][model])
++    return result
+diff --git a/tests/test_app.py b/tests/test_app.py
+index 3ef605c..62e4f92 100644
+--- a/tests/test_app.py
++++ b/tests/test_app.py
+@@ -14,10 +14,39 @@ def test_demo_shows_two_tabs_and_synthetic_warning():
+ 
+ def test_changing_profile_and_model_updates_ranking():
+     app = AppTest.from_file(str(APP), default_timeout=30).run()
+     app.selectbox(key='user').select('U_demo_new').run()
+     assert not app.exception
+     assert any('chưa có lịch sử' in info.value.lower() for info in app.info)
+     app.selectbox(key='model').select('content').run()
+     assert not app.exception
+     assert any('Cấu trúc dữ liệu' in text.value for text in app.text)
+     assert app.selectbox(key='user').value == 'U_demo_new'
++
++
++def test_real_exported_snapshot_shows_provenance_and_switches_rankings(
++        demo_runs, tmp_path, monkeypatch):
++    from recsysedu.demo.export import export_demo_bundle
++
++    path = tmp_path / 'bundle.json'
++    export_demo_bundle(demo_runs, ['U_0', 'U_3'], path)
++    monkeypatch.setenv('RECSYSEDU_BUNDLE', str(path))
++    app = AppTest.from_file(str(APP), default_timeout=30).run()
++    assert not app.exception and not app.warning
++    assert any('snapshot-test-fixture' in x.value for x in app.caption)
++    assert any('offline' in x.value.lower() for x in app.info)
++    assert not any('KẾT QUẢ THẬT' in x.value for x in app.info)
++    assert any('Run ID' in frame.value.columns for frame in app.dataframe)
++    app.selectbox(key='user').select('U_3').run()
++    assert any('#1  Python basic' in x.value for x in app.text)
++    app.selectbox(key='model').select('content').run()
++    assert not app.exception
++    assert any('#1  History modern' in x.value for x in app.text)
++
++
++def test_broken_real_bundle_is_error_without_fixture_fallback(tmp_path, monkeypatch):
++    path = tmp_path / 'broken.json'
++    path.write_text('{"meta": {"data_mode": "real"}}', encoding='utf-8')
++    monkeypatch.setenv('RECSYSEDU_BUNDLE', str(path))
++    app = AppTest.from_file(str(APP), default_timeout=30).run()
++    assert app.error and not app.exception
++    assert not app.tabs and not app.warning and not app.selectbox
+diff --git a/tests/test_cli.py b/tests/test_cli.py
+index 844da89..0e3189c 100644
+--- a/tests/test_cli.py
++++ b/tests/test_cli.py
+@@ -2,20 +2,32 @@ import os
+ import subprocess
+ import sys
+ from pathlib import Path
+ 
+ import yaml
+ 
+ from recsysedu.cli import main
+ from recsysedu.data.prepare import prepare_dataset
+ 
+ 
++def test_demo_export_cli_writes_a_loadable_real_snapshot(demo_runs, tmp_path, capsys):
++    from recsysedu.demo.artifacts import load_bundle
++
++    path = tmp_path / 'cli-snapshot.json'
++    arguments = ['demo', 'export', '--output', str(path), '--user-id', 'U_0', '--user-id', 'U_3']
++    for run in demo_runs:
++        arguments.extend(['--run-dir', str(run)])
++    assert main(arguments) == 0
++    assert 'offline' in capsys.readouterr().out
++    assert len(load_bundle(path)['recommendations']) == 4
++
++
+ def _cli_environment():
+     # The shared venv may be editable-installed from the primary checkout.
+     # Subprocess checks must exercise the checkout containing these tests.
+     return os.environ | {'PYTHONPATH': str(Path(__file__).resolve().parents[1] / 'src')}
+ 
+ 
+ def test_cli_help_is_available():
+     result = subprocess.run([sys.executable, '-m', 'recsysedu.cli', '--help'],
+                             capture_output=True, text=True, env=_cli_environment())
+     assert result.returncode == 0
+diff --git a/tests/test_demo_artifacts.py b/tests/test_demo_artifacts.py
+index 06180ab..099f498 100644
+--- a/tests/test_demo_artifacts.py
++++ b/tests/test_demo_artifacts.py
+@@ -57,10 +57,26 @@ def test_malformed_and_ambiguous_bundles_fail_cleanly(fault):
+         bundle['runs'].append(run)
+         rec = copy.deepcopy(bundle['recommendations'][0])
+         rec['run_id'] = run['run_id']
+         bundle['recommendations'].append(rec)
+     elif fault == 'missing_seed':
+         del bundle['runs'][0]['seed']
+     else:
+         bundle['paths'] = [{'invalid': True}]
+     with pytest.raises(ValueError):
+         validate_bundle(bundle)
++
++
++@pytest.mark.parametrize('fault', ['missing_evidence', 'mixed_policy', 'missing_user_ranking'])
++def test_real_loader_requires_offline_evidence_and_complete_compatible_runs(
++        demo_runs, tmp_path, fault):
++    from recsysedu.demo.export import export_demo_bundle
++
++    bundle = export_demo_bundle(demo_runs, ['U_0', 'U_3'], tmp_path / 'bundle.json')
++    if fault == 'missing_evidence':
++        del bundle['meta']['evidence_level']
++    elif fault == 'mixed_policy':
++        bundle['runs'][1]['evaluation_split'] = 'test'
++    else:
++        bundle['recommendations'].pop()
++    with pytest.raises(ValueError):
++        validate_bundle(bundle)
+diff --git a/tests/test_demo_export.py b/tests/test_demo_export.py
+new file mode 100644
+index 0000000..b5b4411
+--- /dev/null
++++ b/tests/test_demo_export.py
+@@ -0,0 +1,176 @@
++import hashlib
++import json
++
++import pytest
++
++from recsysedu.demo.artifacts import load_bundle
++
++
++def export(*args):
++    from recsysedu.demo.export import export_demo_bundle
++    return export_demo_bundle(*args)
++
++
++def rewrite_run(run, **updates):
++    """Alter coherent producer output to exercise semantic compatibility checks."""
++    path = run / 'run_manifest.json'
++    manifest = json.loads(path.read_text('utf-8'))
++    manifest.update(updates)
++    path.write_text(json.dumps(manifest), encoding='utf-8')
++    batch = run.parents[1]
++    path = batch / 'experiment_manifest.json'
++    manifest = json.loads(path.read_text('utf-8'))
++    manifest.update({k: v for k, v in updates.items()
++                     if k in ('dataset_hash', 'split_hash', 'protocol_id', 'evaluation_split')})
++    manifest['output_hashes'][(run / 'run_manifest.json').relative_to(batch).as_posix()] = (
++        hashlib.sha256((run / 'run_manifest.json').read_bytes()).hexdigest())
++    path.write_text(json.dumps(manifest), encoding='utf-8')
++
++
++def test_exporter_builds_real_bundle_from_compatible_runs(demo_runs, tmp_path):
++    path = tmp_path / 'bundle.json'
++    result = export(demo_runs, ['U_0', 'U_3'], path)
++    assert load_bundle(path) == result
++    assert result['meta']['data_mode'] == 'real'
++    assert result['meta']['dataset_version'] == 'snapshot-test-fixture'
++    assert result['meta']['evidence_level'] == 'offline_run'
++    assert result['paths'] == []
++    assert result['users'][0]['observed_course_ids'] == ['C_1']
++    assert result['users'][0]['profile_course_ids'] == ['C_1']
++    recs = {(r['user_id'], r['model_id']): r for r in result['recommendations']}
++    assert recs['U_3', 'popularity']['items'][0]['course_id'] == 'C_1'
++    assert recs['U_3', 'content']['items'][0]['course_id'] == 'C_5'
++    assert all(len(r['items']) <= 10 for r in recs.values())
++    assert all('C_4' != x['course_id'] for x in recs['U_3', 'content']['items'])
++    assert all(r['metrics']['NDCG@10'] >= 0 for r in result['runs'])
++    assert any('nội dung' in text for text in recs['U_3', 'content']['items'][0]['evidence'])
++
++
++@pytest.mark.parametrize('field,value', [
++    ('dataset_hash', 'other'), ('split_hash', 'other'), ('protocol_id', 'other'),
++    ('history_mode', 'demo'), ('seen_policy', 'train_plus_valid'),
++    ('evaluation_split', 'test'), ('config_hash', 'other'),
++])
++def test_exporter_rejects_mixed_identity_or_policy(demo_runs, tmp_path, field, value):
++    rewrite_run(demo_runs[1], **{field: value})
++    with pytest.raises(ValueError):
++        export(demo_runs, ['U_0'], tmp_path / 'bundle.json')
++    assert not (tmp_path / 'bundle.json').exists()
++
++
++@pytest.mark.parametrize('fault', ['stale', 'missing', 'unknown_user', 'duplicate_model',
++                                 'incomplete_batch_manifest'])
++def test_exporter_rejects_stale_incomplete_or_ambiguous_input(demo_runs, tmp_path, fault):
++    users = ['U_0']
++    if fault == 'stale':
++        with (demo_runs[0] / 'recommendations.jsonl').open('a') as stream:
++            stream.write('{}\n')
++    elif fault == 'missing':
++        (demo_runs[0] / 'per_user_metrics.parquet').unlink()
++    elif fault == 'unknown_user':
++        users = ['unknown']
++    elif fault == 'duplicate_model':
++        demo_runs.append(demo_runs[0])
++    else:
++        batch = demo_runs[1].parents[1]
++        path = batch / 'experiment_manifest.json'
++        manifest = json.loads(path.read_text('utf-8'))
++        del manifest['output_hashes']['artifacts/content/course_features.npz']
++        path.write_text(json.dumps(manifest), encoding='utf-8')
++        (batch / 'artifacts/content/course_features.npz').unlink()
++    with pytest.raises(ValueError):
++        export(demo_runs, users, tmp_path / 'bundle.json')
++
++
++def test_exporter_marks_unavailable_metrics_without_inventing_zero(demo_runs, tmp_path):
++    rewrite_run(demo_runs[0], metric_status='not_available', metrics=None)
++    result = export(demo_runs, ['U_0'], tmp_path / 'bundle.json')
++    run = next(r for r in result['runs'] if r['model_id'] == 'popularity')
++    assert run['metric_status'] == 'not_available'
++    assert run['metrics'] is None
++
++
++def test_exporter_preserves_existing_snapshot_on_failure(demo_runs, tmp_path):
++    path = tmp_path / 'bundle.json'
++    export(demo_runs, ['U_0'], path)
++    before = path.read_bytes()
++    with pytest.raises(ValueError):
++        export(demo_runs, ['unknown'], path)
++    assert path.read_bytes() == before
++
++
++@pytest.mark.parametrize('same_batch', [False, pytest.param(True, marks=pytest.mark.integration)])
++def test_exporter_detects_manifest_changed_while_reading(
++        demo_runs, tmp_path, monkeypatch, same_batch):
++    import recsysedu.demo.export as module
++
++    if same_batch:
++        from recsysedu.experiments.runner import run_experiment
++
++        root = tmp_path / 'full-validation'
++        run_experiment(dict(prepared_dir=str(tmp_path / 'prepared'),
++                            split_dir=str(tmp_path / 'split'), seed=17,
++                            bpr={'epochs': 1, 'embedding_size': 4, 'train_batch_size': 8},
++                            hybrid={'alphas': [0, 1]}), split='valid', output_root=root)
++        batch = next(root.iterdir())
++        manifest = json.loads((batch / 'experiment_manifest.json').read_text('utf-8'))
++        demo_runs = [batch / relative for relative in manifest['runs'].values()]
++    original = module._verify
++    batch = demo_runs[0].parents[1]
++    changed = False
++
++    def verify_then_change(root, hashes):
++        nonlocal changed
++        original(root, hashes)
++        if root == batch and not changed:
++            path = batch / 'experiment_manifest.json'
++            path.write_bytes(path.read_bytes() + b'\n')
++            changed = True
++
++    monkeypatch.setattr(module, '_verify', verify_then_change)
++    with pytest.raises(ValueError, match='changed'):
++        export(demo_runs, ['U_0'], tmp_path / 'bundle.json')
++    assert not (tmp_path / 'bundle.json').exists()
++
++
++def test_exporter_requires_hash_bound_snapshot_sources(demo_runs, tmp_path):
++    batch = demo_runs[0].parents[1]
++    manifest_path = batch / 'experiment_manifest.json'
++    manifest = json.loads(manifest_path.read_text('utf-8'))
++    del manifest['output_hashes']['snapshot_inputs/courses.parquet']
++    manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
++    with pytest.raises(ValueError):
++        export(demo_runs, ['U_0'], tmp_path / 'bundle.json')
++
++
++def test_exporter_refuses_snapshot_inside_immutable_batch(demo_runs):
++    with pytest.raises(ValueError, match='immutable'):
++        export(demo_runs, ['U_0'], demo_runs[0] / 'snapshot.json')
++
++
++@pytest.mark.integration
++def test_test_snapshot_masks_valid_but_profile_remains_train_only(demo_runs, tmp_path):
++    from recsysedu.experiments.runner import run_experiment
++
++    config = dict(prepared_dir=str(tmp_path / 'prepared'), split_dir=str(tmp_path / 'split'),
++                  seed=17, content={'analyzer': 'char', 'ngram_range': [2, 4], 'min_df': 1},
++                  bpr={'epochs': 1, 'embedding_size': 4, 'train_batch_size': 8},
++                  hybrid={'alphas': [0, 1]})
++    root = tmp_path / 'four-model-valid'
++    run_experiment(config, split='valid', output_root=root)
++    batch = next(root.iterdir())
++    path = batch / 'experiment_manifest.json'
++    manifest = json.loads(path.read_text('utf-8'))
++    config.update(frozen=True, validation_dir=str(batch), freeze=manifest['freeze_candidate'] | {
++        'validation_manifest_sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
++    root = tmp_path / 'four-model-test'
++    run_experiment(config, split='test', output_root=root)
++    batch = next(root.iterdir())
++    manifest = json.loads((batch / 'experiment_manifest.json').read_text('utf-8'))
++    bundle = export([batch / relative for relative in manifest['runs'].values()],
++                    ['U_0'], tmp_path / 'test-bundle.json')
++    assert bundle['users'][0]['profile_course_ids'] == ['C_1']
++    assert bundle['users'][0]['observed_course_ids'] == ['C_1', 'C_2']
++    assert all(not {'C_1', 'C_2'} & {x['course_id'] for x in r['items']}
++               for r in bundle['recommendations'])
++    assert {r['model_id'] for r in bundle['runs']} == {'popularity', 'content', 'bpr', 'hybrid'}

@@ -1,0 +1,10 @@
+{
+  "raw_hashes_pass": true,
+  "repeat_exact": true,
+  "split_output_hashes_pass": true,
+  "pairs_disjoint": true,
+  "strict_temporal_order": true,
+  "train_universe_exact": true,
+  "temporal_users": 9965,
+  "test_scored": false
+}

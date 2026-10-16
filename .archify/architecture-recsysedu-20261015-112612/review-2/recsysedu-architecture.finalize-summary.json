@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
+    "sha256": "8fb3af9e7e1da71fa7368763f33a4fa339b8aeb2f88375c0dd71656e5c14624a",
+    "bytes": 6952
+  },
+  "artifact": {
+    "path": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+    "sha256": "a134bdd466545776433ac612d43800a5ee2f6d60164fbd97f567daa926aea570",
+    "bytes": 847328
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\review-2\\recsysedu-architecture.finalize.json",
+    "summaryReceipt": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\review-2\\recsysedu-architecture.finalize-summary.json",
+    "browserCheckReceipt": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\review-2\\recsysedu-architecture.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.1.0",
+    "availableVersion": "3.1.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-15T04:26:46.563Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2385,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 9,
+      "routesOverSuggestedBends": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "raw-audit",
+            "from": "mooc_raw",
+            "to": "audit",
+            "label": "đọc raw",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "right": {
+            "id": "audit-parquet",
+            "from": "audit",
+            "to": "parquet",
+            "label": "clean + map ID",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "point": [
+            597,
+            276
+          ],
+          "sharedNode": "audit"
+        },
+        {
+          "left": {
+            "id": "split-popular",
+            "from": "split",
+            "to": "popular",
+            "label": "train",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "right": {
+            "id": "parquet-graph",
+            "from": "parquet",
+            "to": "graph",
+            "label": "P1 mapping",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "point": [
+            795,
+            396
+          ]
+        },
+        {
+          "left": {
+            "id": "parquet-graph",
+            "from": "parquet",
+            "to": "graph",
+            "label": "P1 mapping",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "right": {
+            "id": "popular-evaluator",
+            "from": "popular",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 14,
+            "artifactIndex": 15
+          },
+          "point": [
+            773,
+            676
+          ]
+        },
+        {
+          "left": {
+            "id": "parquet-graph",
+            "from": "parquet",
+            "to": "graph",
+            "label": "P1 mapping",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "right": {
+            "id": "content-evaluator",
+            "from": "content",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "point": [
+            795,
+            464
+          ]
+        },
+        {
+          "left": {
+            "id": "content-hybrid",
+            "from": "content",
+            "to": "hybrid",
+            "label": "content score",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "right": {
+            "id": "bpr-evaluator",
+            "from": "bpr",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 16,
+            "artifactIndex": 17
+          },
+          "point": [
+            897,
+            562
+          ]
+        },
+        {
+          "left": {
+            "id": "graph-hybrid",
+            "from": "graph",
+            "to": "hybrid",
+            "label": "optional penalty",
+            "collectionIndex": 13,
+            "artifactIndex": 14
+          },
+          "right": {
+            "id": "popular-evaluator",
+            "from": "popular",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 14,
+            "artifactIndex": 15
+          },
+          "point": [
+            773,
+            735
+          ]
+        },
+        {
+          "left": {
+            "id": "graph-hybrid",
+            "from": "graph",
+            "to": "hybrid",
+            "label": "optional penalty",
+            "collectionIndex": 13,
+            "artifactIndex": 14
+          },
+          "right": {
+            "id": "content-evaluator",
+            "from": "content",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "point": [
+            776,
+            735
+          ]
+        },
+        {
+          "left": {
+            "id": "graph-hybrid",
+            "from": "graph",
+            "to": "hybrid",
+            "label": "optional penalty",
+            "collectionIndex": 13,
+            "artifactIndex": 14
+          },
+          "right": {
+            "id": "bpr-evaluator",
+            "from": "bpr",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 16,
+            "artifactIndex": 17
+          },
+          "point": [
+            902,
+            735
+          ]
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "popular-evaluator",
+            "from": "popular",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 14,
+            "artifactIndex": 15
+          },
+          "bends": 4,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "bpr-evaluator",
+            "from": "bpr",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 16,
+            "artifactIndex": 17
+          },
+          "bends": 4,
+          "stretch": 1.211
+        }
+      ],
+      "truncated": true
+    },
+    "hints": [
+      "mooc_raw → audit and audit → parquet cross next to audit: move node mooc_raw or parquet so the two reach audit from different sides (for example one level with it, one directly above or below it).",
+      "split → popular crosses parquet → graph: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "parquet → graph crosses popular → evaluator: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "parquet → graph crosses content → evaluator: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "content → hybrid crosses bpr → evaluator: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "graph → hybrid crosses popular → evaluator: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "graph → hybrid crosses content → evaluator: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "graph → hybrid crosses bpr → evaluator: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

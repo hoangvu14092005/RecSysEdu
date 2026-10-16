@@ -1,0 +1,177 @@
+=== PDF PAGE 1 ===
+
+
+=== PDF PAGE 2 ===
+HỆ GỢI Ý
+(IT4613)
+
+=== PDF PAGE 3 ===
+3
+HỆ GỢI Ý
+GIỚI THIỆU
+
+
+=== PDF PAGE 4 ===
+4
+Nội dung môn học
+• Giới thiệu về Hệ gợi ý
+• Gợi ý dựa trên lọc cộng tác: Cơ bản và Các kỹ thuật nâng cao
+• Gợi ý dựa trên nội dung 
+• Gợi ý dựa trên tri thức
+• Gợi ý dựa trên phiên
+• Kết hợp các kỹ thuật gợi ý 
+• Đánh giá hiệu quả đối với hệ gợi ý
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Bài toán gợi ý tin tức
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Học tương phản
+
+=== PDF PAGE 5 ===
+5
+Hệ gợi ý
+
+
+=== PDF PAGE 6 ===
+6
+Giới thiệu về Hệ gợi ý
+• Giới thiệu
+• Đặt vấn đề
+• Mục đích và tiêu chí đánh giá 
+• Các cách tiếp cận cơ bản
+• Lọc cộng tác (Collaborative Filtering)
+• Lọc dựa trên nội dung (Content-based Filtering)
+• Gợi ý dựa trên tri thức (Knowledge-Based Recommendations)
+• Các phương pháp lai (Hybridization Strategies)
+
+=== PDF PAGE 7 ===
+7
+Giới thiệu về hệ gợi ý
+
+=== PDF PAGE 8 ===
+8
+Đặt vấn đề
+• Hệ gợi ý để hỗ trợ ra quyết định, nhằm cung cấp các gợi ý về sản phẩm, dịch vụ, thông tin phù hợp
+với nhu cầu của từng người dùng tại ngữ cảnh cụ thể.
+• Giảm được vấn đề data overload
+• Trợgiúp bán hàng (guidance, advisory, persuasion,…)
+• Khác nhau giữa các phương pháp gợi ý:
+• Dựa trên các kiểu dư liệu sẵn có
+• Tương tác tiềm ẩn (click, view) hay rõ ràng (like, buy) của người dùng
+• Dựa trên đặc trưng của từng domains
+RS are software agents that elicit the interests and preferences of individual
+ consumers […] and make recommendations accordingly. 
+They have the potential to support and improve the quality of the 
+decisions consumers make while searching for and selecting products online.
+(Xiao & Benbasat 20071)
+
+=== PDF PAGE 9 ===
+9
+Mục đích và tiêu chuẩn thành công
+• Các khía cạnh khác nhau
+• Phụ thuộc vào domain và mục đích
+• Không có kịch bản đánh giá chung
+• Khía cạnh truy hồi thông tin (information retrieval)
+• Giảm chi phí tìm kiếm
+• Đề xuất các kết quả có khả năng đúng cao
+• Người dùng có thể biết trước cái họ thích
+• Khía cạnh gợi ý
+• Gợi ý các items từ Long Tail
+• Người dùng có thể không biết đến các items 
+
+=== PDF PAGE 10 ===
+10
+Khi nào một hệ gợi ý làm tốt?
+▪ "Recommend widely 
+unknown items that 
+users might actually 
+like!"
+▪ 20% of items 
+accumulate 74% of all 
+positive ratings
+▪ Items rated > 3 in 
+MovieLens 100K 
+dataset
+Gợi ý sản phẩm từ Long Tail
+
+=== PDF PAGE 11 ===
+11
+Mục đích và tiêu chuẩn thành công
+• Khía cạnhdự đoán
+• Dự đoán được mức độ người dùng ưa thích sản phẩm
+• Đây là kịchbản đánh giá phổ biến trong nghiên cứu
+• Khía cạnhtương tác
+• Tạora cho người dùng "good feeling"
+• Địnhhướng/giáo dục cho người dùng về domain
+• Thuyết phục người dùng – Diễn giải cho người dùng
+• Khả năng chuyển đổi
+• Tăng tỉ lệ "hit", "clickthrough", "lookers to bookers"
+• Tối ưu lợi nhuận kinh doanh
+
+=== PDF PAGE 12 ===
+12
+Hệ gợi ý (recommendation system)
+• RS có thể xem như một function
+• Given:
+• User model (e.g. ratings, preferences, demographics, situational context)
+• Items (with or without description of item characteristics)
+• Find:
+• Relevance score. Used for ranking.
+• Liên hệ với truy vấn thông tin (information retrieval): 
+• IR is finding material [..] of an unstructured nature [..] that satisfies an information need from within large 
+collections [..].
+• (Manning et al. 20081)
+(1) Manning, Raghavan, and Schütze, Introduction to information retrieval, Cambridge University 
+Press, 2008
+
+=== PDF PAGE 13 ===
+13
+Hệ gợi ý: Một số mô hình cơ bản
+Hệ gợi ý giúp tìm ra các sản phẩm phù 
+hợp 
+
+=== PDF PAGE 14 ===
+14
+Gợi ý cá nhân hóa 
+Personalized recommendations
+
+=== PDF PAGE 15 ===
+15
+Hệ gợi ý: Lọc cộng tác
+Collaborative: "Tell me what's popular 
+among my peers"
+
+
+=== PDF PAGE 16 ===
+16
+Hệ gợi ý: Lọc dựa trên nội dung
+Content-based: "Show me more of the 
+same what I've liked"
+
+
+=== PDF PAGE 17 ===
+17
+Hệ gợi ý: Gợi ý dựa trên tri thức
+Knowledge-based: "Tell me what fits 
+based on my needs"
+
+
+=== PDF PAGE 18 ===
+18
+Hệ gợi ý: Lai ghép các kỹ thuật gợi ý
+Hybrid: combinations of various inputs 
+and/or composition of different 
+mechanism
+
+=== PDF PAGE 19 ===
+19
+Tài liệu tham khảo
+• Slide
+• http://www.recommenderbook.net/teaching-material/slides
+• Book
+• Dietmar Jannach, Markus Zanker, Alexander Felfernig, Gerhard Friedrich (2010). Recommender Systems: An 
+Introduction. Cambridge University Press.
+• Francesco Ricci, Lior Rokach, Bracha Shapira, Paul B. Kantor (2015). Recommender Systems Handbook (2nd 
+edition). Springer.
+• Charu C. Aggarwal (2016). Recommender Systems: The Textbook. Springer
+
+=== PDF PAGE 20 ===
+THANK YOU !
+20

@@ -1,0 +1,13 @@
+{
+  "label": "prepare-repeat",
+  "args": [
+    "data",
+    "prepare",
+    "--config",
+    "results/local/prepare-repeat.yaml"
+  ],
+  "exit_code": 0,
+  "seconds": 37.899603700003354,
+  "sampled_peak_rss_bytes": 640491520,
+  "peak_sampling_interval_seconds": 0.2
+}

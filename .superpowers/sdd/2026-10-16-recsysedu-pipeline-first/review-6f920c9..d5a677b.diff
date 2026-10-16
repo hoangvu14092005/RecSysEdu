@@ -1,0 +1,118 @@
+# Review package: 6f920c9958cc036c21e571bd1637679dccdbf8d6..d5a677b
+
+## Commits
+d5a677b fix: accept NumPy real scores in ranked items
+
+## Files changed
+ src/recsysedu/contracts.py | 10 ++++++----
+ tests/test_contracts.py    | 26 ++++++++++++++++++++++++--
+ 2 files changed, 30 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/src/recsysedu/contracts.py b/src/recsysedu/contracts.py
+index 23ffd4d..7590fe0 100644
+--- a/src/recsysedu/contracts.py
++++ b/src/recsysedu/contracts.py
+@@ -1,16 +1,17 @@
+ """Shared model scoring and run identity contracts."""
+ 
+ from __future__ import annotations
+ 
+ from dataclasses import dataclass, field
+ from math import isfinite
++from numbers import Real
+ from typing import Mapping, Protocol, Sequence
+ 
+ import numpy as np
+ 
+ 
+ def _require_non_empty_string(value: str, name: str) -> None:
+     if not isinstance(value, str) or not value.strip():
+         raise ValueError(f"{name} must be a non-empty string")
+ 
+ 
+@@ -45,28 +46,29 @@ class ScoreResult:
+ @dataclass(frozen=True)
+ class RankedItem:
+     course_id: str
+     rank: int
+     score: float
+ 
+     def __post_init__(self) -> None:
+         _require_non_empty_string(self.course_id, "course_id")
+         if isinstance(self.rank, bool) or not isinstance(self.rank, int) or self.rank < 1:
+             raise ValueError("rank must be an integer from one")
+-        if isinstance(self.score, bool) or not isinstance(self.score, (int, float)):
++        if isinstance(self.score, (bool, np.bool_)) or not isinstance(self.score, Real):
+             raise ValueError("score must be a finite real number")
+         try:
+-            finite = isfinite(self.score)
+-        except OverflowError as exc:
++            score = float(self.score)
++        except (OverflowError, ValueError) as exc:
+             raise ValueError("score must be a finite real number") from exc
+-        if not finite:
++        if not isfinite(score):
+             raise ValueError("score must be a finite real number")
++        object.__setattr__(self, "score", score)
+ 
+ 
+ @dataclass(frozen=True)
+ class RunIdentity:
+     run_id: str
+     model_id: str
+     dataset_hash: str
+     split_hash: str
+     protocol_id: str
+     seed: int | None
+diff --git a/tests/test_contracts.py b/tests/test_contracts.py
+index a0a9d94..b3cb340 100644
+--- a/tests/test_contracts.py
++++ b/tests/test_contracts.py
+@@ -63,22 +63,44 @@ def test_run_identity_requires_non_empty_matching_hash_fields():
+         with pytest.raises(ValueError):
+             RunIdentity(**(valid | {field: "  "}))
+ 
+ 
+ @pytest.mark.parametrize("rank", [0, -1, True, 1.5])
+ def test_ranked_item_requires_rank_from_one_and_finite_score(rank):
+     with pytest.raises(ValueError):
+         RankedItem("C_1", rank, 0.5)
+ 
+ 
+-@pytest.mark.parametrize("score", [float("nan"), float("inf"), -float("inf")])
+-def test_ranked_item_rejects_non_finite_score(score):
++@pytest.mark.parametrize("dtype", [np.float32, np.int64])
++def test_ranked_item_accepts_score_result_numpy_real_scalar(dtype):
++    result = ScoreResult(("C_1",), np.array([1], dtype=dtype))
++
++    item = RankedItem(result.course_ids[0], 1, result.scores[0])
++
++    assert item.score == 1.0
++    assert type(item.score) is float
++
++
++@pytest.mark.parametrize(
++    "score",
++    [
++        True,
++        np.bool_(True),
++        float("nan"),
++        float("inf"),
++        -float("inf"),
++        np.float32(float("nan")),
++        np.float32(float("inf")),
++        1 + 2j,
++    ],
++)
++def test_ranked_item_rejects_invalid_score(score):
+     with pytest.raises(ValueError):
+         RankedItem("C_1", 1, score)
+ 
+ 
+ def test_recommender_protocol_accepts_structural_implementation():
+     class StaticRecommender:
+         def score(self, user_id, candidate_ids):
+             assert user_id == "U_1"
+             return ScoreResult(tuple(candidate_ids), np.array([0.5, 0.2]))
+ 

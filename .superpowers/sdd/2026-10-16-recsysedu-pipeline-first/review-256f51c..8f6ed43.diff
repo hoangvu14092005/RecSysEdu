@@ -1,0 +1,86 @@
+# Review package: 256f51cb7011fa6e6ebb4b8b79e58ece589e9f7e..8f6ed43
+
+## Commits
+8f6ed43 fix: fall back when content analyzer yields no tokens
+
+## Files changed
+ src/recsysedu/models/content.py |  5 ++++-
+ tests/test_content.py           | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 34 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/src/recsysedu/models/content.py b/src/recsysedu/models/content.py
+index e0ff316..b99cece 100644
+--- a/src/recsysedu/models/content.py
++++ b/src/recsysedu/models/content.py
+@@ -121,21 +121,24 @@ def fit_content(courses: pd.DataFrame, train: pd.DataFrame, config: ContentConfi
+     if courses['course_id'].duplicated().any():
+         raise ValueError('course metadata contains duplicate course IDs')
+     catalog = courses.set_index('course_id')
+     if any(course_id not in catalog.index for course_id in course_ids):
+         raise ValueError('train course missing from metadata')
+     texts = [_clean_text(catalog.at[course_id, 'name']) + ' ' +
+              _clean_text(catalog.at[course_id, 'about']) for course_id in course_ids]
+     texts = [text.strip() for text in texts]
+     vectorizer = TfidfVectorizer(analyzer=config.analyzer, ngram_range=config.ngram_range,
+                                  min_df=config.min_df, dtype=np.float64)
+-    if any(text for text in texts):
++    # Nonblank text can still produce no tokens (for example, one character
++    # with character n-grams starting at two). Check the configured analyzer.
++    analyzer = vectorizer.build_analyzer()
++    if any(any(analyzer(text)) for text in texts):
+         try:
+             features = vectorizer.fit_transform(texts).tocsr()
+         except ValueError as exc:
+             raise ValueError(f'cannot fit content vocabulary: {exc}') from exc
+     else:
+         features = sparse.csr_matrix((len(course_ids), 0), dtype=np.float64)
+ 
+     course_index = {course_id: index for index, course_id in enumerate(course_ids)}
+     histories: dict[str, list[int]] = {}
+     for user_id, course_id in train_pairs:
+diff --git a/tests/test_content.py b/tests/test_content.py
+index 444865d..2bb39ae 100644
+--- a/tests/test_content.py
++++ b/tests/test_content.py
+@@ -104,10 +104,40 @@ def test_content_accepts_nullable_metadata_and_falls_back_when_all_text_is_empty
+     courses['about'] = None
+     model = fit_content(courses, train, ContentConfig(), tmp_path / 'empty', fallback)
+ 
+     scored = model.score('U_1', ('C_3', 'C_1'))
+     assert scored.fallback_status == 'popularity_empty_profile'
+     np.testing.assert_array_equal(scored.scores,
+                                   fallback.score('U_1', ('C_3', 'C_1')).scores)
+     manifest = json.loads((tmp_path / 'empty/feature_manifest.json').read_text(encoding='utf-8'))
+     assert manifest['empty_vector_count'] == 3
+     assert load_npz(tmp_path / 'empty/course_features.npz').shape == (3, 0)
++
++
++def test_content_too_short_text_has_zero_features_and_popularity_fallback(tmp_path):
++    courses = pd.DataFrame({'course_id': ['C_1'], 'name': ['a'], 'about': [None]})
++    train = pd.DataFrame({'user_id': ['U_1'], 'course_id': ['C_1']})
++    fallback = fit_popularity(train, ('C_1',))
++    output = tmp_path / 'short-text'
++
++    model = fit_content(courses, train, ContentConfig(), output, fallback)
++
++    scored = model.score('U_1', ('C_1',))
++    assert scored.fallback_status == 'popularity_empty_profile'
++    np.testing.assert_array_equal(scored.scores, fallback.score('U_1', ('C_1',)).scores)
++    manifest = json.loads((output / 'feature_manifest.json').read_text(encoding='utf-8'))
++    assert manifest['empty_vector_count'] == 1
++    assert manifest['vocabulary_size'] == 0
++    assert load_npz(output / 'course_features.npz').shape == (1, 0)
++    assert (output / 'vectorizer.joblib').is_file()
++    assert (output / 'course_order.json').is_file()
++
++
++def test_content_does_not_treat_invalid_min_df_as_empty_vocabulary(tmp_path):
++    courses = pd.DataFrame({'course_id': ['C_1'], 'name': ['python'], 'about': [None]})
++    train = pd.DataFrame({'user_id': ['U_1'], 'course_id': ['C_1']})
++    fallback = fit_popularity(train, ('C_1',))
++    output = tmp_path / 'invalid-min-df'
++
++    with pytest.raises(ValueError, match='max_df corresponds to < documents than min_df'):
++        fit_content(courses, train, ContentConfig(min_df=2), output, fallback)
++    assert not output.exists()

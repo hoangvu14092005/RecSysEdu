@@ -1,0 +1,718 @@
+diff --git a/docs/03_architecture.md b/docs/03_architecture.md
+index 791da2c..aad2890 100644
+--- a/docs/03_architecture.md
++++ b/docs/03_architecture.md
+@@ -1,98 +1,123 @@
+ # 03 — Chia mã nguồn và ghép các phần
+ 
+-Cập nhật: 09/10/2026. Kiến trúc gồm phần đã xây và phần kế hoạch: `data/download.py`, `data/audit.py`, `demo/artifacts.py`, `cli.py` và `app/streamlit_app.py` đã chạy; prepare/split/model/evaluator/graph chưa xây. Hướng chung ở [trang bắt đầu](README.md), lệnh thật ở [runbook](09_runbook.md).
++Cập nhật 16/10/2026. Đây là kiến trúc **đã triển khai và đã chạy P0 thật**:
++prepare/split, bốn model, evaluator, runner, exporter và Streamlit. Kết quả ở
++[test cuối](../results/final/report.md), [nghiệm thu](../reports/acceptance.md).
++P1 chỉ có công cụ audit; graph thật chưa chạy, chưa có rerank/path.
+ 
+-## 1. Ý tưởng đơn giản
++## 1. Luồng đơn giản
+ 
+-Chia thành ba việc: **xử lý dữ liệu → tính/đánh giá gợi ý → hiển thị**. Mỗi phần nhận file đầu vào và tạo file đầu ra rõ ràng. Không cần API server/database riêng để hai phần model/UI cùng làm được.
++Mỗi bước đọc file có phiên bản, kiểm hash rồi ghi output mới. Phần tính model
++và phần hiển thị trao đổi qua file; không cần API server/database cho P0.
+ 
+ ```mermaid
+ flowchart TD
+-    A[Raw user và course trên SSD] --> B[Python và DuckDB: kiểm tra và làm sạch]
+-    B --> C[Parquet: dữ liệu và split đã khóa]
+-    C --> D[MostPopular và Content]
+-    C --> E[Export RecBole và train BPR]
+-    D --> F[Hybrid]
+-    E --> F
+-    D --> G[Evaluator chung và kết quả từng run]
+-    E --> G
+-    F --> G
+-    H[Graph đã kiểm tra: P1] -. nếu đủ dữ liệu .-> I[Xếp hạng lại và lộ trình]
+-    F -. nếu bật P1 .-> I
+-    I -. kết quả P1 .-> G
+-    G --> J[Snapshot demo_bundle.json]
+-    J --> K[Streamlit: Gợi ý học tập và Model Lab]
++    A[Raw user/course trên SSD] --> B[Download và audit]
++    B --> C[Prepare: Parquet và dataset manifest]
++    C --> D[Temporal split: train/valid/test và universe]
++    D --> E[MostPopular]
++    D --> F[Content TF-IDF]
++    D --> G[RecBole BPR adapter]
++    F --> H[Hybrid]
++    G --> H
++    E --> I[Evaluator: mask seen, Top10 và metric]
++    F --> I
++    G --> I
++    H --> I
++    I --> J[Run artifacts và experiment manifest]
++    J --> K[Exporter: demo_bundle.json]
++    K --> L[Streamlit: Gợi ý học tập và Model Lab]
++    M[P1 audit: chưa đủ nguồn graph] -. dừng .-> N[Chờ kế hoạch P1 riêng]
+ ```
+ 
+-Không có graph vẫn xuất được snapshot P0. Giao diện đọc kết quả có sẵn; click/chuyển tab không khởi động huấn luyện.
++Giao diện chỉ đọc snapshot, không train hoặc tự chấm lại khi đổi hồ sơ/model.
++Validation chọn BPR/alpha; test giữ nguyên checkpoint và feature đã khóa.
+ 
+-## 2. Công nghệ dùng vào việc gì?
++## 2. Module thực tế và trách nhiệm
+ 
+-| Công cụ | Vai trò |
+-| --- | --- |
+-| Python | Ngôn ngữ chung của xử lý, model, đánh giá và app |
+-| Parquet + DuckDB | File bảng chuẩn và công cụ lọc/thống kê; xem [lưu trữ](07_storage_analysis.md) |
+-| pandas / scikit-learn | Xử lý tập vừa bộ nhớ; TF-IDF tên/mô tả, profile lịch sử train và cosine cho Content |
+-| RecBole / PyTorch | Train BPR, lưu/load checkpoint qua adapter của dự án |
+-| NetworkX — P1 | Kiểm tra quan hệ concept và tạo thứ tự lộ trình trên graph đã lọc |
+-| Streamlit | Hai tab demo; lấy tinh thần thiết kế LearnPath |
+-
+-Base Python/Streamlit/ijson và các thư viện dữ liệu đã cài trong môi trường riêng, có lock Windows Python 3.10 và [báo cáo kiểm tra](../results/base_verification.md). RecBole/PyTorch/graph chưa thử; khóa nhóm này sau spike BPR D04, benchmark BPR ở M6. Cài DuckDB/PyArrow chưa chứng minh đã có pipeline Parquet.
+-
+-## 3. Các phần mã và trách nhiệm
+-
+-Các đường dẫn trong bảng nằm dưới `src/recsysedu/`, trừ app.
+-
+-| Phần | Đầu vào → đầu ra | Người nhận phần này làm gì? |
+-| --- | --- | --- |
+-| `data/audit.py` | Raw → thống kê/lỗi | Xác định format, ID, thời gian và quy mô dùng được |
+-| `data/prepare.py`, `data/split.py` | Raw → Parquet/split | Làm sạch theo tài liệu 04; chia theo tài liệu 05 |
+-| `models/popularity.py`, `models/content.py` | Train/catalog → điểm | Hai mô hình đầu tiên; profile chỉ từ train |
+-| `adapters/recbole.py` | Split → TSV/checkpoint/điểm | Nối RecBole với ID nguồn; kiểm tra số dòng và loại padding |
+-| `models/hybrid.py`, `recommend.py` | Điểm/history → ranking | Kết hợp điểm, loại khóa đã quan sát, fallback, lý do |
+-| `evaluation/metrics.py`, `evaluation/run.py` | Ranking/target → metric | Evaluator chung; lưu kết quả và manifest từng run |
+-| `knowledge/graph.py`, `knowledge/path.py` — P1 | Concept/edges → audit/path | Giữ chiều cạnh, báo unknown/vòng lặp, thứ tự concept |
+-| `demo/artifacts.py` | File kết quả → snapshot/đối tượng hiển thị | Xuất và kiểm tra contract model–UI; không chứa thuật toán train |
+-| `cli.py` | Tham số lệnh → bước pipeline | Một cách chạy lại các bước; không nhét thuật toán vào CLI |
+-| `app/streamlit_app.py` | Snapshot → hai tab | Quản lý lựa chọn user/model/khóa, hiển thị và thông báo lỗi |
+-
+-## 4. Quy ước giữa model và UI
++Đường dẫn dưới `src/recsysedu/`, trừ app. Đây là module đã có, không phải cây dự kiến.
+ 
+-Model chấm danh sách khóa được truyền vào, trả `user_id`, `course_id`, `model_id`, `score_raw`, `run_id`. Adapter đổi ID số nội bộ RecBole về ID nguồn trước khi xuất.
+-
+-Phần gợi ý nhận lịch sử được phép quan sát và tập khóa được chấm. Kết quả có rank, score, reason/evidence và fallback. Điểm bằng nhau phá hòa bằng course ID tăng dần; NaN/inf, ID lạ và khóa trùng bị chặn.
++| Module | Đầu vào → đầu ra/trách nhiệm |
++| --- | --- |
++| `data/download.py`, `data/audit.py` | URL/raw → file gốc, manifest/hash, thống kê lỗi |
++| `data/prepare.py` | Raw → courses/interactions/rejects/cohort Parquet và dataset manifest |
++| `data/split.py` | Prepared → train/valid/test, warm cohorts, candidate universe, split manifest |
++| `contracts.py` | `ScoreResult`, `RankedItem`, `RunIdentity`, giao diện `Recommender` |
++| `models/popularity.py`, `models/content.py` | Train/catalog → enrollment counts hoặc TF-IDF/profile train-only |
++| `adapters/recbole.py` | Export đúng split, train/load BPR, chuyển ID nội bộ về ID nguồn |
++| `models/hybrid.py` | Ghép BPR/Content trên cùng candidate, chuẩn hóa và fallback |
++| `evaluation/ranking.py`, `evaluation/metrics.py`, `evaluation/run.py` | Mask seen, phá hòa, Top-10, metric và artifact từng run |
++| `experiments/runner.py` | Điều phối bốn model, chọn alpha bằng valid, kiểm freeze/hash trước test |
++| `demo/export.py`, `demo/artifacts.py` | Export snapshot từ batch hoàn tất; kiểm schema/ID/hash/seen |
++| `knowledge/audit.py` | Audit concept/mapping/label/cycle; chưa tạo graph phục vụ/rerank/path |
++| `cli.py` | Lệnh chạy pipeline; không chứa thuật toán |
++| `app/streamlit_app.py` | Snapshot → chọn hồ sơ/model, ranking, metadata và CSV |
++
++Python/PyArrow tạo Parquet; DuckDB kiểm bảng; pandas/scikit-learn/SciPy xử lý
++TF-IDF. RecBole 1.2.1/Torch 2.5.1+cpu đã chạy thật trên Windows/Python 3.10.11.
++Lock và clean-environment evidence ở [reproduction](../results/reproduction.md).
++Audit graph hiện dùng Python; không có module `knowledge/graph.py` hoặc
++`knowledge/path.py` đang hoạt động.
++
++## 3. Model không tự xếp Top10
++
++Giao diện chung trong `contracts.py`:
++
++```python
++score(user_id, candidate_ids) -> ScoreResult(
++    course_ids, scores, fallback_status, evidence
++)
++```
+ 
+-Sau đó xuất snapshot nhỏ `demo_bundle.json` chứa hồ sơ, catalog dùng cho demo, ranking và kết quả offline. [Tài liệu 04](04_data_contract.md) là nơi quy định tên trường/kiểu dữ liệu; [tài liệu 08](08_ui_handoff.md) quy định cách hiển thị. UI chỉ chọn/hiển thị, không tự tính lại ranking.
++`course_ids` là tuple ID nguồn không trùng, theo **đúng thứ tự candidate đầu vào**;
++`scores` là mảng NumPy 1 chiều cùng độ dài và hữu hạn. `fallback_status`
++ghi cơ chế dự phòng; `evidence` ánh xạ course ID sang tuple câu bằng chứng.
++Model chỉ chấm điểm. Evaluator giữ seen mask, phá hòa score giảm/course ID
++tăng và lấy tối đa10. `RunIdentity` lưu run/model/dataset/split/protocol/seed
++ở ranh giới run, không phải mỗi dòng score trả về.
+ 
+-## 5. Hybrid và phần tiền đề
++Hybrid min–max hai score trên toàn universe của từng user **trước mask seen**:
++`alpha * BPR + (1-alpha) * Content`. Thành phần hằng trở thành vector0.
++Không áp dụng BPR thì fallback Content; Content/profile rỗng có popularity
++fallback theo code và ghi nhãn. Alpha đã chọn0,25 bằng valid, không tune trên test.
+ 
+-Chuẩn hóa điểm BPR và Content về cùng thang bằng min–max trên **cùng tập khóa của mỗi user/run**. Nếu toàn bộ điểm một thành phần bằng nhau, thành phần đó trở thành vector 0. Sau đó:
++## 4. File trên máy và file trong Git
+ 
+ ```text
+-hybrid = alpha * normalized_cf + (1 - alpha) * normalized_content
+-final  = hybrid - lambda * missing_exposure_ratio    # chỉ khi bật P1
++configs/                              # config versioned trong Git
++src/recsysedu/, app/, tests/, docs/     # source/test/docs trong Git
++data/raw/                             # raw + raw_manifest.json, ngoài Git
++data/processed/mooccubex-pilot-v1/      # 4 Parquet + dataset_manifest.json
++data/splits/mooccubex-pilot-v1-split-v1/ # 6 Parquet + split_manifest.json
++results/local/pilot-final/valid/<batch>/
++results/local/pilot-final/test/<batch>/
++    artifacts/content/                # vectorizer, sparse features, manifest
++    artifacts/bpr/                    # bpr.pth, ID map, bpr_manifest.json
++    runs/<model>/                     # run_manifest, metrics.csv,
++                                      # per_user_metrics.parquet, recommendations.jsonl
++    snapshot_inputs/                  # input copies để exporter đọc batch di động
++    experiment_manifest.json          # hash/inventory và nhận diện cả batch
++artifacts/demo/v1/demo_bundle.json     # snapshot thật nhỏ, ngoài Git
++results/pilot/, results/final/         # báo cáo tổng hợp nhỏ trong Git
+ ```
+ 
+-`alpha` là mức ưu tiên BPR; `lambda` là mức trừ điểm khi chưa thấy tiếp xúc với tiền đề. Chọn chúng trên valid, khóa trước test. User không có embedding BPR dùng fallback rõ ràng; không tạo điểm CF ngẫu nhiên.
++Tên batch/test exact và hash ở final report. Validation có thể có alpha trials;
++Hybrid chính có thể trỏ tới trial đã chọn. Atomic export khi train BPR nằm
++`artifacts/atomic/recsysedu/recsysedu.<split>.inter` trong batch training;
++test tái dùng model đã khóa nên không train/export lại.
+ 
+-Course không ánh xạ graph có penalty 0 và trạng thái `unknown`. Course có mapping nhưng không thấy tiền đề có trạng thái `no_observed_prerequisite`. Cả hai chưa chứng minh người học đã đủ kiến thức. Cách tính trực tiếp/ancestor, chu trình và danh sách bị cắt ở [05](05_evaluation.md).
++Clone Git không có learner ID/checkpoint/ranking thật. Khi chuyển máy, giữ
++nguyên cả batch và manifest; không chỉ chép `.pth` hoặc sửa hash/output_root.
++[Runbook](09_runbook.md) liệt kê inventory và cách mở fixture/real snapshot.
+ 
+-## 6. Cấu trúc thư mục dự kiến
++## 5. P1 và đề xuất lịch sử
+ 
+-```text
+-RecSysEdu/
+-├── docs/ và tasks/                 # Tài liệu hiện có
+-├── pyproject.toml, dependency lock # M0
+-├── configs/                        # Config dùng chung; đường dẫn local để riêng
+-├── src/recsysedu/                   # Các phần lõi ở bảng trên
+-├── app/streamlit_app.py             # Hai tab LearnPath
+-├── tests/fixtures/                  # Mẫu SYNTHETIC nhỏ, đưa vào Git
+-├── data/raw/                       # File gốc và manifest, ngoài Git
+-├── data/processed/<dataset_version>/ # Parquet, split và manifest, ngoài Git
+-├── data/recbole/                   # TSV export từ cùng split, ngoài Git
+-├── artifacts/<run_id>/             # Checkpoint, ID map và config, ngoài Git khi lớn
+-├── artifacts/demo/<snapshot_id>/   # demo_bundle.json và thông tin version
+-└── results/<run_id>/               # Metrics, logs, báo cáo phù hợp để bàn giao
+-```
++Thiết kế ban đầu từng đề xuất penalty tiền đề, NetworkX và learning path.
++Đó là **ý tưởng lịch sử, chưa triển khai và không thuộc contract P0 hiện tại**.
++`knowledge/audit.py` đã kiểm trên fixture nhưng thiếu cả ba nguồn graph thật;
++quyết định là [P1_STOP_INSUFFICIENT_EVIDENCE](../results/graph_audit.md).
++Muốn mở P1 cần dữ liệu/audit và plan riêng. Snapshot P0 luôn `paths=[]`,
++trạng thái tiền đề `unknown`; không suy diễn enrollment thành mastery.
+ 
+-Đường dẫn cụ thể do config quyết định; không ghi cứng `C:`/`D:` trong mã. CSV/JSON dành cho fixture và báo cáo nhỏ; Parquet là bảng processed chính. Khi cùng làm, nhận task theo module và ghép qua file đã thống nhất, theo [CONTRIBUTING](../CONTRIBUTING.md).
++Tham khảo [contract](04_data_contract.md), [protocol](05_evaluation.md) và
++[CONTRIBUTING](../CONTRIBUTING.md) trước khi đổi ranh giới module/file.
+diff --git a/docs/04_data_contract.md b/docs/04_data_contract.md
+index e0d16cd..69eba6e 100644
+--- a/docs/04_data_contract.md
++++ b/docs/04_data_contract.md
+@@ -1,16 +1,21 @@
+ # 04 — Quy ước dữ liệu và file bàn giao
+ 
+-Cập nhật: 16/10/2026. Raw user/course đã tải/audit; loader snapshot v1 và bước chuẩn hóa Parquet đã kiểm thử trên fixture. Chưa chạy prepare trên raw đầy đủ, chưa có split hoặc exporter model. Người xử lý dữ liệu, model và UI dùng tài liệu này để thống nhất tên trường. Thuật ngữ ở [trang bắt đầu](README.md).
++Cập nhật 16/10/2026. Contract P0 này đã được dùng trên dữ liệu thật: prepare
++quét toàn raw, chọn 10.000 người; split, bốn model, validation/test và exporter
++đã chạy. Snapshot real schema1 và clean-environment check đã qua. Xem
++[dataset](../results/pilot/dataset_report.md), [test cuối](../results/final/report.md),
++[tái lập](../results/reproduction.md). Các mục P1 được ghi rõ là chưa hoạt động.
++Người data/model/UI dùng tên trường dưới đây để ghép phần việc.
+ 
+ ## 1. Cần lấy file nào từ MOOCCubeX?
+ 
+-| File nguồn | Dùng để làm gì? | Thời điểm |
++| File nguồn | Dùng để làm gì? | Trạng thái hiện tại |
+ | --- | --- | --- |
+-| `entities/user.json` | Người học và lịch sử đăng ký | Tuần 1 |
+-| `entities/course.json` | ID, tên, nội dung/lĩnh vực khóa | Tuần 1 |
+-| `relations/course-field.json` | Bổ sung lĩnh vực nếu cần sau đối chiếu | Tuần 1–2 |
+-| `entities/concept.json`, `relations/concept-course.txt` | Concept và khóa có concept đó | P1, tuần 4 |
+-| `prerequisites/cs.json` | Quan hệ kiến thức trước–sau trong CS | P1, tuần 4 |
++| `entities/user.json` | Người học và lịch sử đăng ký | Đã tải; lưu phẳng `data/raw/user.json` |
++| `entities/course.json` | ID, tên, nội dung/lĩnh vực khóa | Đã tải; lưu phẳng `data/raw/course.json` |
++| `relations/course-field.json` | Bổ sung lĩnh vực nếu cần sau đối chiếu | Chưa dùng; P0 lấy `course.json:field` |
++| `entities/concept.json`, `relations/concept-course.txt` | Concept và khóa có concept đó | Chưa có; P1 dừng |
++| `prerequisites/cs.json` | Quan hệ kiến thức trước–sau trong CS | Chưa có; P1 dừng |
+ | User-video/user-problem | Hành vi chi tiết | P2, chưa tải cho lõi |
+ 
+ `user.json` mô tả hai mảng `course_order` và `enroll_time` tương ứng theo vị trí: khóa thứ i có thời gian thứ i. Phải kiểm tra độ dài trước khi ghép. [Schema user](https://github.com/THU-KEG/MOOCCubeX/blob/main/docs/user-en.md).
+@@ -19,7 +24,12 @@ Cập nhật: 16/10/2026. Raw user/course đã tải/audit; loader snapshot v1 v
+ 
+ Concept–course là hai cột `concept_id`, TAB, `course_id`; kiểm tra bản tải trước khi parse. [Script nguồn](https://github.com/THU-KEG/MOOCCubeX/blob/main/scripts/concept_course.py). Prerequisite có `c1` là kiến thức cần trước, `c2` là kiến thức sau; graph chỉ nhận `ground_truth=1`. [Schema prerequisite](https://github.com/THU-KEG/MOOCCubeX/blob/main/docs/prerequisites-en.md).
+ 
+-Hai file tải ngày 09/10/2026 là JSON Lines. Catalog có ID string `C_<số>`; `course_order` trong user dùng integer. Audit nối số với **mã có thật trong catalog**, ví dụ `584313` chỉ thành `C_584313` nếu catalog chứa mã đó. String đã đúng mã được nối nguyên trạng; bool/float/ID không có catalog bị báo lỗi. Không sửa raw hoặc tự tạo khóa học. Mapping này dựa trên bản tải đã kiểm tra; M2 phải giữ quy tắc và provenance. Xem [audit](../results/data_audit.md). Timestamp đều không có offset; chưa chốt timezone.
++Hai file tải ngày 09/10/2026 là JSON Lines. Catalog có ID string `C_<số>`;
++`course_order` trong user dùng integer. Prepare chỉ nối số với **mã có thật
++trong catalog**; string đã đúng mã nối nguyên trạng; bool/float/ID lạ bị cách ly.
++Không sửa raw hoặc tạo khóa thay thế. Xem [audit](../results/data_audit.md).
++Timestamp không có offset; pilot đã khóa giả định `source_local_naive`, giữ
++thứ tự trong từng người. Chưa xác minh timezone nguồn, không tuyên bố UTC.
+ 
+ ## 2. Bảng chuẩn sau làm sạch
+ 
+@@ -62,15 +72,27 @@ Lấy mẫu reservoir bằng `random.Random(seed)` trên toàn bộ người đ
+ 
+ `rejects` gồm `reason_code`, `user_id`, `raw_course_id`, `event_time_raw`, `source_record` (string nullable), và `count` (int64). `raw_course_id` mã hóa JSON để phân biệt integer, float, bool và string. Lỗi tương tác giữ vị trí slot; lỗi lịch sử giữ vị trí object. `iter_records` chỉ trả tổng số dòng JSON lỗi/object không hợp lệ nên các lỗi đó được ghi thành dòng tổng hợp theo file với `count`; không tuyên bố có số dòng nguồn chính xác. `duplicate_interaction` ghi lần bị gộp; `insufficient_history` ghi người còn dưới ba khóa. Lỗi và bản gộp của mọi user được thống kê trước lấy mẫu, kể cả người không được chọn; tổng `count` bằng tổng `error_counts` trong manifest.
+ 
+-### Feature Content — M4, sẽ xây
++### Feature Content — đã triển khai
+ 
+-Lưu riêng văn bản đã làm sạch, vectorizer/IDF, ma trận feature và `feature_manifest.json`: dataset/hash catalog, course ID đúng thứ tự, nguồn `name/about`, cleaning version, analyzer/ngram/vocabulary config, fit scope universe train và số vector rỗng. Profile chỉ từ train. Cấu hình char n-gram là lựa chọn thử theo [10](10_course_direction.md), không phải yêu cầu nguyên từ slide. Snapshot UI v1 không đổi trong đợt phân tích; nó nhận kết quả/evidence, không nhận ma trận TF-IDF.
++`models/content.py` lưu `vectorizer.joblib`, `course_features.npz`,
++`course_order.json`, `feature_manifest.json` trong `artifacts/content/` của
++batch. Manifest ghi course order, config/hash, `catalog_text_hash`, cleaning
++version, fit scope universe train và số vector rỗng; runner ràng buộc dataset/
++split qua experiment manifest. Văn bản được làm sạch từ `name + about`, không
++phát hành thêm file cleaned-text riêng. Profile chỉ từ train. Pilot dùng char
++ngram 2–4/min_df 1; snapshot chỉ nhận ranking/evidence, không nhận ma trận TF-IDF.
+ 
+-### P1: concept và cạnh tiền đề
++### P1: nguồn audit; chưa có bảng graph phục vụ
+ 
+-Giữ bảng concept có `concept_id`/tên; bảng liên kết có cặp `(concept_id, course_id)` duy nhất. Cạnh gồm `prerequisite_id` từ `c1`, `target_concept_id` từ `c2`, `label` từ `ground_truth`, `provenance` từ file/vị trí nguồn.
++`knowledge/audit.py` đọc concept JSON, mapping hai cột TAB và prerequisite JSON;
++muốn kiểm course coverage phải truyền thêm catalog khóa học. Audit báo cặp
++trùng, ID lạ, label, self-loop và SCC/cycle; không phát hành bảng graph/path.
++Đề xuất lịch sử về bảng concept/edge phục vụ sẽ cần contract/plan riêng.
+ 
+-Đối chiếu namespace/kiểu ID với catalog và bảng liên kết. Nhãn 0 không là cạnh; nhãn khác, gồm -1 **nếu xuất hiện**, được ghi `unknown_label`. `text_predict/graph_predict` không thay nhãn xác nhận trong MVP. Vòng lặp/self-loop được báo và xử lý theo tài liệu 05, không âm thầm xóa để có path đẹp.
++Đối chiếu ID chính xác. Chỉ `ground_truth` dạng số bằng 1 là cạnh dương; 0 không
++là cạnh; -1/chuỗi/bool/thiếu nhãn là unknown. Prediction không thay nhãn xác nhận.
++Chu trình được giữ và báo; không xóa lặng lẽ. [Audit thật chưa chạy](../results/graph_audit.md)
++do thiếu ba nguồn; P1 dừng, chưa có penalty/rerank/path.
+ 
+ ## 3. Dữ liệu lỗi xử lý thế nào?
+ 
+@@ -92,7 +114,12 @@ Prepare đặt bảng dưới `data/processed/<dataset_version>/`: `interactions
+ 
+ Dataset manifest ghi schema version, dataset version, time basis, seed, số user yêu cầu/đủ điều kiện/đã chọn, số user đã quét, enrollment trước dedup, số cặp sạch trước lấy mẫu, số dòng từng bảng, mã lỗi/tổng số lỗi, schema Arrow, đường dẫn/bytes/SHA-256 raw và SHA-256 bốn output Parquet. Manifest không tự hash chính nó; bước sau có thể SHA-256 file manifest để làm dataset identity. Hai lần cùng raw/config/phiên bản thư viện tạo cùng output hash; không hứa hash Parquet giống nhau qua mọi phiên bản PyArrow.
+ 
+-Bước split sau mới thêm `train.parquet`, `valid.parquet`, `test.parquet`, cohort đánh giá, candidate universe và `split_manifest.json`; P1 có thêm concept/mapping/edges.
++Split đã triển khai, ghi thư mục riêng `data/splits/<split_version>/` gồm
++`train.parquet`, `valid.parquet`, `test.parquet`, `valid_cohort.parquet`,
++`test_cohort.parquet`, `candidate_universe.parquet`, `split_manifest.json`.
++Cohort đánh giá có `user_id`, `course_id`, `target_in_train`; chỉ giữ target
++warm. Split ghi số cold/tie và kiểm time_basis với schema timestamp. Không
++có concept/mapping/edge artifact phục vụ P1 trong bản này.
+ 
+ Audit ghi số user/course, số đăng ký trước/sau lọc, lỗi theo loại, người có ít nhất ba khóa khác nhau, mốc thời gian, độ phủ lĩnh vực và graph. Độ thưa tính bằng `1 - số cặp user–course / (số user * số course)`; phải nói rõ catalog ở mẫu số.
+ 
+@@ -100,21 +127,49 @@ Raw manifest ghi URL, ngày tải, bytes, SHA-256. Split manifest ghi dataset ve
+ 
+ ## 5. Bản xuất cho RecBole
+ 
+-Từ **cùng split Parquet**, xuất TSV UTF-8 `mooc.train.inter`, `mooc.valid.inter`, `mooc.test.inter`. Header:
++Adapter đã chạy thật, xuất từ **cùng split Parquet** vào
++`<atomic_dir>/recsysedu/recsysedu.train.inter`, `recsysedu.valid.inter`,
++`recsysedu.test.inter` cùng `<atomic_dir>/export_manifest.json`. Header TSV UTF-8:
+ 
+ ```text
+ user_id:token<TAB>item_id:token<TAB>timestamp:float
+ ```
+ 
+-`<TAB>` là ký tự tab thật; `item_id` giữ course ID nguồn. Config dùng `benchmark_filename: [train, valid, test]`. Parser/exporter phải làm sạch trước, rồi kiểm số dòng/ID của loader; không để thư viện tự chia lại benchmark. [Atomic files](https://recbole.io/docs/user_guide/data/atomic_files.html), [data settings](https://recbole.io/docs/user_guide/config/data_settings.html).
++`<TAB>` là tab thật; `item_id` giữ course ID nguồn. Config dùng
++`benchmark_filename: [train, valid, test]`; adapter kiểm số dòng/ID và không
++cho thư viện chia lại benchmark. Timestamp số giữ thứ tự, không chứng thực
++timezone UTC cho nguồn naive. BPR artifact gồm `bpr.pth`, `id_maps.json`,
++`bpr_manifest.json`; padding/ID nội bộ không lọt vào score ID nguồn.
++[Atomic files](https://recbole.io/docs/user_guide/data/atomic_files.html),
++[data settings](https://recbole.io/docs/user_guide/config/data_settings.html).
++
++### Giao diện chấm điểm và artifact evaluator
++
++Contract đang dùng trong `contracts.py` là
++`score(user_id, candidate_ids) -> ScoreResult(course_ids, scores, fallback_status, evidence)`.
++`course_ids`: tuple string đúng thứ tự candidate; `scores`: NumPy 1D cùng độ
++dài, hữu hạn; `fallback_status`: string; `evidence`: mapping course ID sang
++tuple string. Evaluator chịu mask seen/Top10/tie-break, không giao cho model.
++
++Mỗi `<batch>/<run_dir>/` chứa `run_manifest.json`, `metrics.csv`,
++**`per_user_metrics.parquet`**, `recommendations.jsonl`. Parquet có `user_id`,
++`target_id`, `recommendation_count`, `train_history_count`, `fallback_status`
++và năm cột metric chuẩn. Ranking JSONL có `user_id`, `target_ids`, fallback,
++`items` gồm ID/rank/score/evidence. `<batch>/experiment_manifest.json` kiểm
++toàn bộ inventory/hash, component, selected alpha và source copies. Tên
++`run_dir` lấy từ `runs` trong manifest; không giả định mọi Hybrid nằm `runs/hybrid`.
+ 
+ ## 6. `demo_bundle.json` — file model giao cho UI
+ 
+-Đây là snapshot nhỏ cho các hồ sơ demo, không chứa toàn dữ liệu train hay checkpoint. Mẫu giả và bản thật dùng cùng schema; một snapshot cùng dataset, split và history mode. Loader và fixture v1 đã có; exporter từ model thật xây ở M10.
++Đây là snapshot nhỏ, không chứa toàn train/checkpoint. Exporter `demo/export.py`
++và loader `demo/artifacts.py` đã chạy thật. Một snapshot dùng cùng dataset,
++split, config, cohort và history policy; exporter chỉ nhận run đã được chọn
++trong batch hoàn tất và kiểm lại hash trước phát hành. Snapshot thật hiện ở
++`artifacts/demo/v1/demo_bundle.json` ngoài Git, ba hồ sơ/bốn model; hash ở final report.
+ 
+ | Phần | Trường chính | Ý nghĩa |
+ | --- | --- | --- |
+-| `meta` — object | `schema_version`, `snapshot_id`, `data_mode`, `dataset_version`, `dataset_hash`, `split_hash`, `protocol_id`, `history_mode`, `generated_at` | Nhận diện định dạng, nguồn và chế độ; `data_mode` là `synthetic` hoặc `real` |
++| `meta` — object | `schema_version`, `snapshot_id`, `data_mode`, `evidence_level`, `dataset_version`, `dataset_hash`, `split_hash`, `protocol_id`, `history_mode`, `generated_at` | Real P0 bắt buộc `evidence_level=offline_run`, `history_mode=offline`; synthetic có nhãn riêng |
+ | `users` — array | `user_id`, `display_name`, `observed_course_ids`, `profile_course_ids` | Lịch sử hiển thị/loại khỏi gợi ý và lịch sử thực sự dùng tạo profile |
+ | `courses` — array | `course_id`, `name`, `fields` | Catalog nhỏ đủ để hiển thị lịch sử, ranking và path |
+ | `runs` — array | `run_id`, `model_id`, `dataset_hash`, `split_hash`, `protocol_id`, `evaluation_split`, `cohort`, `cohort_size`, `candidate_policy`, `seen_policy`, `seed`, `config_hash`, `metric_status`, `metrics` | Mỗi model có run ID riêng; hash/protocol phải khớp meta |
+@@ -122,20 +177,38 @@ user_id:token<TAB>item_id:token<TAB>timestamp:float
+ | Mỗi `items` record | `course_id`, `rank`, `score`, `reason_codes`, `evidence`, `prerequisite_status` | Thứ hạng do pipeline tính; lý do và bằng chứng để UI đọc |
+ | `paths` — array | Hiện để `[]` | Loader base từ chối path có nội dung; schema path sẽ mở rộng và kiểm tra khi P1 đạt |
+ 
+-`model_id` dùng `popularity`, `content`, `bpr`, `hybrid`; có thể thêm `hybrid_prerequisite` khi P1 đạt. `metric_status` là `measured` hoặc `not_available`; trường hợp chưa chạy thì `metrics=null`, không dùng số 0. Metric map dùng tên chuẩn như `NDCG@10`, `Recall@10`, `HitRate@10`, `Coverage@10`. Khi `evaluation_split=demo`, không gắn metric offline cho ranking live.
++Exporter real P0 chỉ nhận `popularity`, `content`, `bpr`, `hybrid`, split valid
++hoặc test. Loader còn nhãn dự phòng `hybrid_prerequisite`, nhưng chưa có model
++P1 hoặc real export cho nhãn đó. `metric_status` là `measured`/`not_available`;
++chưa đo thì `metrics=null`, không điền0. Năm key chuẩn: `NDCG@10`, `Recall@10`,
++`HitRate@10`, `Precision@10`, `Coverage@10`. Chế độ demo/synthetic không nhận
++metric offline cho ranking live; không phải luồng sản phẩm thật đã nghiệm thu.
+ 
+-ID/tên là string, danh sách ID/lý do/evidence là array, rank là số nguyên từ 1, score/metric là số hữu hạn, seed có thể null với model không dùng ngẫu nhiên. `generated_at` ghi thời gian ISO-8601 có timezone. Mỗi bước path có `concept_id`, tên, trạng thái tiếp xúc và danh sách course tham khảo; P1 ghi graph version cùng nguồn cạnh trong artifact/run manifest.
++ID/tên là string; danh sách ID/lý do/evidence là array; rank là số nguyên từ1;
++score/metric hữu hạn; seed có thể null với model không ngẫu nhiên.
++`generated_at` là ISO-8601 có timezone. **`paths=[]` là contract v1 hiện tại**;
++mọi path có nội dung bị từ chối, chưa có schema bước path hoạt động.
+ 
+ Trong chế độ `offline`, `profile_course_ids` chỉ từ train; `observed_course_ids` là train ở valid, train+valid ở test. Như vậy UI biết phần đã quan sát để loại khóa nhưng không hiểu nhầm valid đã được dùng học profile. Chế độ `demo` có thể dùng lịch sử người chọn, nhưng phải ghi nguồn profile và không nhận là benchmark offline.
+ 
+-`prerequisite_status` dùng bốn giá trị: `missing_exposure` (còn tiền đề chưa thấy tiếp xúc), `no_missing_exposure` (tiền đề được quan sát đều có dấu hiệu tiếp xúc), `no_observed_prerequisite` (graph có mapping nhưng chưa thấy cạnh tiền đề), `unknown` (không đủ graph/mapping). Không trạng thái nào có nghĩa “đã thành thạo”. Path dùng `ok`, `unknown`, `cycle_blocked` hoặc `truncated`; có tối đa 20 concept theo quy tắc ở [05](05_evaluation.md).
++Loader giữ bốn nhãn prerequisite: `missing_exposure`, `no_missing_exposure`,
++`no_observed_prerequisite`, `unknown`. **Exporter P0 luôn ghi `unknown`**;
++không dùng nhãn dự phòng như bằng chứng đã có graph. Không nhãn nào có nghĩa
++thành thạo. Ý tưởng lịch sử về path20 concept/cycle/truncated chưa triển khai
++và cần schema/plan riêng, không phải cam kết của v1.
+ 
+ **Khi load phải kiểm tra:** schema/version, ID tham chiếu, run đúng dataset/split, rank/khóa không trùng, score hữu hạn, khóa đã quan sát không nằm trong Top-K. Cache gắn với snapshot/user/model/run; đổi snapshot không được giữ kết quả cũ. Mismatch là lỗi rõ ràng, không tự chuyển sang dữ liệu giả.
+ 
+-Mẫu có thể chỉ có một model và metric chưa chạy. UI chỉ hiện lựa chọn thực sự có kết quả. Không cần mọi trường phụ hay đầy đủ graph để kiểm contract; hiện ưu tiên lõi model/đánh giá, tích hợp hiển thị ở M10 tuần 5.
++Fixture có thể ít model/metric chưa đo. UI chỉ hiện lựa chọn thực sự có kết
++quả. Snapshot thật và hai tab đã tích hợp/kiểm trình duyệt; giới hạn bằng chứng
++ở [nghiệm thu](../reports/acceptance.md). Artifact người học không commit Git.
+ 
+-## 7. Mẫu kiểm tra cần có
++## 7. Mẫu kiểm tra đã có
+ 
+-Fixture ghi nhãn **SYNTHETIC**, dùng ID/tên giả. Mẫu UI có ít nhất ba hồ sơ, trường hợp mới, ranking ngắn và thiếu graph. Mẫu logic dữ liệu có ID mồ côi, mảng lệch, timestamp lỗi/hòa, enrollment trùng và target cold; mẫu graph có A→B→C, nhãn 0/-1, self-loop, cycle và concept không nối được.
++Fixture trong Git ghi nhãn **SYNTHETIC**, dùng ID/tên giả. Mẫu UI có ba hồ sơ,
++người mới, ranking ngắn và thiếu graph. Test prepare/split có ID mồ côi, mảng
++lệch, timestamp lỗi/hòa, enrollment trùng, target cold; test audit graph có
++A→B→C, nhãn 0/-1, self-loop, cycle và concept không nối được. Kiểm browser
++danh sách rỗng dùng bản sao fixture synthetic riêng, không sửa snapshot thật.
+ 
+ Fixture chứng minh xử lý đúng các tình huống; chưa chứng minh model tốt trên MOOCCubeX. Khi thay schema, cập nhật tài liệu này, fixture, exporter và loader trong cùng PR.
+diff --git a/docs/05_evaluation.md b/docs/05_evaluation.md
+index f404224..52e7e33 100644
+--- a/docs/05_evaluation.md
++++ b/docs/05_evaluation.md
+@@ -1,112 +1,162 @@
+-# 05 — So sánh mô hình thế nào cho công bằng?
++# 05 — So sánh mô hình công bằng
+ 
+-Cập nhật: 09/10/2026. Đây là quy tắc đánh giá dự kiến, chưa có metric thật. Chỉ số đo khả năng tìm lượt đăng ký được giữ lại; chưa đo năng lực hoặc hiệu quả học tập. Thuật ngữ ở [trang bắt đầu](README.md).
++Cập nhật 16/10/2026. Đây là **protocol P0 đang dùng**, đã có validation và test
++thật, không còn là đề xuất chưa chạy. Xem [validation](../results/pilot/validation_report.md),
++[test cuối](../results/final/report.md), [nghiệm thu](../reports/acceptance.md).
++Metric đo tìm lượt đăng ký giữ lại; chưa đo năng lực hoặc lợi ích học tập.
+ 
+-Căn cứ L8 và điểm cần chốt so với slide ở [11, mục 4](11_course_reading_notes.md). Dự án chọn Top-10 từ enrollment, không dùng MAE/RMSE của ratings làm chỉ số chính. Coverage đo độ phủ catalog, không thay diversity trong một danh sách.
++Căn cứ môn học L8 và phần dự án lựa chọn ở [ghi chú nguồn, mục 4](11_course_reading_notes.md).
++Enrollment là tín hiệu đăng ký, không có rating để coi MAE/RMSE là metric chính.
++Coverage đo phủ catalog, không thay diversity bên trong từng danh sách.
+ 
+-## 1. Ý tưởng qua một ví dụ
++## 1. Ví dụ và quy tắc bắt buộc
+ 
+-Một user đăng ký A → B → C → D theo thời gian khác nhau. Dùng A/B để học mô hình (**train**), giữ C để chọn tham số (**valid**), giữ D để kiểm tra cuối (**test**). Không cho model nhìn C/D khi học profile.
++Một người đăng ký A→B→C→D ở các thời điểm khác nhau. A/B là train để học;
++C là valid để chọn tham số; D là test cuối. Model/profile không nhìn C/D
++khi học. Mục tiêu: khóa giữ lại có vào Top10, đứng ở vị trí nào?
+ 
+-Mục tiêu kiểm tra: khóa giữ lại có nằm trong Top-10 không, và đứng ở vị trí nào? Bốn model phải có cùng user, target, danh sách khóa được chấm và quy tắc loại khóa đã quan sát.
++Protocol ID là `leave_last_two_out_v1`. Sau làm sạch, cần ít nhất 3 khóa khác
++nhau. Khóa cuối là test, áp chót valid, trước đó train. Ba mốc cuối phải tăng
++nghiêm ngặt; timestamp hòa tại ranh giới bị cách ly và đếm, không dùng ID để
++tạo thứ tự giả. Pilot chọn 10.000 người, seed 20261016; loại 35 người có thời
++gian hòa tại ranh giới, còn 9.965 người temporal. Timestamp giữ source-local
++naive, không chứng thực UTC.
+ 
+-## 2. Cách chia dữ liệu
+-
+-Sau làm sạch/gộp trùng, user cần ít nhất ba khóa khác nhau. Lượt cuối là test, áp chót là valid, phần trước là train. Hai ranh giới train→valid→test phải tăng thời gian nghiêm ngặt. Timestamp bằng nhau tại ranh giới thì cách ly khỏi nhóm temporal và thống kê; không dùng ID để bịa thứ tự.
+-
+-| Giai đoạn | Model/profile/tiếp xúc concept lấy từ đâu? | Khóa bị loại khỏi gợi ý |
++| Giai đoạn | Model và profile lấy từ đâu? | Khóa loại khỏi Top10 |
+ | --- | --- | --- |
+-| Valid | Train | Train của user |
+-| Test | Vẫn train, giữ model/param đã chọn | Train + valid của user |
+-
+-Valid ở test chỉ dùng để biết khóa đã quan sát và loại khỏi gợi ý, không dùng cập nhật profile/retrain. Test target luôn được giữ trong candidate khi thuộc benchmark. Muốn retrain bằng train+valid phải tạo protocol riêng và áp dụng cho mọi model.
+-
+-**Giới hạn cần ghi trong báo cáo:** cách chia trên tránh nhìn tương lai của chính user, nhưng train của user khác có thể xảy ra sau test của user này. Catalog/metadata tĩnh cũng chưa có availability theo thời gian. Muốn mô phỏng dự đoán tại thời điểm thực cần thí nghiệm riêng với mốc toàn cục T1/T2 và availability khóa; không trộn hai bảng metric.
++| Valid | Chỉ train | Train của người đó |
++| Test | Giữ nguyên model/profile train đã khóa | Train + valid của người đó |
+ 
+-## 3. Nhóm người và danh sách khóa
++Valid ở test chỉ thêm vào seen mask, không retrain/cập nhật Content profile.
++Muốn train+valid phải tạo protocol mới và chạy mọi model theo cùng quy tắc.
+ 
+-Benchmark chính là **warm-start**: user có train và target có tương tác train ở toàn bộ dataset. Universe gồm khóa đã có tương tác train, rồi loại các khóa đã quan sát theo bảng trên. Lưu cohort valid/test riêng; mọi model dùng cùng cohort của split đó.
++## 2. Cohort, candidate và ranking
+ 
+-Target chưa có tương tác train là **cold-item**, báo số lượng và đánh giá Content/fallback riêng nếu làm. Không đưa embedding BPR chưa học vào rồi nhận đã giải quyết cold-start.
++Các điểm dưới đây là điều kiện benchmark bắt buộc, dùng chung cho bốn model:
+ 
+-Ưu tiên **full ranking**: chấm toàn bộ universe chung. Candidate union Top-50/model chỉ là tối ưu demo có kiểm tra candidate recall riêng; không đem so trực tiếp với full ranking. Nếu buộc chấm mẫu, khóa cùng candidate file/seed cho mọi model và ghi protocol khác.
++- **Warm cohort:** user có train và target thuộc các khóa đã có tương tác train.
++  Valid 9.909 người; test 9.858 người. Cold target valid 56/test 107 được báo riêng,
++  không âm thầm đưa embedding chưa học vào benchmark.
++- **Candidate universe:** đúng tập khóa có tương tác train, 2.586 khóa. Chấm
++  toàn universe cho mỗi người, rồi mask seen theo bảng trên; không sampled
++  negatives hoặc candidate union riêng cho một model.
++- Model trả score đúng thứ tự candidate theo [contract](04_data_contract.md).
++  Evaluator loại seen, xếp score giảm dần, hòa thì `course_id` tăng dần,
++  lấy tối đa K=10. Không padding/ID lạ/trùng/NaN/inf.
++- Ít hơn 10 candidate chưa thấy thì trả danh sách ngắn và đếm, không chèn khóa
++  giả. Các run thật hiện không có short list/fallback trong warm cohort.
+ 
+-Loại ID lạ, padding RecBole và duplicate. Điểm bằng nhau: course ID tăng dần. K=10; ít hơn 10 candidate vẫn trả danh sách ngắn và báo số user gặp trường hợp đó, không chèn khóa giả.
++`full_train_universe`, `train_only`, `train` hoặc `train_plus_valid` là policy
++được ghi trong run manifest. Đổi candidate/mask/cohort là đổi protocol, không
++ghép trực tiếp với bảng P0 này. Benchmark warm chưa đánh giá người mới/khóa mới.
+ 
+-## 4. Chỉ số cần hiểu
++## 3. Metric và phép kiểm
+ 
+-| Chỉ số | Câu hỏi nó trả lời |
++| Metric | Ý nghĩa đơn giản |
+ | --- | --- |
+-| NDCG@10 — chính | Khóa đúng có đứng gần đầu danh sách không? |
+-| HitRate@10 | Bao nhiêu user có target nằm trong Top-10? |
+-| Recall@10 | Tìm được bao nhiêu target giữ lại? |
+-| Precision@10 | Bao nhiêu trong 10 vị trí là target? |
+-| Coverage@10 | Có bao nhiêu khóa khác nhau được gợi ý so với universe? |
++| NDCG@10 — chính | Ưu tiên target xuất hiện gần đầu danh sách |
++| HitRate@10 | Tỷ lệ người có target trong Top10 |
++| Recall@10 | Tỷ lệ target giữ lại được tìm thấy |
++| Precision@10 | Số target tìm thấy chia10 vị trí |
++| Coverage@10 | Số khóa khác nhau được gợi ý chia universe2.586 |
+ 
+-Với **một target/user**, Recall = HitRate; Precision = HitRate/10. Không trình bày chúng như ba bằng chứng độc lập. NDCG cho một target ở rank 1 là 1, rank 2 khoảng 0,6309, ngoài Top-10 là 0. Đây là ví dụ tính tay, không phải kết quả model.
+-
+-### Công thức cho người viết evaluator
+-
+-Với `G_u` là target của user, `R_u` là tối đa K gợi ý:
++Với một target/người, HitRate=Recall và Precision=HitRate/10; không gọi đó là
++ba bằng chứng độc lập. Target rank1 có NDCG1; rank2 là1/log2(3)≈0,63093;
++miss là0. Đây là ví dụ tính tay, không phải metric mô hình.
+ 
+ ```text
+-Hit@K(u)       = 1 nếu R_u giao G_u khác rỗng, ngược lại 0
+-Recall@K(u)    = |R_u giao G_u| / |G_u|
+-Precision@K(u) = |R_u giao G_u| / K
+-DCG@K(u)       = tổng rel(rank) / log2(rank + 1), rank bắt đầu từ 1
+-NDCG@K(u)      = DCG@K(u) / IDCG@K(u)
+-IDCG@K(u)      = tổng 1 / log2(rank + 1), rank từ 1 đến min(K, |G_u|)
+-Coverage@K    = số course khác nhau được gợi ý / số course trong universe
++Hit(u)        = 1 nếu target nằm trong Top10, ngược lại 0
++Recall(u)     = số target tìm thấy / số target giữ lại
++Precision(u)  = số target tìm thấy / 10, kể cả danh sách ngắn
++DCG(u)        = tổng relevance(rank) / log2(rank+1)
++NDCG(u)       = DCG(u) / IDCG(u)
++Coverage      = kích thước hợp khóa đã gợi ý / kích thước universe chung
+ ```
+ 
+-Lấy trung bình mỗi user với trọng số bằng nhau. Precision vẫn chia K dù danh sách ngắn; Coverage dùng universe chung trước seen mask. Evaluator dự án là nguồn so sánh; đối chiếu RecBole chỉ khi ID/candidate/mask giống nhau. [RecBole evaluation settings](https://recbole.io/docs/user_guide/config/evaluation_settings.html).
+-
+-IDCG lấy từ ground truth hợp lệ, không từ số hit model tìm được. Miss vẫn có IDCG=1 trong protocol một target, NDCG=0. Recall dùng mẫu số `|G_u|`; biến thể chia `min(|G_u|, K)` ở L8 p12 cho cùng kết quả khi một target, nhưng cần tách định nghĩa nếu mở nhiều target.
+-
+-## 5. Chọn tham số và thời điểm mở test
++IDCG lấy từ ground truth hợp lệ, không lấy số hit của model; một target thì
++IDCG=1 ngay cả khi miss. Trung bình NDCG/hit/recall/precision theo người với
++trọng số bằng nhau. Coverage là hợp khóa toàn cohort, không trung bình coverage
++của từng người. Định nghĩa nhiều-target cần protocol riêng nếu mở rộng.
+ 
+-Trong tuần 1–5, chỉ dùng valid để chọn cấu hình. Khóa dataset/cohort/seed/alpha/lambda ở **D25**. Chạy test chính thức từ **D26**; Model Lab không mở test sớm để tuning.
++Code `evaluation/metrics.py`, `ranking.py`, `run.py` dùng chung mọi model.
++Task13 tính độc lập lại metric từ target/thứ tự đã lưu và so per-user Parquet/
++aggregate với sai số tối đa1e-12; kiểm seen/universe/rank/score/hash toàn batch.
++Đối chiếu RecBole chỉ có nghĩa khi cùng ID/candidate/mask; metric RecBole mặc
++định không được dùng thay bảng chung. [Thiết lập upstream](https://recbole.io/docs/user_guide/config/evaluation_settings.html).
+ 
+-BPR dùng enrollment dương. Negative sampling lấy trong universe train và loại positive train của user; không dùng target valid/test để chỉnh sampler cho có lợi. Ghi sampler/seed/config.
++## 4. Chọn tham số trước test
+ 
+-Budget ban đầu: BPR tối đa 6 cấu hình; alpha `{0, 0.25, 0.5, 0.75, 1}`; nếu P1 bật, lambda `{0, 0.1, 0.2}`. Đây là tập thử, chưa phải tham số tối ưu. Alpha 0/1 tốt nhất thì báo kết hợp chưa có lợi.
++Validation đã chạy ba cấu hình BPR dưới budget tối đa6, seed17,CPU,batch2048,
++tối đa10 epoch, early stopping warm valid NDCG@10/stopping_step2. RecBole đếm
++lần thấp hơn best achieved; bằng best đặt lại bộ đếm. Cả ba chạm10 epoch,
++không khẳng định hội tụ. Chọn embedding32/lr0,01 bằng valid.
+ 
+-Thử một seed trước; tối đa ba seed cuối cho BPR nếu thời gian đo được cho phép. Có nhiều seed thì báo mean/std; một run phải ghi rõ một run. Nếu tính khoảng tin cậy, dùng paired bootstrap theo user và mô tả cách tính. Không nhận chênh lệch nhỏ là chắc chắn khi chưa có bằng chứng.
++Negative sampling uniform trong train universe, loại positive train của người;
++không dùng valid/test target để chỉnh sampler. Hybrid min–max trên full universe
++trước seen mask, thử alpha `[0,0.25,0.5,0.75,1]` bằng valid; chọn0,25. Alpha0/1
++đã kiểm khớp ranking Content/BPR toàn valid cohort.
+ 
+-## 6. P1: tiền đề và lộ trình
++Freeze khóa dataset/split/config/hash validation manifest. Sau đó full test
++chạy **đúng một lần** ngày16/10/2026, không tune theo test. Model/profile vẫn
++train-only, dùng nguyên checkpoint/Content đã chọn. [Final report](../results/final/report.md)
++lưu kết quả, hash, runtime và lỗi; `configs/final_experiments.yaml` là authority
++frozen. Người nhận không chạy lại test để tìm config thắng hơn.
+ 
+-Concept là một khái niệm, ví dụ đệ quy. Cạnh A→B nghĩa là A cần trước B theo nguồn graph. Lịch sử đăng ký chỉ tạo tập concept **có dấu hiệu tiếp xúc**, không phải đã biết.
++Lịch D25 freeze/D26 test, tối đa3 seed và lambda tiền đề là **đề xuất lịch sử**;
++bản thực thi có một seed, không P1/lambda. Không có mean/std đa seed, khoảng
++tin cậy hoặc kiểm định thống kê. Không diễn giải chênh lệch như thắng chắc chắn.
+ 
+-Gọi `C(course)` là concept của khóa, `E(user)` là concept từ khóa train đã đăng ký:
++## 5. Phân tích lịch sử sau test — không phải protocol chọn mẫu
+ 
+-```text
+-P_direct(course) = {p: có cạnh p → c, c thuộc C(course)} trừ C(course)
+-missing(course)  = P_direct(course) trừ E(user)
+-missing_ratio   = |missing| / |P_direct|, khi mẫu số > 0
+-```
+-
+-Penalty dùng tiền đề trực tiếp. Không có mapping là unknown; có mapping nhưng không thấy cạnh là `no_observed_prerequisite`; penalty 0 trong hai trường hợp nhưng trạng thái khác nhau. Báo coverage và chỉ lấy trung bình missing ratio trên khóa có tiền đề được quan sát, kèm mẫu số/số unknown.
+-
+-Path dùng các concept tổ tiên của mục tiêu, bỏ concept mục tiêu khỏi phần tiền đề, giữ phần cần bổ sung, sắp thứ tự trước–sau rồi nối mục tiêu. Course liên quan được gắn như tài nguyên tham khảo, không gọi là quan hệ course-prerequisite đã xác nhận.
++Final report mô tả ba nhóm theo số khóa **train**:
+ 
+-Thứ tự topo phải ổn định; tối đa 20 concept, còn phần chưa hiện thì `truncated`. Vòng lặp trong phần liên quan thì `cycle_blocked`; không âm thầm xóa cạnh. Kiểm 3–5 case có nguồn nếu dữ liệu đủ; báo độ phủ, số bước, tỷ lệ tạo được/thất bại.
++| Nhóm mô tả | Số khóa train | Số người warm test |
++| --- | ---: | ---: |
++| Ít | 1–4 | 6.110 |
++| Giữa | 5–19 | 2.285 |
++| Nhiều | Từ20 | 1.463 |
+ 
+-Giảm missing ratio trên graph dùng để rerank chỉ chứng minh thuật toán làm đúng chỉ báo đó. Chưa chứng minh học tốt hơn. Nếu review case, ghi người đánh giá/tiêu chí/giới hạn; học tập thực cần nghiên cứu riêng.
++Đây là phân tích lỗi **sau khi mở test**, không dùng để tune alpha/BPR hoặc
++lọc cohort benchmark. Cả9.858 người vẫn ở bảng tổng. Coverage nhóm dùng hợp
++gợi ý trong nhóm chia cùng universe2.586. Phương án cũ ít1–3/nhiều từ4 chỉ là
++đề xuất lịch sử, chưa phải contract và không phải ngưỡng đã dùng trong final report.
+ 
+-## 7. Bảng thí nghiệm tối thiểu
++Hybrid đứng đầu NDCG toàn cohort nhưng không thắng BPR ở nhóm nhiều lịch sử;
++giữ kết quả đó. Ba hồ sơ demo lấy theo min/median/max history, không chọn chỉ
++các hit; xem mô tả giới hạn đại diện ở final report. Không suy ra nguyên nhân
++thấp điểm chỉ từ nhóm; kiểm giả thuyết cần thí nghiệm validation mới.
+ 
+-| Mã | So sánh | Điều kiện |
+-| --- | --- | --- |
+-| E1 | MostPopular / Content / BPR | Cùng split/cohort/universe/mask |
+-| E2 | BPR / Content / Hybrid | Alpha chọn từ valid |
+-| E3 — P1 | Hybrid / Hybrid + tiền đề | Cùng graph-covered cohort, có lambda=0 |
+-| E4 | Ít / nhiều lịch sử | Ít: 1–3 khóa train; nhiều: từ 4; báo cỡ mẫu |
+-| E5 — tùy chọn | Full ranking / candidate union | Tách bảng, đo candidate recall và thời gian |
+-
+-Metric 0 vẫn hợp lệ. Không chọn lại user/split dựa trên test score để tăng kết quả. Nếu phải đổi dataset/protocol, phát hành version mới và chạy lại tất cả model trong bảng.
++## 6. Artifact đã phát hành
+ 
+-## 8. File phải lưu sau mỗi run
++Trong `<batch>/<run_dir>/` (lấy đường dẫn từ `experiment_manifest.json`):
+ 
+-`run_manifest.json`, `metrics.csv`, `per_user_metrics.csv`, `recommendations.jsonl`, config đã dùng, environment lock; BPR có train log/checkpoint/ID map. Manifest ghi run ID, model ID, seed, raw/dataset/split/graph hash, protocol ID, cohort size, candidate/seen policy, history mode, thời gian/thiết bị và Git revision hoặc trạng thái chưa có Git.
+-
+-Model Lab chỉ ghép các run tương thích. Snapshot UI theo [04](04_data_contract.md) có nhãn mẫu/thật, run metadata và metric chưa có thì `not_available`. `history_mode=demo` không gắn metric offline cho ranking live; `history_mode=offline` giữ đúng profile/mask ở mục 2.
++| File | Nội dung |
++| --- | --- |
++| `run_manifest.json` | Identity/hash/policy/cohort/model config/metrics/runtime/output hashes |
++| `metrics.csv` | Một dòng metric tổng hợp của run |
++| `per_user_metrics.parquet` | Target, history count, fallback, số gợi ý và metric từng người |
++| `recommendations.jsonl` | Ranking/source IDs/rank/score/evidence từng người |
++
++Batch ở `results/local/pilot-final/<valid hoặc test>/<batch_id>/`, ngoài Git.
++`experiment_manifest.json` ràng buộc dataset/split/config/component và inventory
++hash. BPR có checkpoint/ID map/manifest; Content có vectorizer/sparse features/
++manifest. Tên batch exact/hash/cách chuyển ở final report và [runbook](09_runbook.md).
++
++Exporter chỉ nhận các run được chọn của batch tương thích và kiểm hash trước
++khi tạo `artifacts/demo/v1/demo_bundle.json`. UI chỉ hiển thị metric đã đo, không
++điền0 cho chưa có số liệu. Snapshot thật có history offline; source clone mặc
++định là fixture synthetic. Kiểm browser/CSV khác với kiểm tính đúng model.
++
++## 7. P1 và giới hạn còn lại
++
++`knowledge/audit.py` đã kiểm fixture label/ID/coverage/self-loop/cycle. Thiếu
++ba nguồn graph thật nên [P1_STOP_INSUFFICIENT_EVIDENCE](../results/graph_audit.md),
++real audit chưa chạy. Penalty tiền đề, lambda, topo/path20 concept là ý tưởng
++lịch sử chưa triển khai; cần dữ liệu/audit và plan/schema mới. P0 `paths=[]`,
++prerequisite unknown. Enrollment không chứng minh tiếp xúc concept hoặc mastery.
++
++Per-user split vẫn cho phép train của người khác nằm sau target của một người;
++catalog tĩnh chưa có availability theo thời gian. Một pilot/một seed chưa
++chứng minh tổng quát, cold-start hoặc learning gain. Muốn global-time/retrain/
++dataset mới phải validation/freeze và chạy lại mọi model theo protocol mới;
++giữ bảng cũ để truy vết thay vì sửa số liệu cũ.
+diff --git a/docs/README.md b/docs/README.md
+index b36104f..1d34ae3 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -1,14 +1,24 @@
+ # Bắt đầu đọc tài liệu RecSysEdu
+ 
+-Cập nhật: 09/10/2026. Bộ tài liệu mô tả hướng triển khai trong **sáu tuần**. Đã có package/CLI, base UI hai tab và raw user/course đã tải/audit; chưa có split hoặc kết quả huấn luyện. Người mới chạy theo [runbook](09_runbook.md), xem [audit thật](../results/data_audit.md) và [bằng chứng base](../results/base_verification.md).
++Cập nhật: 16/10/2026. **P0 offline đã có dữ liệu/split thật, bốn mô hình,
++validation, test sau freeze và snapshot thật.** Đã kiểm trình duyệt và môi trường
++Python sạch trên cùng máy Windows. Xem [nghiệm thu](../reports/acceptance.md),
++[kết quả test](../results/final/report.md), [tái lập](../results/reproduction.md)
++và chạy theo [runbook](09_runbook.md). Các báo cáo base ngày09/10 và lịch sáu
++tuần là nhật ký/kế hoạch lịch sử, không thay cho trạng thái hiện tại.
+ 
+ ## Dự án làm gì?
+ 
+-Đọc [10 — Hướng đồ án theo môn học](10_course_direction.md) để hiểu vì sao chọn phương pháp và [11 — Ghi chú nguồn](11_course_reading_notes.md) để kiểm bài/trang. Hiện tập trung bài toán, dữ liệu, model và đánh giá; UI chỉ được phân tích chức năng, chưa phát triển thêm.
++Đọc [10 — Hướng đồ án theo môn học](10_course_direction.md) để hiểu vì sao chọn
++phương pháp và [11 — Ghi chú nguồn](11_course_reading_notes.md) để kiểm bài/trang.
++Demo hiện có hai tab đọc kết quả đã tính, không train khi bấm. Clone Git mặc
++định mở fixture có nhãn; snapshot thật và dữ liệu/model phải nhận riêng.
+ 
+ **RecSysEdu** là tên dự án mã nguồn. **LearnPath** là tên giao diện demo. Hệ thống đọc lịch sử đăng ký khóa học, xếp hạng các khóa chưa đăng ký và giải thích vì sao chúng được gợi ý.
+ 
+-Ví dụ minh họa: một người từng đăng ký Python có thể được gợi ý khóa về lập trình hoặc dữ liệu. Nếu có thông tin kiến thức cần học trước, giao diện cho biết nên kiểm tra những kiến thức nào. Đăng ký một khóa chưa chứng minh người đó đã học xong hoặc đã thành thạo.
++Ví dụ minh họa: một người từng đăng ký Python có thể được gợi ý khóa về lập
++trình hoặc dữ liệu. P0 chỉ giải thích cơ chế tính điểm, chưa xác nhận tiền đề
++hoặc tạo lộ trình. Đăng ký chưa chứng minh đã học xong hoặc thành thạo.
+ 
+ ## Hướng đi chung
+ 
+@@ -23,10 +33,10 @@ Ví dụ minh họa: một người từng đăng ký Python có thể được
+ 
+ DuckDB giúp lọc và thống kê bảng Parquet. RecBole giúp huấn luyện BPR. Streamlit dựng giao diện bằng Python. Cloud/Drive chỉ cần khi chia sẻ hoặc sao lưu file; chưa cần database hay backend riêng cho demo sáu tuần.
+ 
+-| Phạm vi | Cần làm |
++| Phạm vi | Trạng thái hiện tại |
+ | --- | --- |
+-| **P0 — bắt buộc** | Dữ liệu sạch; cách đánh giá chung; MostPopular, Content, BPR, Hybrid; lý do gợi ý; hai tab UI; báo cáo và hướng dẫn chạy |
+-| **P1 — có điều kiện** | Dữ liệu concept/kiến thức tiên quyết đủ dùng thì thêm xếp hạng lại và lộ trình; thiếu dữ liệu phải ghi rõ |
++| **P0 — bắt buộc** | Đã có pipeline, evaluator, MostPopular/Content/BPR/Hybrid, snapshot và hai tab; kết quả/giới hạn ở báo cáo nghiệm thu |
++| **P1 — có điều kiện** | Có công cụ audit và fixture; chưa chạy graph thật vì thiếu ba nguồn; `P1_STOP_INSUFFICIENT_EVIDENCE`, chưa rerank/path |
+ | **P2 — sau sáu tuần** | LightGCN, video/bài tập, đánh giá năng lực, React/FastAPI/PostgreSQL hoặc web nhiều người dùng |
+ 
+ Hybrid không tốt hơn BPR vẫn có thể đạt yêu cầu nếu triển khai và đánh giá đúng. Thiếu BPR/Hybrid là thiếu P0; thiếu graph được báo riêng là P1 chưa đạt.
+@@ -47,7 +57,9 @@ Hybrid không tốt hơn BPR vẫn có thể đạt yêu cầu nếu triển kha
+ | Công việc cụ thể theo ngày | [Lịch sáu tuần](../tasks/six_week_schedule.md) và [task kỹ thuật](../tasks/plan.md) |
+ | Cùng sửa mã qua GitHub | [CONTRIBUTING](../CONTRIBUTING.md) |
+ 
+-Người mới đọc trang này, tài liệu 10, rồi tài liệu 01 và phần việc mình nhận. Chốt đầu vào/đầu ra và căn cứ thuật toán trước khi tiếp tục làm sản phẩm.
++Người mới đọc trang này, báo cáo nghiệm thu, runbook rồi phần việc mình nhận.
++Tài liệu10/11 giải thích căn cứ lựa chọn ban đầu; docs03/04/05 mô tả kiến trúc,
++contract và protocol đang dùng. Lịch cũ không có quyền đổi freeze/test đã công bố.
+ 
+ ## Các từ thường gặp
+ 
+@@ -68,8 +80,16 @@ Người mới đọc trang này, tài liệu 10, rồi tài liệu 01 và phầ
+ | Fallback / unknown | Cách gợi ý dự phòng / chưa đủ thông tin |
+ | Prerequisite / graph | Kiến thức cần trước / các khái niệm nối bằng quan hệ trước–sau |
+ 
+-## Sáu tuần sẽ bàn giao gì?
++## Kế hoạch sáu tuần và kết quả đã có
+ 
+-Tuần 1 làm dữ liệu và thử môi trường BPR. Tuần 2 có MostPopular/Content TF-IDF và evaluator. Tuần 3 đủ bốn mô hình. Tuần 4 phân tích lỗi và kiểm tra có làm được graph/lộ trình không. Tuần 5 mới ghép demo tối thiểu với kết quả thật và khóa cấu hình. Tuần 6 đánh giá cuối, báo cáo và thử bàn giao trên môi trường sạch. Base mẫu đã có không là lý do dành thêm tuần 1–4 cho trang trí UI.
++Lịch lịch sử chia dữ liệu/BPR spike→baseline→bốn model→cổng P1→demo/freeze→test/
++tái lập. Công việc P0 này đã được thực thi; không khẳng định sáu tuần thực tế
++đã trôi qua. Pilot10.000 người tạo9.909 warm valid/9.858 warm test và2.586
++candidate. Hybrid alpha0,25 có test NDCG@10=0,0773727819; đó là một pilot/một
++seed, không phải bằng chứng học tốt hơn hoặc thắng mọi nhóm.
+ 
+-Download/audit/demo validate đã chạy theo [runbook](09_runbook.md); prepare/split/train/evaluate/graph vẫn là **phần sẽ xây**. Khi thay quy ước dữ liệu, sửa tài liệu 04, loader, fixture và các bên dùng dữ liệu trong cùng thay đổi; tránh mỗi người hiểu một định dạng.
++Prepare/split/RecBole/evaluate/export đã chạy trên dữ liệu thật. Graph thật
++chưa chạy. Danh sách trạng thái/bằng chứng ở [todo](../tasks/todo.md), hướng dẫn
++chuyển artifact ngoài Git ở runbook. Thay data/config/protocol cần validation
++và freeze mới; không dùng test đã mở để chọn lại tham số. Khi đổi contract,
++sửa docs04, loader, fixture, exporter và các bên dùng cùng một thay đổi.

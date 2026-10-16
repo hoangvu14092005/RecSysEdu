@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
+    "sha256": "4388127f04604a7c946a7c34c1269aa425dd7b7d264c89013ceaf9969209ca35",
+    "bytes": 6950
+  },
+  "artifact": {
+    "path": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+    "sha256": "b9dd7ab2728fa7e02f2e1aae57835e2b09e479132310b2b937d101c171f4caee",
+    "bytes": 846941
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.finalize.json",
+    "summaryReceipt": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.finalize-summary.json",
+    "browserCheckReceipt": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.1.0",
+    "availableVersion": "3.1.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-15T04:26:46.563Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2517,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 5,
+      "routesOverSuggestedBends": 3,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "cli-raw",
+            "from": "download",
+            "to": "mooc_raw",
+            "label": "ghi raw + manifest",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "right": {
+            "id": "raw-audit",
+            "from": "mooc_raw",
+            "to": "audit",
+            "label": "đọc raw",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "point": [
+            383,
+            222
+          ],
+          "sharedNode": "mooc_raw"
+        },
+        {
+          "left": {
+            "id": "split-popular",
+            "from": "split",
+            "to": "popular",
+            "label": "train",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "right": {
+            "id": "split-content",
+            "from": "split",
+            "to": "content",
+            "label": "train + metadata",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "point": [
+            944,
+            496
+          ],
+          "sharedNode": "split"
+        },
+        {
+          "left": {
+            "id": "bpr-hybrid",
+            "from": "bpr",
+            "to": "hybrid",
+            "label": "behavior score",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "right": {
+            "id": "content-evaluator",
+            "from": "content",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "point": [
+            963,
+            705
+          ]
+        },
+        {
+          "left": {
+            "id": "graph-hybrid",
+            "from": "graph",
+            "to": "hybrid",
+            "label": "optional penalty",
+            "collectionIndex": 13,
+            "artifactIndex": 14
+          },
+          "right": {
+            "id": "popular-evaluator",
+            "from": "popular",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 14,
+            "artifactIndex": 15
+          },
+          "point": [
+            675,
+            705
+          ]
+        },
+        {
+          "left": {
+            "id": "content-evaluator",
+            "from": "content",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "right": {
+            "id": "hybrid-evaluator",
+            "from": "hybrid",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 17,
+            "artifactIndex": 18
+          },
+          "point": [
+            882,
+            796
+          ],
+          "sharedNode": "evaluator"
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "github-cli",
+            "from": "github",
+            "to": "download",
+            "label": "config + source",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "cli-raw",
+            "from": "download",
+            "to": "mooc_raw",
+            "label": "ghi raw + manifest",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "bends": 4,
+          "stretch": 1.225
+        },
+        {
+          "relationship": {
+            "id": "content-evaluator",
+            "from": "content",
+            "to": "evaluator",
+            "label": "ranking",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "bends": 4,
+          "stretch": 1.714
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "download → mooc_raw and mooc_raw → audit cross next to mooc_raw: move node download or audit so the two reach mooc_raw from different sides (for example one level with it, one directly above or below it).",
+      "split → popular and split → content cross next to split: move node popular or content so the two reach split from different sides (for example one level with it, one directly above or below it).",
+      "bpr → hybrid crosses content → evaluator: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "graph → hybrid crosses popular → evaluator: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "content → evaluator and hybrid → evaluator cross next to evaluator: move node content or hybrid so the two reach evaluator from different sides (for example one level with it, one directly above or below it).",
+      "github → download needs 3 bends: move node github or download so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "download → mooc_raw needs 4 bends: move node download or mooc_raw so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "content → evaluator needs 4 bends: move node content or evaluator so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

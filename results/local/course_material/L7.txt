@@ -1,0 +1,305 @@
+=== PDF PAGE 1 ===
+
+
+=== PDF PAGE 2 ===
+HỆ GỢI Ý
+(IT4613)
+
+=== PDF PAGE 3 ===
+3
+HỆ GỢI Ý
+KẾT HỢP CÁC KỸ THUẬT GỢI Ý
+
+
+=== PDF PAGE 4 ===
+4
+Nội dung môn học
+• Giới thiệu về Hệ gợi ý
+• Gợi ý dựa trên lọc cộng tác: Cơ bản và Các kỹ thuật nâng cao
+• Gợi ý dựa trên nội dung
+• Gợi ý dựa trên tri thức
+• Gợi ý dựa trên phiên
+• Kết hợp các kỹ thuật gợi ý 
+• Đánh giá hiệu quả đối với hệ gợi ý
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Bài toán gợi ý tin tức
+• Ứng dụng kỹ thuật học sâu trong hệ gợi ý: Học tương phản
+
+=== PDF PAGE 5 ===
+5
+Các hệ gợi ý kết hợp (lai)
+Collaborative: "Tell me what's popular among my 
+peers"
+Content-based: "Show me more of the same what 
+I've liked"
+Knowledge-based: "Tell me what fits based on my 
+needs"
+Lai (Hybrid):  sự kết hợp của nhiều đầu 
+vào và/ hoặc nhiều thành phần của các cơ 
+chế khác nhau.
+
+=== PDF PAGE 6 ===
+6
+Các hệ gợi ý kết hợp
+• Cả 3 kĩ thuật cơ bản đều có thể được phối hợp trong các giai đoạn khác nhau trong hoạt động bán
+hàng, tuy nhiên chúng vẫn có những hạn chế
+• Chẳng hạn: các vấn đề cold start
+• Ý tưởng kết hợp/ lai ghép (cross) hai hoặc nhiều cách triển khai:
+• hybrida [lat.] kết hợp của 2 thành phần
+• Nhằm tránh một số hạn chế
+• Có được một số thuộc tính mong muốn mà không có sẵn trong từng phương pháp gốc
+• Các thiết kế kết hợp/ lai ghép khác nhau: 
+• Sử dụng song song một số hệ thống (Thiết kế song song)
+• Khai thác theo từng ‘khối’ các đặc trưng khác nhau (Thiết kế lai khối)
+• Sử dụng các hệ thống khác nhau theo pipeline (Thiết kế lai kiểu đường ống)
+
+=== PDF PAGE 7 ===
+7
+Thiết kế lai khối
+• Chỉ một thành phần gợi ý duy nhất
+• Ở đây, lai có nghĩa là:
+• Các đặc trưng/ nguồn tri thức của các mô hình khác nhau được kết hợp
+
+
+=== PDF PAGE 8 ===
+8
+Kết hợp đặc trưng
+• Kết hợp một vài nguồn tri thức
+• VD: ratings và user demographics (nhân khẩu học người dùng) hoặc các yêu cầu và nhu cầu rõ ràng được
+sử dụng để tính toán độ tương đồng.
+• Các đặc trưng nội dung ‘lai’:
+• Đặc trưng xã hội: các phim được thích
+• Đặc trưng nội dung: các phim hài được thích, các phim truyền hình được thích, …
+• Đặc trưng ‘lai’: người dung yêu thích nhiều các bộ phim là phim hài
+• “the common knowledge engineering effort that involves inventing good features to enable successful 
+learning” [Chumki Basu et al. 1998]
+(Việc nỗ lực sử dụng tri thức chung bao gồm việc tìm ra các đặc trưng tốt cho phép học
+thành công)
+
+=== PDF PAGE 9 ===
+9
+Làm giàu đặc trưng
+• Lọc cộng tác tăng cường nội dung [Prem Melville et al. 2002]
+• Dựa trên các đặc trưng nội dung, ratings bổ sung được tạo.
+• VD: Alice thích item 1 và 3 (unary ratings - các ratings 1 ngôi)
+• Item7 tương tự như item 1 và 3 ở mức độ 0.75
+• Do đó, Alice thích item 7 ở mức độ 0.75
+• Các ma trận item thì bớt thưa hơn
+• Các hệ số điều chỉnh và trọng số:
+• Những người ngang hàng có nhiều mặt hàng được đồng xếp hạng thì quan trọng hơn.
+• Độ tin cậy cao hơn trong dự đoán dựa trên nội dung, nếu số lượng 'ratings riêng' cao hơn.
+• Gợi ý các bài báo nghiên cứu [Roberto Torres et al. 2004]
+• Các trích dẫn (citations) của một bài báo được hiểu là đề xuất dựa trên lọc cộng tác.
+
+=== PDF PAGE 10 ===
+10
+Thiết kế lai song song
+• Outputs của một số cách triển khai hiện có được kết hợp lại với nhau.
+• Sự chồng chéo là ít nhất
+• Một vài chiến lược đánh trọng số hoặc biểu quyết (voting)
+• Trọng số có thể được học động (dynamically)
+• Trường hợp cực đoan của trọng số động đang chuyển dịch (sang một cách làm khác?)
+
+
+=== PDF PAGE 11 ===
+11
+Lai song song: dùng trọng số
+• Tính tổng có trọng số:
+( ) ( )iureciu k
+n
+k
+kweightedrec ,,
+1
+= 
+=
+
+Recommender weighted(0.5:0.5)
+Item1 0.65 1
+Item2 0.45 2
+Item3 0.35 3
+Item4 0.05 4
+Item5 0.00
+Recommender 1
+Item1 0.5 1
+Item2 0
+Item3 0.3 2
+Item4 0.1 3
+Item5 0
+Recommender 2
+Item1 0.8 2
+Item2 0.9 1
+Item3 0.4 3
+Item4 0
+Item5 0
+
+=== PDF PAGE 12 ===
+12
+Lai song song: dùng trọng số
+• NHƯNG, làm sao để lấy được trọng số?
+• Ước lượng, chẳng hạn: khởi tạo theo kinh nghiệm
+• Điều chỉnh động (dynamically) các trọng số
+• Khởi tạo theo kinh nghiệm
+• Cần dữ liệu lịch sử
+• Tính toán các trọng số khác nhau
+• Lựa chọn cái tốt nhất
+• Điều chỉnh động các trọng số
+• Khởi đầu với phân phối đều của trọng số
+• Với mỗi người dùng, ta điều chỉnh trọng số để giảm thiếu sai số dự đoán
+
+=== PDF PAGE 13 ===
+13
+Lai song song: dùng trọng số
+◼ Giả sử Alice thực sự đã mua/ click vào item 1 và 4
+❑ Xác định trọng số  làm tối thiểu hóa Mean Absolute Error (MAE)
+R
+riurec
+MAE
+ikRr
+n
+k ki
+−
+=   = ),(1 
+Absolute errors and MAE
+Beta1 Beta2 rec1 rec2 error MAE
+0.1 0.9 Item1 0.5 0.8 0.23 0.61
+Item4 0.1 0.0 0.99
+0.3 0.7 Item1 0.5 0.8 0.29 0.63
+Item4 0.1 0.0 0.97
+0.5 0.5 Item1 0.5 0.8 0.35 0.65
+Item4 0.1 0.0 0.95
+0.7 0.3 Item1 0.5 0.8 0.41 0.67
+Item4 0.1 0.0 0.93
+0.9 0.1 Item1 0.5 0.8 0.47 0.69
+Item4 0.1 0.0 0.91
+▪ MAE được cải thiện khi rec2 
+được đánh trọng số lớn hơn
+
+=== PDF PAGE 14 ===
+14
+Thiết kế lai song song: chuyển dịch
+• Yêu cầu một tiên nghiệm để quyết định thành phần gợi ý (reccommender)
+• Trường hợp đặc biệt của trọng số động (tất cả, ngoại trừ một bản Beta là 0)
+• Ví dụ:
+• Sắp xếp các reccommender và chuyển dịch dựa trên một số tiêu chí chất lượng
+• VD: nếu quá ít ratings trong hệ thống sử dụng lọc dựa trên tri thức thay vì sử dụng lọc cộng tác
+• Các điều kiện phức tạp hơn dựa trên các thông số ngữ cảnh, áp dụng các kỹ thuật phân loại
+( )iureciurecnk kswitching ,),(1:1 = 
+
+=== PDF PAGE 15 ===
+15
+Thiết kế lai song song: kết hợp
+• Kết hợp kết quả của các hệ gợi ý khác nhau ở cấp độ giao diện người dùng
+• Kết quả của các kỹ thuật khác nhau được trình bày cùng nhau
+• Kết quả đề xuất cho users và items là tập các bộ giá trị của các reccommenders cấu thành.
+
+
+=== PDF PAGE 16 ===
+16
+Thiết kế lai kiểu đường ống
+• Một hệ gợi ý nhận khâu tiền xử lí một số đầu vào cho hệ gợi ý tiếp theo
+• Thác nước
+• Nhiều mức
+• Sàng lọc các danh sách gợi ý (thác nước)
+• Học mô hình (nhiều mức dựa trên tri thức cộng tác)
+
+
+=== PDF PAGE 17 ===
+17
+Lai kiểu đường ống: Thác nước
+• Gợi ý của thành phần tiếp nối bị hạn chế bởi thành phần gợi ý trước đó.
+• Với mọi k > 1
+• Thành phần gợi ý tiếp theo có thể không đưa ra các items bổ sung
+• Do đó, đưa ra các kết quả rất chính xác
+),(),( iureciurec ncascade =
+
+
+ =
+−
+otherwise
+iureciureciurec
+kk
+k
+:0
+0),(:),(),(
+1
+
+=== PDF PAGE 18 ===
+17
+Lai kiểu đường ống: Thác nước
+• Danh sách gợi ý liên tục được thu gọn
+• Thành phần gợi ý đầu tiên thực hiện loại bỏ các items:
+• Xóa các items bị cấm (VD: lọc dựa trên tri thức)
+• Thành phần thứ 2 gán điểm số
+• Sắp xếp và sàng lọc (VD: lọc cộng tác)
+
+=== PDF PAGE 19 ===
+19
+Lai kiểu đường ống: Thác nước
+Recommender 1
+Item1 0.5 1
+Item2 0
+Item3 0.3 2
+Item4 0.1 3
+Item5 0
+Recommender 2
+Item1 0.8 2
+Item2 0.9 1
+Item3 0.4 3
+Item4 0
+Item5 0
+Recommender 3
+Item1 0.80 1
+Item2 0.00
+Item3 0.40 2
+Item4 0.00
+Item5 0.00
+Loại bỏ các items cấm Sắp xếp và sàng lọc
+
+=== PDF PAGE 20 ===
+20
+Thiết kế lai kiểu đường ống: Nhiều mức
+• Hệ gợi ý sau khai thác một mô hình delta xây dựng bởi hệ gợi ý trước đó
+• Examples:
+• Fab: 
+• Miền tin tức trực tuyến
+• Hệ gợi ý dựa trên nội dung xây dựng các user models dựa trên các vecto trọng số
+• Lọc cộng tác xác định các peers tương đồng dựa trên các user models này nhưng đưa ra các đề xuất dựa trên 
+ratings
+• Hệ gợi ý nhiều mức dựa trên ràng buộc cộng tác
+• Lọc cộng tác học một cơ sở ràng buộc
+• Hệ gợi ý dựa trên tri thức thực hiện tính toán các đề xuất
+),,(),(
+1−
+=− nrecnlevelmeta iureciurec
+
+=== PDF PAGE 21 ===
+21
+Hạn chế của chiến lược lai
+• Chỉ một số công trình so sánh các chiến lược dựa trên quan điểm meta - perspective
+• Ví dụ như, [Robin Burke 2002]
+• Hầu hết các bộ dữ liệu không cho phép so sánh các mô hình gợi ý khác nhau
+• Tức là: ratings, yêu cầu, item features, tri thức miền, các phê bình hiếm khi có sẵn trong một tập dữ liệu
+• Do đó, rất ít kết luận được củng cố bởi các phát hiện thực nghiệm
+• Khối: một số nỗ lực tiền xử lý được thực hiện để có thêm kiến thức
+• Song song: yêu cầu kết hợp cẩn thận điểm số từ các dự đoán khác nhau
+• Đường ống: làm việc hiệu quả cho 2 phương pháp tiếp cận đối kháng
+• Cuộc thi Netflix – các hệ thống gợi ý "xếp chồng"
+• Thiết kế trọng số dựa trên > 100 dự đoán - hàm gợi ý
+• Chuyển dịch trọng số một cách thích hợp dựa trên user model, ngữ cảnh và meta-features
+
+=== PDF PAGE 22 ===
+22
+Tài liệu tham khảo
+• [Robin Burke 2002] Hybrid recommender systems: Survey and experiments, User Modeling and User -Adapted Interaction 
+12 (2002), no. 4, 331-370.
+• [Prem Melville et al. 2002] Content-Boosted Collaborative Filtering for Improved Recommendations, Proceedings of the 18th 
+National Conference on Artificial Intelligence (AAAI) (Edmonton,CAN), American Association for Artificial Intelligence, 2002, 
+pp. 187-192.
+• [Roberto Torres et al. 2004] Enhancing digital libraries with techlens, International Joint Conference on Digital Libraries 
+(JCDL'04) (Tucson, AZ), 2004, pp. 228-236.
+• [Chumki Basuet al. 1998] Recommendation as classification: using social and content-based information in recommendation, In 
+Proceedings of the 15th National Conference on Artificial Intelligence (AAAI'98) (Madison, Wisconsin, USA States), 
+American Association for Artificial Intelligence, 1998, pp. 714-720.
+
+=== PDF PAGE 23 ===
+THANK YOU !
+23
