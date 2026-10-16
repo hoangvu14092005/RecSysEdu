@@ -1,4 +1,4 @@
-"""Commands for raw data, versioned preparation and snapshot validation."""
+"""Commands for data preparation, reproducible experiments and snapshots."""
 
 import argparse
 import json
@@ -35,6 +35,19 @@ def main(argv=None) -> int:
     demo_actions = demo.add_subparsers(dest='action', required=True)
     validate = demo_actions.add_parser('validate')
     validate.add_argument('--bundle', default='tests/fixtures/demo_bundle.json')
+    train = commands.add_parser('train', help='Huấn luyện BPR trên split đã phát hành')
+    train.add_argument('--model', choices=('bpr',), required=True)
+    train.add_argument('--config', default='configs/bpr.yaml')
+    train.add_argument('--output', help='Thư mục model mới; không ghi đè')
+    for name in ('evaluate', 'experiments'):
+        command = commands.add_parser(name, help=(
+            'Đánh giá một model' if name == 'evaluate' else 'Chạy bốn model cùng protocol'))
+        if name == 'evaluate':
+            command.add_argument('--model', choices=('popularity', 'content', 'bpr', 'hybrid'),
+                                 required=True)
+        command.add_argument('--split', choices=('valid', 'test'), required=True)
+        command.add_argument('--config', default='configs/final_experiments.yaml')
+        command.add_argument('--output', help='Root kết quả; mỗi lần chạy tạo batch mới')
     args = parser.parse_args(argv)
     try:
         if args.command == 'demo':
@@ -43,6 +56,36 @@ def main(argv=None) -> int:
                   f"{len(bundle['users'])} hồ sơ; không phải kết quả train thật nếu synthetic.")
             return 0
         config = _config(args.config)
+        if args.command == 'train':
+            from recsysedu.experiments.runner import train_from_config
+
+            report = train_from_config(Path(args.config),
+                                       output_dir=Path(args.output) if args.output else None)
+            print(f"BPR đã train {report['epochs_completed']} epoch; "
+                  f"manifest: {report['manifest_path']}; chưa phải kết quả đánh giá chất lượng.")
+            return 0
+        if args.command in ('evaluate', 'experiments'):
+            from recsysedu.experiments.runner import evaluate_model, run_experiment
+
+            base = Path(args.config).resolve().parent
+            config['_base_dir'] = str(base)
+            roots = config.get('output_roots', {})
+            if not isinstance(roots, dict):
+                raise ValueError('output_roots phải là object valid/test')
+            root = roots.get(args.split, f'../results/{args.split}')
+            if not isinstance(root, str) or not root.strip():
+                raise ValueError('output root phải là đường dẫn string không rỗng')
+            output = Path(args.output) if args.output else base / root
+            if args.command == 'evaluate':
+                reports = [evaluate_model(config, model_id=args.model, split=args.split,
+                                          output_root=output)]
+            else:
+                reports = run_experiment(config, split=args.split, output_root=output)
+            for report in reports:
+                print(f"{report['model_id']}: {report['run_id']}; "
+                      f"NDCG@10={report['metrics']['NDCG@10']:.6f}; split={args.split}")
+            print(f'Kết quả: {output.resolve()}')
+            return 0
         if args.action == 'download':
             fetch_sources(config)
         elif args.action == 'prepare':

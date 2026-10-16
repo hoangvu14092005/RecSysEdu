@@ -1,4 +1,5 @@
-# Paths are relative to this YAML. First call export_atomic_files(split_dir, atomic_dir).
+# Paths are relative to this YAML. CLI train exports the exact split automatically.
+split_dir: ../data/splits/mooccubex-pilot-v1-split-v1
 atomic_dir: ../artifacts/recbole
 seed: 17
 epochs: 10

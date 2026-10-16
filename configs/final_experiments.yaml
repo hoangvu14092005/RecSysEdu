@@ -1,0 +1,30 @@
+# Paths in this file are relative to configs/. CLI --output is relative to the shell.
+prepared_dir: ../data/processed/mooccubex-pilot-v1
+split_dir: ../data/splits/mooccubex-pilot-v1-split-v1
+seed: 17
+release_mode: true
+frozen: false
+output_roots:
+  valid: ../results/experiments/valid
+  test: ../results/experiments/test
+
+# Config files are read on every invocation; their effective values are hashed.
+content:
+  config_path: content.yaml
+bpr:
+  config_path: bpr.yaml
+  # To evaluate an already-trained BPR (must match dataset/split/seed/parameters):
+  # manifest_path: ../artifacts/models/<run>/bpr_manifest.json
+hybrid:
+  config_path: hybrid.yaml
+
+# After validation and manual review (Task 11), copy freeze_candidate from
+# <validation batch>/experiment_manifest.json, then add the SHA-256 of that file.
+# Keep the model settings above unchanged; test uses its exact saved checkpoint,
+# Content features and validation-selected alpha. Use a separate test output root.
+# validation_dir: ../results/experiments/valid/valid-<batch-id>
+# freeze:
+#   dataset_hash: <exact dataset manifest SHA-256>
+#   split_hash: <exact split hash>
+#   config_hash: <effective config hash from validation>
+#   validation_manifest_sha256: <SHA-256 of experiment_manifest.json>

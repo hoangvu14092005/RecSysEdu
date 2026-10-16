@@ -1,5 +1,7 @@
+import os
 import subprocess
 import sys
+from pathlib import Path
 
 import yaml
 
@@ -7,18 +9,27 @@ from recsysedu.cli import main
 from recsysedu.data.prepare import prepare_dataset
 
 
+def _cli_environment():
+    # The shared venv may be editable-installed from the primary checkout.
+    # Subprocess checks must exercise the checkout containing these tests.
+    return os.environ | {'PYTHONPATH': str(Path(__file__).resolve().parents[1] / 'src')}
+
+
 def test_cli_help_is_available():
     result = subprocess.run([sys.executable, '-m', 'recsysedu.cli', '--help'],
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, env=_cli_environment())
     assert result.returncode == 0
     assert 'data' in result.stdout
     assert 'demo' in result.stdout
+    assert 'train' in result.stdout
+    assert 'evaluate' in result.stdout
+    assert 'experiments' in result.stdout
 
 
 def test_invalid_config_fails_cleanly():
     result = subprocess.run([sys.executable, '-m', 'recsysedu.cli', 'data', 'audit',
                              '--config', 'file_that_does_not_exist.yaml'],
-                            capture_output=True)
+                            capture_output=True, env=_cli_environment())
     assert result.returncode == 1
     assert b'Traceback' not in result.stderr
 
@@ -109,3 +120,22 @@ def test_split_cli_malformed_manifest_exits_one_without_traceback(tmp_path, caps
     error = capsys.readouterr().err
     assert 'manifest' in error and 'Traceback' not in error
     assert not (tmp_path / 'split').exists()
+
+
+def test_experiment_commands_fail_cleanly_for_invalid_configuration(tmp_path, capsys):
+    path = tmp_path / 'bad.yaml'
+    path.write_text('{}', encoding='utf-8')
+    for arguments in (
+            ['train', '--model', 'bpr', '--config', str(path)],
+            ['evaluate', '--model', 'popularity', '--split', 'valid', '--config', str(path)],
+            ['experiments', '--split', 'test', '--config', str(path)]):
+        assert main(arguments) == 1
+        assert 'Traceback' not in capsys.readouterr().err
+
+
+def test_experiment_cli_rejects_malformed_output_roots_cleanly(tmp_path, capsys):
+    path = tmp_path / 'bad.yaml'
+    for value in ([], 'invalid', {'valid': 17}):
+        path.write_text(yaml.safe_dump({'output_roots': value}), encoding='utf-8')
+        assert main(['experiments', '--split', 'valid', '--config', str(path)]) == 1
+        assert 'Traceback' not in capsys.readouterr().err
