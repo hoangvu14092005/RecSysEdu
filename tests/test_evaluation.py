@@ -199,6 +199,19 @@ def test_evaluator_refuses_overwrite(tmp_path, split_case):
     assert (output / 'keep.txt').read_text(encoding='utf-8') == 'keep'
 
 
+def test_evaluator_rejects_non_protocol_k_before_creating_output(tmp_path, split_case):
+    split, identity, _ = split_case
+    output = tmp_path / 'bad-k-run'
+    with pytest.raises(ValueError, match='k=10'):
+        evaluate_run(StaticScorer(), split, output, identity,
+                     evaluation_split='valid', k=1)
+    assert not output.exists()
+    assert not list(tmp_path.glob('.evaluation-*'))
+    accepted = evaluate_run(StaticScorer(), split, tmp_path / 'k10-run', identity,
+                            evaluation_split='valid', k=10)
+    assert accepted['k'] == 10
+
+
 @pytest.mark.parametrize('evaluation_split,k', [('train', 10), ('valid', 0), ('valid', True)])
 def test_evaluator_rejects_invalid_evaluation_parameters(
         tmp_path, split_case, evaluation_split, k):

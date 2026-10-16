@@ -126,6 +126,8 @@ def evaluate_run(model: Recommender, split_dir, output_dir, identity: RunIdentit
     import pyarrow.parquet as pq
 
     _validate_k(k)
+    if k != 10:
+        raise ValueError('evaluate_run requires k=10 for leave_last_two_out_v1')
     if evaluation_split not in ('valid', 'test'):
         raise ValueError('evaluation_split must be valid or test')
     if not isinstance(identity, RunIdentity):
