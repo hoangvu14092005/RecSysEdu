@@ -1,4 +1,4 @@
-Obtaining file:///C:/Users/Vu/.codex/worktrees/pipeline-first/RecSysEdu
+Obtaining <REPO_ROOT>
   Installing build dependencies: started
   Installing build dependencies: finished with status 'done'
   Checking if build backend supports build_editable: started
@@ -11,10 +11,10 @@ Building wheels for collected packages: recsysedu
   Building editable for recsysedu (pyproject.toml): started
   Building editable for recsysedu (pyproject.toml): finished with status 'done'
   Created wheel for recsysedu: filename=recsysedu-0.1.0-0.editable-py3-none-any.whl size=1754 sha256=a6e26b3584ed9269cb7a10ca936d04d10cceb66066403ce039288c4e4b4ce527
-  Stored in directory: D:\Temp\pip-ephem-wheel-cache-ou_v4b5u\wheels\95\25\63\9d5bfd43b94970462308728b4a4b2bc20e1a4ffbccbf9905c3
+  Stored in directory: <TEMP_DIR>\pip-ephem-wheel-cache-ou_v4b5u\wheels\95\25\63\9d5bfd43b94970462308728b4a4b2bc20e1a4ffbccbf9905c3
 Successfully built recsysedu
 Installing collected packages: recsysedu
 Successfully installed recsysedu-0.1.0
 
 [notice] A new release of pip is available: 23.0.1 -> 26.2.1
-[notice] To update, run: C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\.venv-repro\Scripts\python.exe -m pip install --upgrade pip
+[notice] To update, run: <CODEX_HOME>\worktrees\pipeline-first\RecSysEdu\.venv-repro\Scripts\python.exe -m pip install --upgrade pip

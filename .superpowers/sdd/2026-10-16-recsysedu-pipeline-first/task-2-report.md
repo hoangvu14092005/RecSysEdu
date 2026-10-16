@@ -4,9 +4,9 @@ Status: DONE — implemented and fixture/runtime-tested locally. Full raw prepar
 
 Commit: `fed64a19421b953ccc7202aec4a1d2cf543736d7` — `feat: prepare versioned parquet dataset`.
 
-Worktree: `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu`.
+Worktree: `<CODEX_HOME>\worktrees\pipeline-first\RecSysEdu`.
 Base: `d5a677b`.
-Interpreter: `D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe`.
+Interpreter: `<REPO_ROOT>\.venv\Scripts\python.exe`.
 Working tree was clean after commit. No subagents were dispatched.
 
 ## Changes
@@ -65,7 +65,7 @@ There is no self-referential manifest hash. A downstream stage can compute SHA-2
 Initial required tests were written before production code. RED command:
 
 ```powershell
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m pytest tests/test_prepare.py -q
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m pytest tests/test_prepare.py -q
 ```
 
 Observed exit 1, collection failure because `recsysedu.data.prepare` did not exist (`ModuleNotFoundError`). This is the missing-module failure specified by the brief.
@@ -90,7 +90,7 @@ GREEN after conversion quarantine: 2 passed, 21 deselected in 0.55s
 Final focused/regression command:
 
 ```powershell
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m pytest tests/test_prepare.py tests/test_cli.py tests/test_audit.py -q
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m pytest tests/test_prepare.py tests/test_cli.py tests/test_audit.py -q
 ```
 
 Observed: **32 passed in 1.56s**, exit 0.
@@ -98,7 +98,7 @@ Observed: **32 passed in 1.56s**, exit 0.
 Final full suite:
 
 ```powershell
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m pytest -q
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m pytest -q
 ```
 
 Observed: **78 passed in 7.19s**, exit 0. No test failures were omitted.
@@ -106,7 +106,7 @@ Observed: **78 passed in 7.19s**, exit 0. No test failures were omitted.
 Lint and patch validation:
 
 ```powershell
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m ruff check .
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m ruff check .
 git diff --check
 git diff --cached --check
 ```
@@ -140,7 +140,7 @@ Regression tests added:
 RED command and exact result:
 
 ```powershell
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m pytest tests/test_prepare.py tests/test_cli.py -q -k 'exact_positive_sample or short_sample'
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m pytest tests/test_prepare.py tests/test_cli.py -q -k 'exact_positive_sample or short_sample'
 ```
 
 Observed exit 1: **2 failed, 28 deselected in 0.64s**. The prepare regression failed with `DID NOT RAISE ValueError`; CLI regression failed because the command returned 0 and published only one user.
@@ -148,7 +148,7 @@ Observed exit 1: **2 failed, 28 deselected in 0.64s**. The prepare regression fa
 GREEN focused command:
 
 ```powershell
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m pytest tests/test_prepare.py tests/test_cli.py -q
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m pytest tests/test_prepare.py tests/test_cli.py -q
 ```
 
 Observed exit 0: **30 passed in 1.63s**.
@@ -156,8 +156,8 @@ Observed exit 0: **30 passed in 1.63s**.
 Full suite and quality checks:
 
 ```powershell
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m pytest -q
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m ruff check .
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m pytest -q
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m ruff check .
 git diff --check
 git diff --cached --check
 ```

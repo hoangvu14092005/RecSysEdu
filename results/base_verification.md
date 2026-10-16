@@ -1,6 +1,6 @@
 # Kiểm chứng base RecSysEdu
 
-Ngày 09/10/2026. Root `D:\VuLapTrinh2\RecSysEdu`. Đợt này dựng base và kiểm khả năng lấy dữ liệu, chưa hoàn thành P0 hoặc cả lịch sáu tuần.
+Ngày 09/10/2026. Root `<REPO_ROOT>`. Đợt này dựng base và kiểm khả năng lấy dữ liệu, chưa hoàn thành P0 hoặc cả lịch sáu tuần.
 
 ## Đầu ra hiện có
 

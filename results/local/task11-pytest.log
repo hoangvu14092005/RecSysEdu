@@ -6,7 +6,7 @@
 tests/test_demo_export.py: 2 warnings
 tests/test_experiment_runner.py: 15 warnings
 tests/test_recbole_adapter.py: 7 warnings
-  D:\VuLapTrinh2\RecSysEdu\.venv\lib\site-packages\recbole\data\dataset\dataset.py:648: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+  <REPO_ROOT>\.venv\lib\site-packages\recbole\data\dataset\dataset.py:648: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
   The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
   
   For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
@@ -17,7 +17,7 @@ tests/test_recbole_adapter.py: 7 warnings
 tests/test_demo_export.py: 2 warnings
 tests/test_experiment_runner.py: 15 warnings
 tests/test_recbole_adapter.py: 3 warnings
-  D:\VuLapTrinh2\RecSysEdu\.venv\lib\site-packages\recbole\data\dataset\dataset.py:650: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+  <REPO_ROOT>\.venv\lib\site-packages\recbole\data\dataset\dataset.py:650: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
   The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
   
   For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
@@ -28,7 +28,7 @@ tests/test_recbole_adapter.py: 3 warnings
 tests/test_demo_export.py: 2 warnings
 tests/test_experiment_runner.py: 15 warnings
 tests/test_recbole_adapter.py: 3 warnings
-  D:\VuLapTrinh2\RecSysEdu\.venv\lib\site-packages\recbole\trainer\trainer.py:235: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  <REPO_ROOT>\.venv\lib\site-packages\recbole\trainer\trainer.py:235: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
     scaler = amp.GradScaler(enabled=self.enable_scaler)
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html

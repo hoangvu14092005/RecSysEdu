@@ -25,10 +25,10 @@ Chat UI có ID `01a12035-60b2-7061-962b-68065d339ea7`. Bản [prototype gốc đ
 Đường dẫn tại thời điểm đọc, chỉ để truy vết; không dùng làm đường dẫn cứng trong code:
 
 ```text
-DOCX: C:\Users\Vu\Downloads\De_xuat_de_tai_He_goi_y_MOOCCubeX.docx
-TEXT: C:\Users\Vu\.codex\attachments\1602de63-b3db-474e-aa2c-5aeb169a1a14\Pasted text.txt
-UI SPEC: C:\Users\Vu\Downloads\learnpath_ui_ux_spec.md
-HTML: C:\Users\Vu\Downloads\learnpath_mooccubex_ui_prototype.html
+DOCX: De_xuat_de_tai_He_goi_y_MOOCCubeX.docx (file người dùng cung cấp)
+TEXT: file phân tích được đính kèm khi khởi tạo tài liệu
+UI SPEC: learnpath_ui_ux_spec.md (file người dùng cung cấp)
+HTML: learnpath_mooccubex_ui_prototype.html (file người dùng cung cấp)
 
 SHA-256 DOCX: BA63C683001A38CCB79691B3B7DD66E41486178A141656C9A9E2ACC44DEA27FE
 SHA-256 TEXT: 9AB8FF82C01968CEFF81B31938672FB71C05D26E582245A1C43121443440D386

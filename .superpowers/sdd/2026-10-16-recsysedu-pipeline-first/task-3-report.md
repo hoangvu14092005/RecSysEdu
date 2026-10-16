@@ -1,6 +1,6 @@
 # Task 3 report — temporal split and cohorts
 
-Status: implemented and committed as `cd46f28` (`feat: create temporal recommendation split`) in `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu`.
+Status: implemented and committed as `cd46f28` (`feat: create temporal recommendation split`) in `<CODEX_HOME>\worktrees\pipeline-first\RecSysEdu`.
 
 ## Delivered
 
@@ -15,8 +15,8 @@ Status: implemented and committed as `cd46f28` (`feat: create temporal recommend
 - RED: `python -m pytest tests/test_split.py -q` failed during collection with `ModuleNotFoundError: recsysedu.data.split`.
 - RED: after adding CLI tests, `python -m pytest tests/test_cli.py -q` reported 2 failures because `split` was not yet a command.
 - GREEN: focused split/CLI/prepare regression: **37 passed**.
-- Full suite: **87 passed** (`D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe -m pytest -q`).
-- Ruff: **All checks passed** (`D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe -m ruff check .`).
+- Full suite: **87 passed** (`<REPO_ROOT>\.venv\Scripts\python.exe -m pytest -q`).
+- Ruff: **All checks passed** (`<REPO_ROOT>\.venv\Scripts\python.exe -m ruff check .`).
 - `git diff --cached --check` passed before commit. Worktree clean after commit.
 
 ## Limits and follow-up

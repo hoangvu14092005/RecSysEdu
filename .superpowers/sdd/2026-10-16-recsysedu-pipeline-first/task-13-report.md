@@ -13,7 +13,7 @@ Added historical-state crosslink from freeze report to final test.
 ## Single frozen full test
 
 Executed exactly once from worktree with explicit worktree src PYTHONPATH:
-`D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe results/local/task11_measure.py final-test-once experiments --split test --config configs/final_experiments.yaml`.
+`<REPO_ROOT>\.venv\Scripts\python.exe results/local/task11_measure.py final-test-once experiments --split test --config configs/final_experiments.yaml`.
 Wrapper sets OMP/MKL/OPENBLAS threads2 and calls CLI experiments test with exact
 committed frozen config. No code/artifact failure, no full-test retry or tuning.
 Exit0,520.1935353s,process-tree RSS sampled peak388657152 bytes/interval0.2s.
@@ -124,7 +124,7 @@ Preserve/copy before managed worktree archive:
 - `results/local/final-test-once.{log,measurement.json}`,task13-analyze.log,
   task13-summary.json,task13-clean-reproduce.json,clean-install/editable/
   pip-check/fixture/real/lock-check logs,clean-freeze.txt,task13_* helper scripts.
-- Browser downloaded CSV currently`C:\Users\Vu\Downloads\learnpath_test_runs.csv`.
+- Browser downloaded CSV currently`<DOWNLOADS_DIR>\learnpath_test_runs.csv`.
 Keep real server8513 alive for deliverable;root may stop temporary8514/8515/8516
 after review. Their launcher PIDs recorded in tool outputs,Python children exist.
 

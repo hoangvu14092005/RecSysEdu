@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -23,6 +24,10 @@ def test_chain_coverage_and_source_preservation(tmp_path):
     paths, courses = sources(tmp_path, [edge('A', 'B'), edge('B', 'C')])
     before = [path.read_bytes() for path in [*paths, courses]]
     report = audit_knowledge_sources(*paths, courses_path=courses)
+    assert {source['path'] for source in report['sources'].values()} == {
+        Path(path).name for path in (*paths, courses)}
+    assert all(not Path(source['path']).is_absolute()
+               for source in report['sources'].values())
     assert report['labels'] == {'positive': 2, 'zero': 0, 'unknown': 0}
     assert report['usable_edges'] == [['A', 'B'], ['B', 'C']]
     assert report['mapping']['concept_coverage'] == 1

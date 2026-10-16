@@ -1,6 +1,7 @@
 import hashlib
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -123,6 +124,8 @@ def test_prepare_timestamp_schema_and_manifest_hashes(tmp_path, basis, arrow_typ
     for path in paths:
         assert manifest['raw_files'][path.name]['sha256'] == hashlib.sha256(
             path.read_bytes()).hexdigest()
+        assert manifest['raw_files'][path.name]['path'] == path.name
+        assert not Path(manifest['raw_files'][path.name]['path']).is_absolute()
     saved = json.loads((tmp_path / 'prepared/dataset_manifest.json').read_text(encoding='utf-8'))
     assert saved == manifest
     assert set(manifest['schemas']) == {'courses', 'interactions', 'rejects', 'cohort_users'}

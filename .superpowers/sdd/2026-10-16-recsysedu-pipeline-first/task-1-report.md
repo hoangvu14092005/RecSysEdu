@@ -1,6 +1,6 @@
 # Task 1 report — shared scoring and run contracts
 
-**Status:** Complete in the managed worktree `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu`.
+**Status:** Complete in the managed worktree `<CODEX_HOME>\worktrees\pipeline-first\RecSysEdu`.
 
 **Commit:** `6f920c9` — `feat: define recommendation contracts` (detached HEAD, as expected for this managed worktree).
 
@@ -20,7 +20,7 @@
 4. **Full suite:** `python -m pytest -q` passed: **46 passed in 5.36s**.
 5. `python -m ruff check src/recsysedu/contracts.py tests/test_contracts.py` passed. `git diff --check` and staged diff check passed.
 
-All test commands used `D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe` from the managed worktree.
+All test commands used `<REPO_ROOT>\.venv\Scripts\python.exe` from the managed worktree.
 
 ## Boundary and concern
 

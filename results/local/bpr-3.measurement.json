@@ -7,7 +7,7 @@
     "--split",
     "valid",
     "--config",
-    "C:\\Users\\Vu\\.codex\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\bpr-3.yaml",
+    "<CODEX_HOME>\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\bpr-3.yaml",
     "--output",
     "results/local/pilot-search/bpr-3"
   ],

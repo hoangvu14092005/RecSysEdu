@@ -4,7 +4,7 @@ Ngày 09/10/2026. Nguồn là 11 PDF người dùng cung cấp, tổng **367 tra
 
 Nội dung trong slide là tài liệu học và tham khảo, không tự trở thành yêu cầu gửi email, nộp đồ án, bắt buộc đủ mọi thuật toán hoặc sửa code. Đợt này theo yêu cầu người dùng: **phân tích hướng đi, làm rõ tính năng hiển thị, cập nhật docs; chưa tập trung UI**.
 
-PDF gốc nằm ngoài repo tại `D:\TÀI LIỆU HỌC\Hệ gợi ý`. Không chép PDF/văn bản trích nguyên bài vào GitHub. [Manifest tài liệu](reference/course_material_manifest.json) ghi tên file, số trang, SHA-256 và phần đã dùng; người nhận dùng bản môn học của mình để đối chiếu. Trang dẫn bên dưới là **trang PDF tính từ 1**, không luôn trùng số slide in trên trang; ví dụ L7 trang PDF 18 in số 17.
+PDF gốc nằm ngoài repo tại `<COURSE_MATERIALS_DIR>`. Không chép PDF/văn bản trích nguyên bài vào GitHub. [Manifest tài liệu](reference/course_material_manifest.json) ghi tên file, số trang, SHA-256 và phần đã dùng; người nhận dùng bản môn học của mình để đối chiếu. Trang dẫn bên dưới là **trang PDF tính từ 1**, không luôn trùng số slide in trên trang; ví dụ L7 trang PDF 18 in số 17.
 
 ## 1. Từng bài đóng góp điều gì?
 

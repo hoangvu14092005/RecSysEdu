@@ -4,8 +4,8 @@
   "status": "current",
   "command": "deliver",
   "type": "architecture",
-  "input": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
-  "output": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+  "input": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
+  "output": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
   "specification": {
     "sha256": "4388127f04604a7c946a7c34c1269aa425dd7b7d264c89013ceaf9969209ca35",
     "bytes": 6950

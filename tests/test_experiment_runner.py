@@ -3,6 +3,7 @@
 import copy
 import hashlib
 import json
+from pathlib import Path
 
 import pytest
 import yaml
@@ -108,6 +109,8 @@ def test_runner_runs_four_models_on_one_shared_valid_protocol(tmp_path, experime
                 for r in reports}) == 1
     batch = _batch(root)
     manifest = _read(batch / 'experiment_manifest.json')
+    assert manifest['output_root'] == '..'
+    assert not Path(manifest['output_root']).is_absolute()
     assert manifest['git_revision'] and manifest['evaluation_split'] == 'valid'
     assert set(manifest['runs']) == {'popularity', 'content', 'bpr', 'hybrid'}
     for report in reports:

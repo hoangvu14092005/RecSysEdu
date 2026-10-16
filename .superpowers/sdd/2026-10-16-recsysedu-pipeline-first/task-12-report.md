@@ -33,8 +33,8 @@ Evidence:
   40.46s. No skipped tests.
 - `python -m ruff check src app tests`: All checks passed.
 - Scoped staged `git diff --cached --check`: passed.
-Commands used shared Python at D:/VuLapTrinh2/RecSysEdu/.venv/Scripts/python.exe
-with cwd C:/Users/Vu/.codex/worktrees/pipeline-first/RecSysEdu.
+Commands used shared Python at <REPO_ROOT>/.venv/Scripts/python.exe
+with cwd <CODEX_HOME>/worktrees/pipeline-first/RecSysEdu.
 
 Real source discovery on 2026-10-16:
 - Primary data/raw only has course.json (44,660,123 bytes), user.json

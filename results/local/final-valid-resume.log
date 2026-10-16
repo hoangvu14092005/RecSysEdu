@@ -2,4 +2,4 @@ popularity: valid-2e93583494064297adaa556b9bc21d64-ea40ec688d9e4adaa732b2cae01bf
 content: valid-2e93583494064297adaa556b9bc21d64-2b5ed312fff5421b921a756bdf917531; NDCG@10=0.082304; split=valid
 bpr: valid-2e93583494064297adaa556b9bc21d64-dd14b9bb423e43398da7786a8390affb; NDCG@10=0.077449; split=valid
 hybrid: valid-2e93583494064297adaa556b9bc21d64-f2923f6547fb494fbeb4ba736da8b460; NDCG@10=0.108508; split=valid
-Kết quả: C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\results\local\pilot-final\valid
+Kết quả: <CODEX_HOME>\worktrees\pipeline-first\RecSysEdu\results\local\pilot-final\valid

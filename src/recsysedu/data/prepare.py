@@ -257,7 +257,9 @@ def prepare_dataset(course_path, user_path, output_dir, *, dataset_version, time
     course_path, user_path, output_dir = map(Path, (course_path, user_path, output_dir))
     if output_dir.exists():
         raise ValueError(f'Output đã tồn tại: {output_dir}; dùng dataset version mới')
-    raw_files = {path.name: dict(path=str(path.resolve()), bytes=path.stat().st_size,
+    # Store portable provenance only. The hash identifies the input; recording
+    # an absolute workstation path would make the manifest machine-specific.
+    raw_files = {path.name: dict(path=path.name, bytes=path.stat().st_size,
                                 sha256=_sha256(path)) for path in (course_path, user_path)}
     schemas = _schemas(zone)
     output_dir.parent.mkdir(parents=True, exist_ok=True)

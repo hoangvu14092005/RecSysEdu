@@ -6,9 +6,9 @@ Evidence commit: `ae8958107820cb0c25a56d1cf09f4c62982952e7`.
 Only five small files committed: final_experiments config, dataset report,
 validation report, public-safe core manifest and current todo. Worktree clean.
 
-Worktree: `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu`.
+Worktree: `<CODEX_HOME>\worktrees\pipeline-first\RecSysEdu`.
 Base: `e7663cdcc45cdb02344d5fc54ae37de608b504fb`.
-Python: `D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe`.
+Python: `<REPO_ROOT>\.venv\Scripts\python.exe`.
 Every CLI subprocess has explicit worktree `src` PYTHONPATH. Raw is read from
 the primary checkout, not copied, changed or committed. No subagents spawned.
 
@@ -112,7 +112,7 @@ but none triggered before the declared10-epoch budget. Selected bpr-3 is
 the exact checkpoint `c4dbd2d88e71689b1d447f314fe6b9dc1a90af95499d2cafdba5eec03b36720a`.
 
 Final valid batch published atomically at:
-`C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\results\local\pilot-final\valid\valid-2e93583494064297adaa556b9bc21d64`.
+`<CODEX_HOME>\worktrees\pipeline-first\RecSysEdu\results\local\pilot-final\valid\valid-2e93583494064297adaa556b9bc21d64`.
 No partial batch promoted. All five alpha trials measured:
 0=0.08230373486780361;
 .25=0.10850833307518327;
@@ -207,7 +207,7 @@ Preserve research/reproducibility evidence:
 - `artifacts/core_manifest.json` (also has public-safe committed copy).
 - Original abandoned stage may be retained as interrupted-run evidence; it is
   NOT required for test/snapshot and must never be consumed as complete.
-Raw already lives in primary `D:\VuLapTrinh2\RecSysEdu\data\raw\`.
+Raw already lives in primary `<REPO_ROOT>\data\raw\`.
 
 ## Remaining work and limitations
 

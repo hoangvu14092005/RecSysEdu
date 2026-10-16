@@ -6,7 +6,7 @@ Base: `a36ea25d220c244bfb82b24af12c413939fd6bb1`.
 
 Commit: `e7663cdcc45cdb02344d5fc54ae37de608b504fb` (`feat: export real recommendation snapshots`).
 
-Worktree: `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu` (clean after commit).
+Worktree: `<CODEX_HOME>\worktrees\pipeline-first\RecSysEdu` (clean after commit).
 
 ## Delivered
 
@@ -28,7 +28,7 @@ This keeps exports portable after the source prepared/split directories move. Ol
 
 ## Verification
 
-Environment: shared `D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe`, current worktree `src` selected by pytest and explicit `PYTHONPATH` for the browser subprocess.
+Environment: shared `<REPO_ROOT>\.venv\Scripts\python.exe`, current worktree `src` selected by pytest and explicit `PYTHONPATH` for the browser subprocess.
 
 - Initial RED: `pytest tests/test_demo_export.py tests/test_app.py -q`: 15 expected failures from the missing exporter; existing synthetic/error behavior passed.
 - Further RED cycles exercised missing mechanism evidence, absent real evidence label, incompatible loader policy, missing user/model ranking, absent CLI command, a missing component removed from the outer hash inventory, and manifest changes during export. Each failed before its implementation/fix.

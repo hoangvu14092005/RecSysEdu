@@ -81,7 +81,7 @@ artifact hashes are saved in `bpr_manifest.json`; source/internal maps are in
 Run from the implementation checkout, using its source via pytest `pythonpath`:
 
 ```powershell
-$python = 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe'
+$python = '<REPO_ROOT>\.venv\Scripts\python.exe'
 # Unit command: explicitly excludes training.
 & $python -m pytest -m "not integration" -q
 # Bounded real-library integration checks.

@@ -25,7 +25,7 @@
 Task 0: fix round 1/5 (2 addressed, 0 open; commits 8670d18..0a36d43)
 Task 0: complete (commits db215ef..0a36d43, review clean)
 
-Worktree: C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu (detached HEAD at 0a36d43; native managed worktree)
+Worktree: <CODEX_HOME>\worktrees\pipeline-first\RecSysEdu (detached HEAD at 0a36d43; native managed worktree)
 Baseline verification: 28 pytest passed; Ruff passed.
 Task 1: active
 Task 1: fix round 1/5 (1 addressed, 0 open; commits 6f920c9..d5a677b)

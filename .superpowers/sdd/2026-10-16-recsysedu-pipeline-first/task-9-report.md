@@ -6,7 +6,7 @@ Commit: `1a1b254` (`feat: orchestrate reproducible experiments`).
 
 Base: `a0f54456a52d00d0e69a200eb2292c8727e385a2`.
 
-Worktree: `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu`.
+Worktree: `<CODEX_HOME>\worktrees\pipeline-first\RecSysEdu`.
 
 ## Delivered
 
@@ -35,11 +35,11 @@ Worktree: `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu`.
 Commands, from the worktree:
 
 ```powershell
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m pytest tests/test_experiment_runner.py tests/test_cli.py -q
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m pytest -q
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m ruff check .
-$env:PYTHONPATH='C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\src'
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m recsysedu.cli --help
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m pytest tests/test_experiment_runner.py tests/test_cli.py -q
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m pytest -q
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m ruff check .
+$env:PYTHONPATH='<CODEX_HOME>\worktrees\pipeline-first\RecSysEdu\src'
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m recsysedu.cli --help
 git diff --check
 ```
 

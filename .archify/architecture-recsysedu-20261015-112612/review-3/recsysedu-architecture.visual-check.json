@@ -8,7 +8,7 @@
   "provenance": "current",
   "deliveryReceiptId": "a08ea632-7d6f-4deb-a799-421ef43ad110",
   "artifact": {
-    "path": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+    "path": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
     "sha256": "b9dd7ab2728fa7e02f2e1aae57835e2b09e479132310b2b937d101c171f4caee",
     "bytes": 846941
   },
@@ -18,7 +18,7 @@
   },
   "chrome": {
     "status": "available",
-    "executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+    "executable": "<CHROME_EXECUTABLE>"
   },
   "diagnostics": [],
   "containment": {
@@ -928,7 +928,7 @@
     "contactSheet": "recsysedu-architecture.visual-check.html"
   },
   "sidecars": {
-    "directory": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\review-3",
+    "directory": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\review-3",
     "receipt": "recsysedu-architecture.visual-check.json",
     "contactSheet": "recsysedu-architecture.visual-check.html",
     "files": [

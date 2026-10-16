@@ -7,14 +7,14 @@ bpr:
   train_batch_size: 2048
   validation_early_stopping: true
 content:
-  config_path: C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\configs\content.yaml
+  config_path: ../../configs/content.yaml
 frozen: false
 hybrid:
-  config_path: C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\configs\hybrid.yaml
+  config_path: ../../configs/hybrid.yaml
 output_roots:
   test: ../results/experiments/test
   valid: ../results/experiments/valid
-prepared_dir: C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\data\processed\mooccubex-pilot-v1
+prepared_dir: ../../data/processed/mooccubex-pilot-v1
 release_mode: true
 seed: 17
-split_dir: C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\data\splits\mooccubex-pilot-v1-split-v1
+split_dir: ../../data/splits/mooccubex-pilot-v1-split-v1

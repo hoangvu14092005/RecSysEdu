@@ -4,9 +4,9 @@ Status: **DONE**, with the non-blocking concerns below.
 
 Commit: `31abf2b5166ef024707a54190f8ea6698a130946` — `feat: integrate recbole bpr`
 
-Implementation checkout: `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu`
+Implementation checkout: `<CODEX_HOME>\worktrees\pipeline-first\RecSysEdu`
 Base: `8f6ed43dbd861ee0bcea53a6419c52f888738a37`
-Interpreter: `D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe`
+Interpreter: `<REPO_ROOT>\.venv\Scripts\python.exe`
 Working tree was clean after the commit. No subagents were dispatched.
 
 ## Delivered

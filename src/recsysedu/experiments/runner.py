@@ -221,7 +221,9 @@ def _frozen_validation(config, base, identity, config_hash, output_root):
         raise ValueError('freeze must reference compatible validation experiment')
     if set(valid.get('runs', {})) != {'popularity', 'content', 'bpr', 'hybrid'}:
         raise ValueError('freeze requires a complete four-model validation experiment')
-    valid_root = Path(valid['output_root']).resolve()
+    # New manifests record the output root relative to their batch directory.
+    # Absolute values remain readable for compatibility with published runs.
+    valid_root = _path(valid['output_root'], validation_dir)
     # Protect both the recorded output root and the batch's actual location:
     # the batch may have been moved since its immutable manifest was published.
     protected_roots = (valid_root, validation_dir.resolve())
@@ -463,7 +465,9 @@ def _run(config, *, split, output_root, model_ids):
             effective_config=effective, git_revision=revision,
             git_status='revision_available' if revision else 'no_revision',
             git_dirty=dirty, versions=versions, duration_seconds=perf_counter() - started,
-            output_root=str(output_root), runs=paths, alpha_trials=trials,
+            # The published batch is a direct child of output_root, so '..'
+            # remains correct after cloning or moving the repository.
+            output_root='..', runs=paths, alpha_trials=trials,
             snapshot_inputs=snapshot_inputs,
             selected_alpha=selected_alpha, component_hashes=components,
             freeze_candidate=dict(dataset_hash=dataset_hash, split_hash=identity.split_hash,

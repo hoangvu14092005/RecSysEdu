@@ -7,7 +7,7 @@ Chưa có bằng chứng để bật cảnh báo tiền đề hoặc tạo lộ 
 ## Những nguồn đang có và đang thiếu
 
 Đã kiểm tra thư mục `data/raw/` của checkout chính
-`D:/VuLapTrinh2/RecSysEdu` và worktree `pipeline-first/RecSysEdu`.
+`<REPO_ROOT>` và worktree `pipeline-first/RecSysEdu`.
 Checkout chính có `course.json` (44.660.123 byte), `user.json`
 (806.781.726 byte), `raw_manifest.json` (776 byte). Worktree chưa có
 `data/raw/`. Không tìm thấy ba nguồn graph sau trong hai kho dữ liệu này:

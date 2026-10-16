@@ -71,6 +71,12 @@ Giữ nguyên đường dẫn tương đối từ root và kiểm hash trước 
   giữ để chạy lại validation theo config có `manifest_path` gốc.
 - `artifacts/demo/v1/demo_bundle.json`: snapshot đã xuất.
 
+Config và các artifact tạo từ phiên bản hiện tại chỉ ghi đường dẫn tương đối
+hoặc tên file. Một số manifest pilot đã phát hành trước thay đổi này còn giữ
+đường dẫn máy tạo artifact. Chúng là provenance lịch sử đã khóa bằng SHA-256,
+không phải đường dẫn runtime; không sửa tay vì sẽ làm sai chuỗi hash. Khi tạo
+dataset hoặc experiment mới, manifest mới không ghi đường dẫn máy cá nhân.
+
 Khi chuyển máy, **không sửa immutable manifest để đổi output_root**; code kiểm
 vị trí thực tế của batch đã chuyển. Đường dẫn ghi trong manifest là nhật ký
 nguồn gốc. Giữ toàn bộ thư mục, không chỉ chép `.pth`. Nếu thêm file lớn mới,

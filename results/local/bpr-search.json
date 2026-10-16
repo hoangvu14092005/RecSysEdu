@@ -18,7 +18,7 @@
       "Precision@10": 0.010071652033504753,
       "Coverage@10": 0.39559164733178653
     },
-    "batch": "C:\\Users\\Vu\\.codex\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\pilot-search\\bpr-1\\valid-bb282527340f43cfaa6ae1788bd0bfcd",
+    "batch": "<CODEX_HOME>\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\pilot-search\\bpr-1\\valid-bb282527340f43cfaa6ae1788bd0bfcd",
     "best_epoch": 10,
     "epochs_completed": 10,
     "validation_ndcg_history": [
@@ -53,7 +53,7 @@
       "Precision@10": 0.010969825411242112,
       "Coverage@10": 0.41415313225058004
     },
-    "batch": "C:\\Users\\Vu\\.codex\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\pilot-search\\bpr-2\\valid-8af2e27e3aae4aa4bcd1dca3c9d26ddd",
+    "batch": "<CODEX_HOME>\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\pilot-search\\bpr-2\\valid-8af2e27e3aae4aa4bcd1dca3c9d26ddd",
     "best_epoch": 10,
     "epochs_completed": 10,
     "validation_ndcg_history": [
@@ -88,7 +88,7 @@
       "Precision@10": 0.013957008779896703,
       "Coverage@10": 0.6774941995359629
     },
-    "batch": "C:\\Users\\Vu\\.codex\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\pilot-search\\bpr-3\\valid-cbcf720e67144f10a735e06b0a717763",
+    "batch": "<CODEX_HOME>\\worktrees\\pipeline-first\\RecSysEdu\\results\\local\\pilot-search\\bpr-3\\valid-cbcf720e67144f10a735e06b0a717763",
     "best_epoch": 10,
     "epochs_completed": 10,
     "validation_ndcg_history": [

@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented and committed in `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu` at `256f51c` (`feat: add tf-idf course recommender`). Worktree started at `a1d00c3`.
+Implemented and committed in `<CODEX_HOME>\worktrees\pipeline-first\RecSysEdu` at `256f51c` (`feat: add tf-idf course recommender`). Worktree started at `a1d00c3`.
 
 ## Delivered
 
@@ -15,8 +15,8 @@ Implemented and committed in `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSys
 
 - RED: `python -m pytest tests/test_content.py -q` failed at collection with `ModuleNotFoundError: No module named 'recsysedu.models.content'`.
 - A second RED case exposed nullable metadata handling: 1 failed, 5 passed. After the fix, focused Content/Popularity tests passed: 9 passed.
-- Full suite: `D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe -m pytest -q` — 149 passed.
-- Ruff: `D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe -m ruff check src tests` — all checks passed.
+- Full suite: `<REPO_ROOT>\.venv\Scripts\python.exe -m pytest -q` — 149 passed.
+- Ruff: `<REPO_ROOT>\.venv\Scripts\python.exe -m ruff check src tests` — all checks passed.
 - `python -m pip check` — no broken requirements. `git diff --cached --check` was clean before commit.
 
 ## Self-review and concerns
@@ -28,6 +28,6 @@ Implemented and committed in `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSys
 ## Review fix, round 1
 
 - Commit `8f6ed43` (`fix: fall back when content analyzer yields no tokens`). A nonblank corpus can still have zero tokens under the selected analyzer: one course with `name='a'`, `about=None`, and char n-grams 2–4 is the regression case. The model now checks whether that configured analyzer produces any token before fitting. Zero tokens produce the same zero-column artifacts and popularity fallback as blank text.
-- RED: `D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe -m pytest tests/test_content.py -q` — 1 failed, 7 passed; the new case raised `ValueError: cannot fit content vocabulary: empty vocabulary`.
+- RED: `<REPO_ROOT>\.venv\Scripts\python.exe -m pytest tests/test_content.py -q` — 1 failed, 7 passed; the new case raised `ValueError: cannot fit content vocabulary: empty vocabulary`.
 - GREEN: focused Content/Popularity tests — 11 passed; full suite — 151 passed; `ruff check src tests` — all checks passed. A separate test verifies that an unrelated `min_df` fit error still raises and leaves no artifact directory.
 - `git diff --cached --check` was clean before commit; worktree clean after commit.

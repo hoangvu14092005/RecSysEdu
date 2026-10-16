@@ -6,12 +6,12 @@
   "type": "architecture",
   "quality": "showcase",
   "specification": {
-    "path": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
+    "path": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
     "sha256": "4388127f04604a7c946a7c34c1269aa425dd7b7d264c89013ceaf9969209ca35",
     "bytes": 6950
   },
   "artifact": {
-    "path": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+    "path": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
     "sha256": "b9dd7ab2728fa7e02f2e1aae57835e2b09e479132310b2b937d101c171f4caee",
     "bytes": 846941
   },
@@ -28,9 +28,9 @@
     "truncated": false
   },
   "evidence": {
-    "receipt": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.finalize.json",
-    "summaryReceipt": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.finalize-summary.json",
-    "browserCheckReceipt": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.browser-check.json"
+    "receipt": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.finalize.json",
+    "summaryReceipt": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.finalize-summary.json",
+    "browserCheckReceipt": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.browser-check.json"
   },
   "update": {
     "status": "current",

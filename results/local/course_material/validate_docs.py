@@ -1,9 +1,9 @@
 from pathlib import Path
-import json, re, hashlib, sys
+import json, re, hashlib, os, sys
 from collections import Counter
 from pypdf import PdfReader
-root = Path(r'D:\VuLapTrinh2\RecSysEdu')
-source_dir = Path(r'D:\TÀI LIỆU HỌC\Hệ gợi ý')
+root = Path(__file__).resolve().parents[3]
+source_dir = Path(os.environ['RECSYSEDU_COURSE_MATERIALS'])
 errors = []
 md_files = [root/'README.md', root/'CONTRIBUTING.md']
 for folder in ('docs', 'tasks', 'results'):

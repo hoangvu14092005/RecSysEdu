@@ -6,7 +6,7 @@ Commit: `a0f54456a52d00d0e69a200eb2292c8727e385a2`
 
 Base: `31abf2b5166ef024707a54190f8ea6698a130946`
 
-Worktree: `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu`
+Worktree: `<CODEX_HOME>\worktrees\pipeline-first\RecSysEdu`
 
 ## Delivered
 
@@ -34,9 +34,9 @@ Worktree: `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu`
 Commands, from the worktree:
 
 ```powershell
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m pytest tests/test_hybrid.py tests/test_content.py tests/test_evaluation.py -q
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m pytest -q
-& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m ruff check .
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m pytest tests/test_hybrid.py tests/test_content.py tests/test_evaluation.py -q
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m pytest -q
+& '<REPO_ROOT>\.venv\Scripts\python.exe' -m ruff check .
 git diff --check
 ```
 

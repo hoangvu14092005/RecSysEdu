@@ -12,7 +12,7 @@ def _source(path):
     with path.open('rb') as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b''):
             digest.update(block)
-    return {'path': str(path.resolve()), 'bytes': path.stat().st_size,
+    return {'path': path.name, 'bytes': path.stat().st_size,
             'sha256': digest.hexdigest()}
 
 

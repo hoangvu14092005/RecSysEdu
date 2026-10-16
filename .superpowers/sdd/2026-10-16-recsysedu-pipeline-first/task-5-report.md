@@ -12,8 +12,8 @@ Complete. Implemented and committed at `a1d00c37072855d572a33c1b5811470be36c140c
 ## Verification
 - TDD RED: `tests/test_popularity.py` initially failed during collection because `recsysedu.models` did not exist.
 - Focused GREEN + evaluator regressions: 36 passed.
-- Full suite: `D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe -m pytest -q` — 143 passed.
-- Ruff: `D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe -m ruff check .` — passed.
+- Full suite: `<REPO_ROOT>\.venv\Scripts\python.exe -m pytest -q` — 143 passed.
+- Ruff: `<REPO_ROOT>\.venv\Scripts\python.exe -m ruff check .` — passed.
 - `git diff --check` and staged diff check passed. Working tree clean after commit.
 
 ## Concerns

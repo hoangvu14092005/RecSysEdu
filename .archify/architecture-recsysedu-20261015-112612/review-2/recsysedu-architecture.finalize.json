@@ -7,12 +7,12 @@
   "quality": "showcase",
   "startedAt": "2026-10-15T04:28:15.547Z",
   "specification": {
-    "path": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
+    "path": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
     "sha256": "8fb3af9e7e1da71fa7368763f33a4fa339b8aeb2f88375c0dd71656e5c14624a",
     "bytes": 6952
   },
   "artifact": {
-    "path": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+    "path": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
     "sha256": "a134bdd466545776433ac612d43800a5ee2f6d60164fbd97f567daa926aea570",
     "bytes": 847328
   },
@@ -23,12 +23,12 @@
       "durationMs": null,
       "execution": "embedded-in-deliver",
       "command": [
-        "C:\\Program Files\\nodejs\\node.exe",
-        "C:\\Users\\Vu\\.codex\\skills\\archify\\bin\\archify.mjs",
+        "<NODE_EXECUTABLE>",
+        "<CODEX_HOME>\\skills\\archify\\bin\\archify.mjs",
         "deliver",
         "architecture",
-        "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
-        "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+        "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
+        "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
         "--quality",
         "showcase",
         "--json"
@@ -56,12 +56,12 @@
       "exitCode": 0,
       "durationMs": 441,
       "command": [
-        "C:\\Program Files\\nodejs\\node.exe",
-        "C:\\Users\\Vu\\.codex\\skills\\archify\\bin\\archify.mjs",
+        "<NODE_EXECUTABLE>",
+        "<CODEX_HOME>\\skills\\archify\\bin\\archify.mjs",
         "deliver",
         "architecture",
-        "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
-        "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+        "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
+        "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
         "--quality",
         "showcase",
         "--json"
@@ -72,8 +72,8 @@
         "ok": true,
         "command": "deliver",
         "type": "architecture",
-        "input": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
-        "output": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+        "input": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\candidate.json",
+        "output": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
         "specification": {
           "sha256": "8fb3af9e7e1da71fa7368763f33a4fa339b8aeb2f88375c0dd71656e5c14624a",
           "bytes": 6952
@@ -108,15 +108,15 @@
       "exitCode": 0,
       "durationMs": 155,
       "command": [
-        "C:\\Program Files\\nodejs\\node.exe",
-        "C:\\Users\\Vu\\.codex\\skills\\archify\\bin\\archify.mjs",
+        "<NODE_EXECUTABLE>",
+        "<CODEX_HOME>\\skills\\archify\\bin\\archify.mjs",
         "check",
-        "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+        "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
         "--require-provenance"
       ],
       "receipt": {
         "ok": true,
-        "file": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+        "file": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
         "artifact": {
           "sha256": "a134bdd466545776433ac612d43800a5ee2f6d60164fbd97f567daa926aea570",
           "bytes": 847328
@@ -478,14 +478,14 @@
       "exitCode": 0,
       "durationMs": 1528,
       "command": [
-        "C:\\Program Files\\nodejs\\node.exe",
-        "C:\\Users\\Vu\\.codex\\skills\\archify\\bin\\archify.mjs",
+        "<NODE_EXECUTABLE>",
+        "<CODEX_HOME>\\skills\\archify\\bin\\archify.mjs",
         "browser-check",
-        "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+        "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
         "--json",
         "--require-provenance",
         "--out-dir",
-        "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\review-2"
+        "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\review-2"
       ],
       "execution": "in-process",
       "receipt": {
@@ -498,7 +498,7 @@
         "provenance": "current",
         "deliveryReceiptId": "6ce9acdb-9921-4037-b43e-0404c74b2390",
         "artifact": {
-          "path": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
+          "path": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\recsysedu-architecture.html",
           "sha256": "a134bdd466545776433ac612d43800a5ee2f6d60164fbd97f567daa926aea570",
           "bytes": 847328
         },
@@ -508,7 +508,7 @@
         },
         "chrome": {
           "status": "available",
-          "executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+          "executable": "<CHROME_EXECUTABLE>"
         },
         "diagnostics": [],
         "containment": {
@@ -1205,7 +1205,7 @@
           "contactSheet": null
         },
         "sidecars": {
-          "directory": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\review-2",
+          "directory": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\review-2",
           "receipt": "recsysedu-architecture.browser-check.json",
           "files": []
         }
@@ -1214,9 +1214,9 @@
   },
   "diagnostics": [],
   "evidence": {
-    "receipt": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\review-2\\recsysedu-architecture.finalize.json",
-    "summaryReceipt": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\review-2\\recsysedu-architecture.finalize-summary.json",
-    "browserCheckReceipt": "D:\\VuLapTrinh2\\RecSysEdu\\.archify\\architecture-recsysedu-20261015-112612\\review-2\\recsysedu-architecture.browser-check.json"
+    "receipt": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\review-2\\recsysedu-architecture.finalize.json",
+    "summaryReceipt": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\review-2\\recsysedu-architecture.finalize-summary.json",
+    "browserCheckReceipt": "<REPO_ROOT>\\.archify\\architecture-recsysedu-20261015-112612\\review-2\\recsysedu-architecture.browser-check.json"
   },
   "visualReview": "not-requested",
   "finishedAt": "2026-10-15T04:28:17.933Z",

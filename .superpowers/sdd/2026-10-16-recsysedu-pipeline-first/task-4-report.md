@@ -2,10 +2,10 @@
 
 Status: complete; implemented and committed in the assigned worktree.
 
-- Worktree: `C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu`
+- Worktree: `<CODEX_HOME>\worktrees\pipeline-first\RecSysEdu`
 - Starting HEAD: `ec1bdd8`
 - Commit: `7ef6312ce79bcf1e8d77bd8af46a30b9287cd922` — `feat: add shared top-k evaluator`
-- Interpreter: `D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe`
+- Interpreter: `<REPO_ROOT>\.venv\Scripts\python.exe`
 - Scope: the four evaluation modules and the two requested test files only. No model, CLI, dataset, split producer, or UI changes.
 
 ## Implemented contracts
@@ -105,11 +105,11 @@ The memory quick pass confirmed the prior preference for evaluator/data contract
 - Change: `evaluate_run` now raises `ValueError('evaluate_run requires k=10 for leave_last_two_out_v1')` immediately after generic K validation and before output path setup or staging. Generic ranking and metric helpers remain configurable.
 - Regression: `test_evaluator_rejects_non_protocol_k_before_creating_output` asserts `k=1` fails with no output or staging directory, then runs `k=10` successfully and checks the returned K.
 - Exact changed files: `src/recsysedu/evaluation/run.py`; `tests/test_evaluation.py`.
-- Focused command: `& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m pytest tests/test_metrics.py tests/test_evaluation.py -q`
+- Focused command: `& '<REPO_ROOT>\.venv\Scripts\python.exe' -m pytest tests/test_metrics.py tests/test_evaluation.py -q`
 - Focused output: `46 passed in 3.61s`.
-- Full-suite command: `& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m pytest -q`
+- Full-suite command: `& '<REPO_ROOT>\.venv\Scripts\python.exe' -m pytest -q`
 - Full-suite output: `140 passed in 9.00s`.
-- Ruff command: `& 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe' -m ruff check .`
+- Ruff command: `& '<REPO_ROOT>\.venv\Scripts\python.exe' -m ruff check .`
 - Ruff output: `All checks passed!`.
 - Diff check: `git diff --check` exited 0 with no whitespace errors; Git emitted only line-ending conversion warnings for the two edited files.
 - Commit: `da702dff2f5f6ad94f3e7a90dc53862dc1bd3a40` — `fix: enforce evaluation protocol K`.

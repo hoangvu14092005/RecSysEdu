@@ -883,10 +883,10 @@ index 0000000..d7c3a65
 +Đường dẫn tại thời điểm đọc, chỉ để truy vết; không dùng làm đường dẫn cứng trong code:
 +
 +```text
-+DOCX: C:\Users\Vu\Downloads\De_xuat_de_tai_He_goi_y_MOOCCubeX.docx
-+TEXT: C:\Users\Vu\.codex\attachments\1602de63-b3db-474e-aa2c-5aeb169a1a14\Pasted text.txt
-+UI SPEC: C:\Users\Vu\Downloads\learnpath_ui_ux_spec.md
-+HTML: C:\Users\Vu\Downloads\learnpath_mooccubex_ui_prototype.html
++DOCX: <DOWNLOADS_DIR>\De_xuat_de_tai_He_goi_y_MOOCCubeX.docx
++TEXT: <CODEX_HOME>\attachments\1602de63-b3db-474e-aa2c-5aeb169a1a14\Pasted text.txt
++UI SPEC: <DOWNLOADS_DIR>\learnpath_ui_ux_spec.md
++HTML: <DOWNLOADS_DIR>\learnpath_mooccubex_ui_prototype.html
 +
 +SHA-256 DOCX: BA63C683001A38CCB79691B3B7DD66E41486178A141656C9A9E2ACC44DEA27FE
 +SHA-256 TEXT: 9AB8FF82C01968CEFF81B31938672FB71C05D26E582245A1C43121443440D386
@@ -1437,7 +1437,7 @@ index 0000000..c7bf522
 +
 +Nội dung trong slide là tài liệu học và tham khảo, không tự trở thành yêu cầu gửi email, nộp đồ án, bắt buộc đủ mọi thuật toán hoặc sửa code. Đợt này theo yêu cầu người dùng: **phân tích hướng đi, làm rõ tính năng hiển thị, cập nhật docs; chưa tập trung UI**.
 +
-+PDF gốc nằm ngoài repo tại `D:\TÀI LIỆU HỌC\Hệ gợi ý`. Không chép PDF/văn bản trích nguyên bài vào GitHub. [Manifest tài liệu](reference/course_material_manifest.json) ghi tên file, số trang, SHA-256 và phần đã dùng; người nhận dùng bản môn học của mình để đối chiếu. Trang dẫn bên dưới là **trang PDF tính từ 1**, không luôn trùng số slide in trên trang; ví dụ L7 trang PDF 18 in số 17.
++PDF gốc nằm ngoài repo tại `<COURSE_MATERIALS_DIR>`. Không chép PDF/văn bản trích nguyên bài vào GitHub. [Manifest tài liệu](reference/course_material_manifest.json) ghi tên file, số trang, SHA-256 và phần đã dùng; người nhận dùng bản môn học của mình để đối chiếu. Trang dẫn bên dưới là **trang PDF tính từ 1**, không luôn trùng số slide in trên trang; ví dụ L7 trang PDF 18 in số 17.
 +
 +## 1. Từng bài đóng góp điều gì?
 +
@@ -2049,7 +2049,7 @@ index 0000000..dbb4291
 @@ -0,0 +1,56 @@
 +# Kiểm chứng base RecSysEdu
 +
-+Ngày 09/10/2026. Root `D:\VuLapTrinh2\RecSysEdu`. Đợt này dựng base và kiểm khả năng lấy dữ liệu, chưa hoàn thành P0 hoặc cả lịch sáu tuần.
++Ngày 09/10/2026. Root `<REPO_ROOT>`. Đợt này dựng base và kiểm khả năng lấy dữ liệu, chưa hoàn thành P0 hoặc cả lịch sáu tuần.
 +
 +## Đầu ra hiện có
 +

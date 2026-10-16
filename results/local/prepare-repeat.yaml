@@ -1,4 +1,4 @@
-raw_dir: D:/VuLapTrinh2/RecSysEdu/data/raw
+raw_dir: data/raw
 output_dir: data/processed/mooccubex-pilot-v1-repeat
 dataset_version: mooccubex-pilot-v1
 time_basis: source_local_naive

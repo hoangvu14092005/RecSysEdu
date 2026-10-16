@@ -803,7 +803,7 @@ index 0000000..f925dc4
 +Run from the implementation checkout, using its source via pytest `pythonpath`:
 +
 +```powershell
-+$python = 'D:\VuLapTrinh2\RecSysEdu\.venv\Scripts\python.exe'
++$python = '<REPO_ROOT>\.venv\Scripts\python.exe'
 +# Unit command: explicitly excludes training.
 +& $python -m pytest -m "not integration" -q
 +# Bounded real-library integration checks.
@@ -973,7 +973,7 @@ index 0000000..49636c7
 +## Những nguồn đang có và đang thiếu
 +
 +Đã kiểm tra thư mục `data/raw/` của checkout chính
-+`D:/VuLapTrinh2/RecSysEdu` và worktree `pipeline-first/RecSysEdu`.
++`<REPO_ROOT>` và worktree `pipeline-first/RecSysEdu`.
 +Checkout chính có `course.json` (44.660.123 byte), `user.json`
 +(806.781.726 byte), `raw_manifest.json` (776 byte). Worktree chưa có
 +`data/raw/`. Không tìm thấy ba nguồn graph sau trong hai kho dữ liệu này:

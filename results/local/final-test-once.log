@@ -2,4 +2,4 @@ popularity: test-b36cb3e524a346c8bb6a9935da76406a-062ac57dd313440caa1782ea7069a8
 content: test-b36cb3e524a346c8bb6a9935da76406a-c521558f6d124a75945e9826491f4820; NDCG@10=0.057657; split=test
 bpr: test-b36cb3e524a346c8bb6a9935da76406a-e5663b668f4a4d3a967d32a2ec7e3a1d; NDCG@10=0.057294; split=test
 hybrid: test-b36cb3e524a346c8bb6a9935da76406a-4a5f66fed4f644e8a584ffc13b0bcd2c; NDCG@10=0.077373; split=test
-Kết quả: C:\Users\Vu\.codex\worktrees\pipeline-first\RecSysEdu\results\local\pilot-final\test
+Kết quả: <CODEX_HOME>\worktrees\pipeline-first\RecSysEdu\results\local\pilot-final\test
