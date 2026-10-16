@@ -23,7 +23,7 @@ GPU hoặc môi trường cài theo khoảng version thay cho lock.
 
 ## 2. Mở demo
 
-Không có artifact thật thì dùng fixture trong Git:
+Muốn kiểm tra riêng giao diện bằng fixture:
 
 ```powershell
 .\.venv\Scripts\python.exe -m recsysedu.cli demo validate
@@ -33,7 +33,8 @@ Không có artifact thật thì dùng fixture trong Git:
 Mở `http://127.0.0.1:8501`. Nhãn **DỮ LIỆU MẪU** phải hiện. Fixture chỉ kiểm
 giao diện, không phải kết quả mô hình. Dừng bằng Ctrl+C.
 
-Đã nhận snapshot thật thì đối chiếu SHA-256 với báo cáo trước khi mở:
+Snapshot thật nằm trong Git LFS. Chạy `git lfs pull`, sau đó đối chiếu
+SHA-256 với báo cáo trước khi mở:
 
 ```powershell
 Get-FileHash artifacts/demo/v1/demo_bundle.json -Algorithm SHA256
@@ -47,12 +48,18 @@ Score chỉ là điểm xếp hạng. App không train khi click. Nếu snapshot
 app dừng và hiện lỗi; không tự thay fixture. Để chủ động quay về mẫu, chạy
 `Remove-Item Env:RECSYSEDU_BUNDLE` khi biến tồn tại rồi khởi động lại app.
 
-## 3. Những file cần bàn giao riêng
+## 3. Những file lớn trong Git LFS
 
-Git **không chứa** raw, Parquet, learner IDs, checkpoint, feature hoặc snapshot thật.
-Chỉ muốn xem kết quả: nhận `artifacts/demo/v1/demo_bundle.json` và đúng hash.
-Muốn kiểm/load lại mô hình: nhận đầy đủ các thư mục dưới đây, giữ nguyên đường dẫn
-tương đối từ root và kiểm hash trước khi dùng:
+Repository hiện chứa raw dùng cho pilot, Parquet, checkpoint, feature, kết quả
+và snapshot thật. Git LFS quản lý các file lớn; sau khi clone cần chạy:
+
+```powershell
+git lfs install
+git lfs pull
+git lfs status
+```
+
+Giữ nguyên đường dẫn tương đối từ root và kiểm hash trước khi dùng:
 
 - `data/processed/mooccubex-pilot-v1/`: dataset manifest và toàn bộ Parquet.
 - `data/splits/mooccubex-pilot-v1-split-v1/`: split manifest, train/valid/test,
@@ -66,8 +73,8 @@ tương đối từ root và kiểm hash trước khi dùng:
 
 Khi chuyển máy, **không sửa immutable manifest để đổi output_root**; code kiểm
 vị trí thực tế của batch đã chuyển. Đường dẫn ghi trong manifest là nhật ký
-nguồn gốc. Giữ toàn bộ thư mục, không chỉ chép `.pth`. Không đẩy các file này
-lên repo công khai. Cần xác minh điều kiện sử dụng dữ liệu trước khi chia sẻ.
+nguồn gốc. Giữ toàn bộ thư mục, không chỉ chép `.pth`. Nếu thêm file lớn mới,
+kiểm tra `.gitattributes` và xác nhận file đi qua Git LFS trước khi push.
 
 ## 4. Tạo một thí nghiệm mới từ raw
 
@@ -119,10 +126,10 @@ hiệu lực và tạo run mới; không sửa số liệu báo cáo bằng tay.
 ## 6. Chia việc trên GitHub
 
 Mỗi người nhận một module/đầu ra theo [CONTRIBUTING](../CONTRIBUTING.md).
-Commit source/config/test/docs nhỏ. Không `git add -f` raw/checkpoint/Parquet.
-Kiểm `git status --short`, `git diff --cached --stat` và ignore trước khi push.
-Trạng thái push/remote được người thực hiện xác nhận riêng; báo cáo thí nghiệm
-không tự chứng minh GitHub đã nhận commit.
+Commit source/config/test/docs nhỏ và có mục đích rõ. File lớn phải khớp mẫu
+Git LFS trong `.gitattributes`; không dùng `git add -f` để vượt qua quy ước.
+Kiểm `git status --short`, `git lfs status` và `git diff --cached --stat`
+trước khi push. Báo cáo thí nghiệm không tự chứng minh GitHub đã nhận commit.
 
 P1 hiện `P1_STOP_INSUFFICIENT_EVIDENCE`: chưa có ba nguồn concept/mapping/
 prerequisite để audit thật. Muốn tiếp tục phải lấy nguồn, kiểm ID/label/cycle/

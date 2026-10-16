@@ -1,8 +1,13 @@
 # Cùng làm RecSysEdu qua GitHub
 
-Repository đã có base Python/CLI/Streamlit, fixture nhỏ và raw đã audit; chưa có remote GitHub. Người nhận UI chỉ cần source và lock, không cần raw. Cài/chạy theo [runbook](docs/09_runbook.md); kiểm tra hiện có ở [báo cáo base](results/base_verification.md).
+Repository đã có Python/CLI/Streamlit, dữ liệu pilot, snapshot thật và remote
+GitHub. File lớn được quản lý bằng Git LFS. Cài/chạy theo [README](README.md) và
+[runbook](docs/09_runbook.md); kiểm tra base ở
+[báo cáo base](results/base_verification.md).
 
-Ưu tiên hiện tại: đọc [hướng theo môn học](docs/10_course_direction.md), nhận việc data/split/evaluator/model trước. UI chỉ phân tích chức năng và đầu ra; các ví dụ giao việc UI dưới đây dành cho khi tích hợp M10, chưa là việc cần triển khai ngay.
+Trước khi nhận việc, đọc [trạng thái hiện tại](tasks/todo.md) và
+[hướng theo môn học](docs/10_course_direction.md). Không lấy kế hoạch lịch sử
+thay cho trạng thái đang được ghi trong `tasks/todo.md`.
 
 ## Bắt đầu từ một việc nhỏ
 
@@ -21,7 +26,9 @@ Phạm vi: app/; cần đổi loader thì phối hợp người phụ trách loa
 
 ## Cách dùng Git gọn
 
-Sau khi có repo GitHub, dùng `main` cho phiên bản ghép chung; mỗi việc có nhánh `feature/<task-ngan>`, rồi tạo Pull Request để người khác xem và ghép. Không cần GitFlow nhiều tầng hoặc repository riêng cho frontend/backend trong MVP.
+Dùng `main` cho phiên bản ghép chung; mỗi việc có nhánh
+`feature/<task-ngan>`, rồi tạo Pull Request để người khác xem và ghép. Không
+cần GitFlow nhiều tầng hoặc repository riêng cho frontend/backend trong MVP.
 
 Trước khi sửa file chung, kiểm tra issue/PR đang làm. Nếu thay schema, config hoặc dependency, ghi ảnh hưởng và cập nhật fixture/hướng dẫn trong cùng PR. Tránh commit gom nhiều việc không liên quan.
 
@@ -38,13 +45,13 @@ Chỉ ghi đã test khi đã chạy. PR dùng fixture chưa được coi là ch�
 
 ## Những gì lưu trên GitHub
 
-| Đưa vào Git | Lưu ngoài Git, ghi cách lấy trong manifest/runbook |
-| --- | --- |
-| Source, config, dependency lock, tài liệu | Raw MOOCCubeX và processed dataset lớn |
-| Fixture synthetic nhỏ cho UI và tests | Checkpoint/feature/ranking dung lượng lớn |
-| Báo cáo phù hợp phạm vi công bố, metric tổng hợp có nguồn | Dữ liệu hồ sơ thật; bản sao lưu và tài khoản truy cập |
+| Git thông thường | Git LFS | Không commit |
+| --- | --- | --- |
+| Source, config, lock, tài liệu, báo cáo nhỏ | Raw pilot, Parquet, checkpoint, feature và ranking lớn | `.env`, mật khẩu, token, `.venv`, cache |
+| Fixture nhỏ và test | Các đuôi/mẫu đã khai báo trong `.gitattributes` | File tạm `*.part` và dữ liệu không được phép chia sẻ |
 
-Ở M0 tạo `.gitignore` cho raw, processed, checkpoints, cache, `.venv`, `.env`; không ignore toàn `tests/fixtures/` hay toàn `results/` khiến mất mẫu/báo cáo cần bàn giao. Không commit mật khẩu hoặc khóa truy cập.
+Trước khi thêm file lớn, đọc `.gitattributes` và chạy `git lfs status`.
+Không dùng `git add -f` để vượt `.gitignore`.
 
 Dùng đường dẫn tương đối theo root trong code/config; đường dẫn máy cá nhân đặt trong cấu hình local. Manifest ghi nguồn, version và checksum; file cần quyền truy cập ghi cách xin/lấy file, không nhúng thông tin đăng nhập.
 
@@ -52,7 +59,9 @@ Dùng đường dẫn tương đối theo root trong code/config; đường dẫ
 
 Một fixture synthetic theo [quy ước dữ liệu, mục 6](docs/04_data_contract.md) và môi trường Python có dependency demo. Không cần tải toàn raw, train BPR hay dựng database. Khi model đã xuất snapshot thật, thay input và kiểm tra lại các trạng thái; không đổi UI sang đọc trực tiếp dữ liệu huấn luyện.
 
-Để người khác chạy được, sau M0 bổ sung README với lệnh cài chính xác từ lock, vị trí fixture, cách mở demo và kết quả mong đợi. Tuần 5 bổ sung cách lấy snapshot thật; tuần 6 một người khác thực hiện runbook trên môi trường sạch.
+Khi thay đổi cách cài, vị trí snapshot hoặc lệnh chạy, cập nhật README và
+runbook trong cùng Pull Request. Người review cần chạy lại phần hướng dẫn bị
+ảnh hưởng hoặc ghi rõ phần nào chưa thể xác minh.
 
 ## Điều kiện bàn giao cuối
 
