@@ -1,98 +1,123 @@
 # 03 — Chia mã nguồn và ghép các phần
 
-Cập nhật: 09/10/2026. Kiến trúc gồm phần đã xây và phần kế hoạch: `data/download.py`, `data/audit.py`, `demo/artifacts.py`, `cli.py` và `app/streamlit_app.py` đã chạy; prepare/split/model/evaluator/graph chưa xây. Hướng chung ở [trang bắt đầu](README.md), lệnh thật ở [runbook](09_runbook.md).
+Cập nhật 16/10/2026. Đây là kiến trúc **đã triển khai và đã chạy P0 thật**:
+prepare/split, bốn model, evaluator, runner, exporter và Streamlit. Kết quả ở
+[test cuối](../results/final/report.md), [nghiệm thu](../reports/acceptance.md).
+P1 chỉ có công cụ audit; graph thật chưa chạy, chưa có rerank/path.
 
-## 1. Ý tưởng đơn giản
+## 1. Luồng đơn giản
 
-Chia thành ba việc: **xử lý dữ liệu → tính/đánh giá gợi ý → hiển thị**. Mỗi phần nhận file đầu vào và tạo file đầu ra rõ ràng. Không cần API server/database riêng để hai phần model/UI cùng làm được.
+Mỗi bước đọc file có phiên bản, kiểm hash rồi ghi output mới. Phần tính model
+và phần hiển thị trao đổi qua file; không cần API server/database cho P0.
 
 ```mermaid
 flowchart TD
-    A[Raw user và course trên SSD] --> B[Python và DuckDB: kiểm tra và làm sạch]
-    B --> C[Parquet: dữ liệu và split đã khóa]
-    C --> D[MostPopular và Content]
-    C --> E[Export RecBole và train BPR]
-    D --> F[Hybrid]
-    E --> F
-    D --> G[Evaluator chung và kết quả từng run]
-    E --> G
-    F --> G
-    H[Graph đã kiểm tra: P1] -. nếu đủ dữ liệu .-> I[Xếp hạng lại và lộ trình]
-    F -. nếu bật P1 .-> I
-    I -. kết quả P1 .-> G
-    G --> J[Snapshot demo_bundle.json]
-    J --> K[Streamlit: Gợi ý học tập và Model Lab]
+    A[Raw user/course trên SSD] --> B[Download và audit]
+    B --> C[Prepare: Parquet và dataset manifest]
+    C --> D[Temporal split: train/valid/test và universe]
+    D --> E[MostPopular]
+    D --> F[Content TF-IDF]
+    D --> G[RecBole BPR adapter]
+    F --> H[Hybrid]
+    G --> H
+    E --> I[Evaluator: mask seen, Top10 và metric]
+    F --> I
+    G --> I
+    H --> I
+    I --> J[Run artifacts và experiment manifest]
+    J --> K[Exporter: demo_bundle.json]
+    K --> L[Streamlit: Gợi ý học tập và Model Lab]
+    M[P1 audit: chưa đủ nguồn graph] -. dừng .-> N[Chờ kế hoạch P1 riêng]
 ```
 
-Không có graph vẫn xuất được snapshot P0. Giao diện đọc kết quả có sẵn; click/chuyển tab không khởi động huấn luyện.
+Giao diện chỉ đọc snapshot, không train hoặc tự chấm lại khi đổi hồ sơ/model.
+Validation chọn BPR/alpha; test giữ nguyên checkpoint và feature đã khóa.
 
-## 2. Công nghệ dùng vào việc gì?
+## 2. Module thực tế và trách nhiệm
 
-| Công cụ | Vai trò |
+Đường dẫn dưới `src/recsysedu/`, trừ app. Đây là module đã có, không phải cây dự kiến.
+
+| Module | Đầu vào → đầu ra/trách nhiệm |
 | --- | --- |
-| Python | Ngôn ngữ chung của xử lý, model, đánh giá và app |
-| Parquet + DuckDB | File bảng chuẩn và công cụ lọc/thống kê; xem [lưu trữ](07_storage_analysis.md) |
-| pandas / scikit-learn | Xử lý tập vừa bộ nhớ; TF-IDF tên/mô tả, profile lịch sử train và cosine cho Content |
-| RecBole / PyTorch | Train BPR, lưu/load checkpoint qua adapter của dự án |
-| NetworkX — P1 | Kiểm tra quan hệ concept và tạo thứ tự lộ trình trên graph đã lọc |
-| Streamlit | Hai tab demo; lấy tinh thần thiết kế LearnPath |
+| `data/download.py`, `data/audit.py` | URL/raw → file gốc, manifest/hash, thống kê lỗi |
+| `data/prepare.py` | Raw → courses/interactions/rejects/cohort Parquet và dataset manifest |
+| `data/split.py` | Prepared → train/valid/test, warm cohorts, candidate universe, split manifest |
+| `contracts.py` | `ScoreResult`, `RankedItem`, `RunIdentity`, giao diện `Recommender` |
+| `models/popularity.py`, `models/content.py` | Train/catalog → enrollment counts hoặc TF-IDF/profile train-only |
+| `adapters/recbole.py` | Export đúng split, train/load BPR, chuyển ID nội bộ về ID nguồn |
+| `models/hybrid.py` | Ghép BPR/Content trên cùng candidate, chuẩn hóa và fallback |
+| `evaluation/ranking.py`, `evaluation/metrics.py`, `evaluation/run.py` | Mask seen, phá hòa, Top-10, metric và artifact từng run |
+| `experiments/runner.py` | Điều phối bốn model, chọn alpha bằng valid, kiểm freeze/hash trước test |
+| `demo/export.py`, `demo/artifacts.py` | Export snapshot từ batch hoàn tất; kiểm schema/ID/hash/seen |
+| `knowledge/audit.py` | Audit concept/mapping/label/cycle; chưa tạo graph phục vụ/rerank/path |
+| `cli.py` | Lệnh chạy pipeline; không chứa thuật toán |
+| `app/streamlit_app.py` | Snapshot → chọn hồ sơ/model, ranking, metadata và CSV |
 
-Base Python/Streamlit/ijson và các thư viện dữ liệu đã cài trong môi trường riêng, có lock Windows Python 3.10 và [báo cáo kiểm tra](../results/base_verification.md). RecBole/PyTorch/graph chưa thử; khóa nhóm này sau spike BPR D04, benchmark BPR ở M6. Cài DuckDB/PyArrow chưa chứng minh đã có pipeline Parquet.
+Python/PyArrow tạo Parquet; DuckDB kiểm bảng; pandas/scikit-learn/SciPy xử lý
+TF-IDF. RecBole 1.2.1/Torch 2.5.1+cpu đã chạy thật trên Windows/Python 3.10.11.
+Lock và clean-environment evidence ở [reproduction](../results/reproduction.md).
+Audit graph hiện dùng Python; không có module `knowledge/graph.py` hoặc
+`knowledge/path.py` đang hoạt động.
 
-## 3. Các phần mã và trách nhiệm
+## 3. Model không tự xếp Top10
 
-Các đường dẫn trong bảng nằm dưới `src/recsysedu/`, trừ app.
+Giao diện chung trong `contracts.py`:
 
-| Phần | Đầu vào → đầu ra | Người nhận phần này làm gì? |
-| --- | --- | --- |
-| `data/audit.py` | Raw → thống kê/lỗi | Xác định format, ID, thời gian và quy mô dùng được |
-| `data/prepare.py`, `data/split.py` | Raw → Parquet/split | Làm sạch theo tài liệu 04; chia theo tài liệu 05 |
-| `models/popularity.py`, `models/content.py` | Train/catalog → điểm | Hai mô hình đầu tiên; profile chỉ từ train |
-| `adapters/recbole.py` | Split → TSV/checkpoint/điểm | Nối RecBole với ID nguồn; kiểm tra số dòng và loại padding |
-| `models/hybrid.py`, `recommend.py` | Điểm/history → ranking | Kết hợp điểm, loại khóa đã quan sát, fallback, lý do |
-| `evaluation/metrics.py`, `evaluation/run.py` | Ranking/target → metric | Evaluator chung; lưu kết quả và manifest từng run |
-| `knowledge/graph.py`, `knowledge/path.py` — P1 | Concept/edges → audit/path | Giữ chiều cạnh, báo unknown/vòng lặp, thứ tự concept |
-| `demo/artifacts.py` | File kết quả → snapshot/đối tượng hiển thị | Xuất và kiểm tra contract model–UI; không chứa thuật toán train |
-| `cli.py` | Tham số lệnh → bước pipeline | Một cách chạy lại các bước; không nhét thuật toán vào CLI |
-| `app/streamlit_app.py` | Snapshot → hai tab | Quản lý lựa chọn user/model/khóa, hiển thị và thông báo lỗi |
-
-## 4. Quy ước giữa model và UI
-
-Model chấm danh sách khóa được truyền vào, trả `user_id`, `course_id`, `model_id`, `score_raw`, `run_id`. Adapter đổi ID số nội bộ RecBole về ID nguồn trước khi xuất.
-
-Phần gợi ý nhận lịch sử được phép quan sát và tập khóa được chấm. Kết quả có rank, score, reason/evidence và fallback. Điểm bằng nhau phá hòa bằng course ID tăng dần; NaN/inf, ID lạ và khóa trùng bị chặn.
-
-Sau đó xuất snapshot nhỏ `demo_bundle.json` chứa hồ sơ, catalog dùng cho demo, ranking và kết quả offline. [Tài liệu 04](04_data_contract.md) là nơi quy định tên trường/kiểu dữ liệu; [tài liệu 08](08_ui_handoff.md) quy định cách hiển thị. UI chỉ chọn/hiển thị, không tự tính lại ranking.
-
-## 5. Hybrid và phần tiền đề
-
-Chuẩn hóa điểm BPR và Content về cùng thang bằng min–max trên **cùng tập khóa của mỗi user/run**. Nếu toàn bộ điểm một thành phần bằng nhau, thành phần đó trở thành vector 0. Sau đó:
-
-```text
-hybrid = alpha * normalized_cf + (1 - alpha) * normalized_content
-final  = hybrid - lambda * missing_exposure_ratio    # chỉ khi bật P1
+```python
+score(user_id, candidate_ids) -> ScoreResult(
+    course_ids, scores, fallback_status, evidence
+)
 ```
 
-`alpha` là mức ưu tiên BPR; `lambda` là mức trừ điểm khi chưa thấy tiếp xúc với tiền đề. Chọn chúng trên valid, khóa trước test. User không có embedding BPR dùng fallback rõ ràng; không tạo điểm CF ngẫu nhiên.
+`course_ids` là tuple ID nguồn không trùng, theo **đúng thứ tự candidate đầu vào**;
+`scores` là mảng NumPy 1 chiều cùng độ dài và hữu hạn. `fallback_status`
+ghi cơ chế dự phòng; `evidence` ánh xạ course ID sang tuple câu bằng chứng.
+Model chỉ chấm điểm. Evaluator giữ seen mask, phá hòa score giảm/course ID
+tăng và lấy tối đa10. `RunIdentity` lưu run/model/dataset/split/protocol/seed
+ở ranh giới run, không phải mỗi dòng score trả về.
 
-Course không ánh xạ graph có penalty 0 và trạng thái `unknown`. Course có mapping nhưng không thấy tiền đề có trạng thái `no_observed_prerequisite`. Cả hai chưa chứng minh người học đã đủ kiến thức. Cách tính trực tiếp/ancestor, chu trình và danh sách bị cắt ở [05](05_evaluation.md).
+Hybrid min–max hai score trên toàn universe của từng user **trước mask seen**:
+`alpha * BPR + (1-alpha) * Content`. Thành phần hằng trở thành vector0.
+Không áp dụng BPR thì fallback Content; Content/profile rỗng có popularity
+fallback theo code và ghi nhãn. Alpha đã chọn0,25 bằng valid, không tune trên test.
 
-## 6. Cấu trúc thư mục dự kiến
+## 4. File trên máy và file trong Git
 
 ```text
-RecSysEdu/
-├── docs/ và tasks/                 # Tài liệu hiện có
-├── pyproject.toml, dependency lock # M0
-├── configs/                        # Config dùng chung; đường dẫn local để riêng
-├── src/recsysedu/                   # Các phần lõi ở bảng trên
-├── app/streamlit_app.py             # Hai tab LearnPath
-├── tests/fixtures/                  # Mẫu SYNTHETIC nhỏ, đưa vào Git
-├── data/raw/                       # File gốc và manifest, ngoài Git
-├── data/processed/<dataset_version>/ # Parquet, split và manifest, ngoài Git
-├── data/recbole/                   # TSV export từ cùng split, ngoài Git
-├── artifacts/<run_id>/             # Checkpoint, ID map và config, ngoài Git khi lớn
-├── artifacts/demo/<snapshot_id>/   # demo_bundle.json và thông tin version
-└── results/<run_id>/               # Metrics, logs, báo cáo phù hợp để bàn giao
+configs/                              # config versioned trong Git
+src/recsysedu/, app/, tests/, docs/     # source/test/docs trong Git
+data/raw/                             # raw + raw_manifest.json, ngoài Git
+data/processed/mooccubex-pilot-v1/      # 4 Parquet + dataset_manifest.json
+data/splits/mooccubex-pilot-v1-split-v1/ # 6 Parquet + split_manifest.json
+results/local/pilot-final/valid/<batch>/
+results/local/pilot-final/test/<batch>/
+    artifacts/content/                # vectorizer, sparse features, manifest
+    artifacts/bpr/                    # bpr.pth, ID map, bpr_manifest.json
+    runs/<model>/                     # run_manifest, metrics.csv,
+                                      # per_user_metrics.parquet, recommendations.jsonl
+    snapshot_inputs/                  # input copies để exporter đọc batch di động
+    experiment_manifest.json          # hash/inventory và nhận diện cả batch
+artifacts/demo/v1/demo_bundle.json     # snapshot thật nhỏ, ngoài Git
+results/pilot/, results/final/         # báo cáo tổng hợp nhỏ trong Git
 ```
 
-Đường dẫn cụ thể do config quyết định; không ghi cứng `C:`/`D:` trong mã. CSV/JSON dành cho fixture và báo cáo nhỏ; Parquet là bảng processed chính. Khi cùng làm, nhận task theo module và ghép qua file đã thống nhất, theo [CONTRIBUTING](../CONTRIBUTING.md).
+Tên batch/test exact và hash ở final report. Validation có thể có alpha trials;
+Hybrid chính có thể trỏ tới trial đã chọn. Atomic export khi train BPR nằm
+`artifacts/atomic/recsysedu/recsysedu.<split>.inter` trong batch training;
+test tái dùng model đã khóa nên không train/export lại.
+
+Clone Git không có learner ID/checkpoint/ranking thật. Khi chuyển máy, giữ
+nguyên cả batch và manifest; không chỉ chép `.pth` hoặc sửa hash/output_root.
+[Runbook](09_runbook.md) liệt kê inventory và cách mở fixture/real snapshot.
+
+## 5. P1 và đề xuất lịch sử
+
+Thiết kế ban đầu từng đề xuất penalty tiền đề, NetworkX và learning path.
+Đó là **ý tưởng lịch sử, chưa triển khai và không thuộc contract P0 hiện tại**.
+`knowledge/audit.py` đã kiểm trên fixture nhưng thiếu cả ba nguồn graph thật;
+quyết định là [P1_STOP_INSUFFICIENT_EVIDENCE](../results/graph_audit.md).
+Muốn mở P1 cần dữ liệu/audit và plan riêng. Snapshot P0 luôn `paths=[]`,
+trạng thái tiền đề `unknown`; không suy diễn enrollment thành mastery.
+
+Tham khảo [contract](04_data_contract.md), [protocol](05_evaluation.md) và
+[CONTRIBUTING](../CONTRIBUTING.md) trước khi đổi ranh giới module/file.

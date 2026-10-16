@@ -1,14 +1,24 @@
 # Bắt đầu đọc tài liệu RecSysEdu
 
-Cập nhật: 09/10/2026. Bộ tài liệu mô tả hướng triển khai trong **sáu tuần**. Đã có package/CLI, base UI hai tab và raw user/course đã tải/audit; chưa có split hoặc kết quả huấn luyện. Người mới chạy theo [runbook](09_runbook.md), xem [audit thật](../results/data_audit.md) và [bằng chứng base](../results/base_verification.md).
+Cập nhật: 16/10/2026. **P0 offline đã có dữ liệu/split thật, bốn mô hình,
+validation, test sau freeze và snapshot thật.** Đã kiểm trình duyệt và môi trường
+Python sạch trên cùng máy Windows. Xem [nghiệm thu](../reports/acceptance.md),
+[kết quả test](../results/final/report.md), [tái lập](../results/reproduction.md)
+và chạy theo [runbook](09_runbook.md). Các báo cáo base ngày09/10 và lịch sáu
+tuần là nhật ký/kế hoạch lịch sử, không thay cho trạng thái hiện tại.
 
 ## Dự án làm gì?
 
-Đọc [10 — Hướng đồ án theo môn học](10_course_direction.md) để hiểu vì sao chọn phương pháp và [11 — Ghi chú nguồn](11_course_reading_notes.md) để kiểm bài/trang. Hiện tập trung bài toán, dữ liệu, model và đánh giá; UI chỉ được phân tích chức năng, chưa phát triển thêm.
+Đọc [10 — Hướng đồ án theo môn học](10_course_direction.md) để hiểu vì sao chọn
+phương pháp và [11 — Ghi chú nguồn](11_course_reading_notes.md) để kiểm bài/trang.
+Demo hiện có hai tab đọc kết quả đã tính, không train khi bấm. Clone Git mặc
+định mở fixture có nhãn; snapshot thật và dữ liệu/model phải nhận riêng.
 
 **RecSysEdu** là tên dự án mã nguồn. **LearnPath** là tên giao diện demo. Hệ thống đọc lịch sử đăng ký khóa học, xếp hạng các khóa chưa đăng ký và giải thích vì sao chúng được gợi ý.
 
-Ví dụ minh họa: một người từng đăng ký Python có thể được gợi ý khóa về lập trình hoặc dữ liệu. Nếu có thông tin kiến thức cần học trước, giao diện cho biết nên kiểm tra những kiến thức nào. Đăng ký một khóa chưa chứng minh người đó đã học xong hoặc đã thành thạo.
+Ví dụ minh họa: một người từng đăng ký Python có thể được gợi ý khóa về lập
+trình hoặc dữ liệu. P0 chỉ giải thích cơ chế tính điểm, chưa xác nhận tiền đề
+hoặc tạo lộ trình. Đăng ký chưa chứng minh đã học xong hoặc thành thạo.
 
 ## Hướng đi chung
 
@@ -23,10 +33,10 @@ Ví dụ minh họa: một người từng đăng ký Python có thể được 
 
 DuckDB giúp lọc và thống kê bảng Parquet. RecBole giúp huấn luyện BPR. Streamlit dựng giao diện bằng Python. Cloud/Drive chỉ cần khi chia sẻ hoặc sao lưu file; chưa cần database hay backend riêng cho demo sáu tuần.
 
-| Phạm vi | Cần làm |
+| Phạm vi | Trạng thái hiện tại |
 | --- | --- |
-| **P0 — bắt buộc** | Dữ liệu sạch; cách đánh giá chung; MostPopular, Content, BPR, Hybrid; lý do gợi ý; hai tab UI; báo cáo và hướng dẫn chạy |
-| **P1 — có điều kiện** | Dữ liệu concept/kiến thức tiên quyết đủ dùng thì thêm xếp hạng lại và lộ trình; thiếu dữ liệu phải ghi rõ |
+| **P0 — bắt buộc** | Đã có pipeline, evaluator, MostPopular/Content/BPR/Hybrid, snapshot và hai tab; kết quả/giới hạn ở báo cáo nghiệm thu |
+| **P1 — có điều kiện** | Có công cụ audit và fixture; chưa chạy graph thật vì thiếu ba nguồn; `P1_STOP_INSUFFICIENT_EVIDENCE`, chưa rerank/path |
 | **P2 — sau sáu tuần** | LightGCN, video/bài tập, đánh giá năng lực, React/FastAPI/PostgreSQL hoặc web nhiều người dùng |
 
 Hybrid không tốt hơn BPR vẫn có thể đạt yêu cầu nếu triển khai và đánh giá đúng. Thiếu BPR/Hybrid là thiếu P0; thiếu graph được báo riêng là P1 chưa đạt.
@@ -47,7 +57,9 @@ Hybrid không tốt hơn BPR vẫn có thể đạt yêu cầu nếu triển kha
 | Công việc cụ thể theo ngày | [Lịch sáu tuần](../tasks/six_week_schedule.md) và [task kỹ thuật](../tasks/plan.md) |
 | Cùng sửa mã qua GitHub | [CONTRIBUTING](../CONTRIBUTING.md) |
 
-Người mới đọc trang này, tài liệu 10, rồi tài liệu 01 và phần việc mình nhận. Chốt đầu vào/đầu ra và căn cứ thuật toán trước khi tiếp tục làm sản phẩm.
+Người mới đọc trang này, báo cáo nghiệm thu, runbook rồi phần việc mình nhận.
+Tài liệu10/11 giải thích căn cứ lựa chọn ban đầu; docs03/04/05 mô tả kiến trúc,
+contract và protocol đang dùng. Lịch cũ không có quyền đổi freeze/test đã công bố.
 
 ## Các từ thường gặp
 
@@ -68,8 +80,16 @@ Người mới đọc trang này, tài liệu 10, rồi tài liệu 01 và phầ
 | Fallback / unknown | Cách gợi ý dự phòng / chưa đủ thông tin |
 | Prerequisite / graph | Kiến thức cần trước / các khái niệm nối bằng quan hệ trước–sau |
 
-## Sáu tuần sẽ bàn giao gì?
+## Kế hoạch sáu tuần và kết quả đã có
 
-Tuần 1 làm dữ liệu và thử môi trường BPR. Tuần 2 có MostPopular/Content TF-IDF và evaluator. Tuần 3 đủ bốn mô hình. Tuần 4 phân tích lỗi và kiểm tra có làm được graph/lộ trình không. Tuần 5 mới ghép demo tối thiểu với kết quả thật và khóa cấu hình. Tuần 6 đánh giá cuối, báo cáo và thử bàn giao trên môi trường sạch. Base mẫu đã có không là lý do dành thêm tuần 1–4 cho trang trí UI.
+Lịch lịch sử chia dữ liệu/BPR spike→baseline→bốn model→cổng P1→demo/freeze→test/
+tái lập. Công việc P0 này đã được thực thi; không khẳng định sáu tuần thực tế
+đã trôi qua. Pilot10.000 người tạo9.909 warm valid/9.858 warm test và2.586
+candidate. Hybrid alpha0,25 có test NDCG@10=0,0773727819; đó là một pilot/một
+seed, không phải bằng chứng học tốt hơn hoặc thắng mọi nhóm.
 
-Download/audit/demo validate đã chạy theo [runbook](09_runbook.md); prepare/split/train/evaluate/graph vẫn là **phần sẽ xây**. Khi thay quy ước dữ liệu, sửa tài liệu 04, loader, fixture và các bên dùng dữ liệu trong cùng thay đổi; tránh mỗi người hiểu một định dạng.
+Prepare/split/RecBole/evaluate/export đã chạy trên dữ liệu thật. Graph thật
+chưa chạy. Danh sách trạng thái/bằng chứng ở [todo](../tasks/todo.md), hướng dẫn
+chuyển artifact ngoài Git ở runbook. Thay data/config/protocol cần validation
+và freeze mới; không dùng test đã mở để chọn lại tham số. Khi đổi contract,
+sửa docs04, loader, fixture, exporter và các bên dùng cùng một thay đổi.
