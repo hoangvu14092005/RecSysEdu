@@ -163,6 +163,40 @@ def _build_train_loader(config, dataset, candidate_ids):
     return TrainDataLoader(config, dataset, sampler.set_phase('train'), shuffle=True)
 
 
+def _validation_ndcg(model, train, valid, candidate_ids, user_map, item_map):
+    """Score exact warm validation targets with the shared source-ID ranking policy.
+
+    RecBole's default full-sort includes cold items and breaks ties differently.
+    Only train histories are masked here. Test interactions are never consulted.
+    """
+    from collections import defaultdict
+
+    from recsysedu.evaluation.metrics import metrics_at_k
+    from recsysedu.evaluation.ranking import rank_candidates
+
+    inverse_users = {index: token for token, index in user_map.items()}
+    inverse_items = {index: token for token, index in item_map.items()}
+    histories = defaultdict(list)
+    for user, item in zip(train.inter_feat['user_id'].tolist(),
+                          train.inter_feat['item_id'].tolist()):
+        histories[inverse_users[user]].append(inverse_items[item])
+    scorer = BPRScorer(model.user_embedding.weight.detach().cpu().numpy(),
+                       model.item_embedding.weight.detach().cpu().numpy(), user_map, item_map)
+    values = []
+    for user, target in zip(valid.inter_feat['user_id'].tolist(),
+                            valid.inter_feat['item_id'].tolist()):
+        if target not in inverse_items:
+            continue
+        source_user = inverse_users[user]
+        ranked = rank_candidates(scorer.score(source_user, candidate_ids),
+                                 histories[source_user], k=10)
+        values.append(metrics_at_k([row.course_id for row in ranked], [inverse_items[target]],
+                                   len(candidate_ids), k=10)['NDCG@10'])
+    if not values:
+        raise ValueError('early stopping requires a non-empty warm validation cohort')
+    return float(np.mean(values))
+
+
 def train_bpr(config_path: Path, output_dir: Path) -> dict:
     """Train real RecBole BPR on the exact export; project evaluator owns metrics.
 
@@ -199,6 +233,10 @@ def train_bpr(config_path: Path, output_dir: Path) -> dict:
         raise ValueError('epochs must be bounded from 1 to 100')
     if type(parameters.get('seed')) is not int:
         raise ValueError('seed must be an integer')
+    early = raw.get('validation_early_stopping', False)
+    patience = raw.get('stopping_step', 3)
+    if type(early) is not bool or type(patience) is not int or patience < 1:
+        raise ValueError('validation_early_stopping must be bool; stopping_step positive integer')
     parameters.update(
         data_path=str(atomic_dir.resolve()), benchmark_filename=['train', 'valid', 'test'],
         USER_ID_FIELD='user_id', ITEM_ID_FIELD='item_id', TIME_FIELD='timestamp',
@@ -208,7 +246,8 @@ def train_bpr(config_path: Path, output_dir: Path) -> dict:
         user_inter_num_interval='[0,inf)', item_inter_num_interval='[0,inf)',
         eval_args={'split': None, 'order': 'TO', 'group_by': 'user', 'mode': 'full'},
         train_neg_sample_args={'distribution': 'popularity', 'sample_num': 1, 'alpha': 0.0},
-        metrics=['Recall'], topk=[1], valid_metric='Recall@1', enable_amp=False)
+        metrics=['NDCG'], topk=[10], valid_metric='NDCG@10', enable_amp=False,
+        eval_step=1, stopping_step=patience)
     class AdapterConfig(Config):
         # RecBole normally lets sys.argv override config_dict. The embedding
         # application's flags must not bypass our CPU/split/epoch constraints.
@@ -244,19 +283,40 @@ def train_bpr(config_path: Path, output_dir: Path) -> dict:
         stage.mkdir()
         config['checkpoint_dir'] = str(stage)
         model = BPR(config, train).to('cpu')
-        trainer = Trainer(config, model)
+        best_state, validation_history = {}, []
+
+        class ValidationTrainer(Trainer):
+            def _valid_epoch(self, valid_data, show_progress=False):
+                self.model.eval()
+                value = _validation_ndcg(self.model, train, valid_data,
+                                         exported['candidate_ids'], user_map, item_map)
+                validation_history.append(value)
+                # Match RecBole's >= update rule, including exact ties.
+                if value >= self.best_valid_score:
+                    best_state.clear()
+                    best_state.update({key: tensor.detach().clone() for key, tensor in
+                                       self.model.state_dict().items()})
+                return value, {'ndcg@10': value}
+
+        trainer = (ValidationTrainer if early else Trainer)(config, model)
         try:
-            # No RecBole full-universe validation: held-out-only items are outside
-            # our train candidate universe. Task 4 evaluator performs comparison.
-            trainer.fit(train_loader, valid_data=None, verbose=False,
+            trainer.fit(train_loader, valid_data=valid if early else None, verbose=False,
                         saved=False, show_progress=False)
         finally:
             trainer.tensorboard.close()
+        if early:
+            model.load_state_dict(best_state)
         checkpoint = stage / 'bpr.pth'
         torch.save(model.state_dict(), checkpoint)
         _write_json(stage / 'id_maps.json', {'user_id_map': user_map, 'item_id_map': item_map})
         manifest = dict(schema_version=1, model_id='recbole-bpr', device='cpu',
                         seed=config['seed'], epochs_completed=len(trainer.train_loss_dict),
+                        epochs_requested=parameters['epochs'],
+                        validation_early_stopping=early, stopping_step=patience,
+                        best_epoch=(max(i + 1 for i, value in enumerate(validation_history)
+                                        if value == max(validation_history)) if early else None),
+                        best_validation_ndcg_at_10=(max(validation_history) if early else None),
+                        validation_ndcg_history=validation_history,
                         embedding_size=config['embedding_size'],
                         train_batch_size=config['train_batch_size'],
                         learning_rate=config['learning_rate'],

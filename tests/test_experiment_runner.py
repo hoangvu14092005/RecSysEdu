@@ -63,6 +63,20 @@ def test_runner_refuses_test_before_config_is_marked_frozen(tmp_path, experiment
 
 
 @pytest.mark.integration
+def test_runner_accepts_early_stopped_checkpoint_budget(tmp_path, experiment_case):
+    experiment_case['bpr'].update(epochs=8, validation_early_stopping=True, stopping_step=1)
+    from recsysedu.experiments.runner import evaluate_model
+    report = evaluate_model(experiment_case, model_id='bpr', split='valid',
+                            output_root=tmp_path / 'early')
+    batch = _batch(tmp_path / 'early')
+    model = _read(batch / 'artifacts/bpr/bpr_manifest.json')
+    assert model['epochs_requested'] == 8
+    assert model['epochs_completed'] <= 8
+    assert report['model_config']['validation_early_stopping'] is True
+    assert report['metrics']['NDCG@10'] == pytest.approx(model['best_validation_ndcg_at_10'])
+
+
+@pytest.mark.integration
 def test_runner_runs_four_models_on_one_shared_valid_protocol(tmp_path, experiment_case):
     root = tmp_path / 'valid'
     reports = run_experiment(experiment_case, split='valid', output_root=root)

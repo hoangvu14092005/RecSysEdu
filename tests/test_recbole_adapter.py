@@ -187,3 +187,73 @@ def test_training_sampler_uses_train_universe_without_excluding_heldout_positive
     assert ('U_01', 'C_3') in samples  # validation positive is not a sampler exclusion
     with pytest.raises(ValueError, match='no unseen item'):
         _build_train_loader(config, dataset, exported['candidate_ids'])
+
+
+@pytest.mark.integration
+def test_early_stopping_uses_validation_and_restores_best_epoch(split_dir, tmp_path, monkeypatch):
+    import torch
+    from recsysedu.adapters import recbole as adapter
+
+    atomic = tmp_path / 'atomic'
+    export_atomic_files(split_dir, atomic)
+    config = dict(atomic_dir=str(atomic), seed=17, epochs=8, embedding_size=8,
+                  train_batch_size=4, learning_rate=0.001,
+                  validation_early_stopping=True, stopping_step=1)
+    path = tmp_path / 'config.yaml'
+    path.write_text(yaml.safe_dump(config))
+    observed = []
+    best_state = {}
+
+    def validation(model, train, valid, candidates, user_map, item_map):
+        observed.append(valid)
+        if len(observed) == 1:
+            best_state.update({key: value.detach().clone() for key, value in
+                               model.state_dict().items()})
+        return 0.9 if len(observed) == 1 else 0.1
+
+    monkeypatch.setattr(adapter, '_validation_ndcg', validation)
+    result = train_bpr(path, tmp_path / 'model')
+    assert result['epochs_requested'] == 8
+    assert result['epochs_completed'] < 8
+    assert result['best_epoch'] == 1
+    assert result['best_validation_ndcg_at_10'] == 0.9
+    # Exact validation membership is supplied; held-out test is never evaluated.
+    assert all(len(data) == 3 for data in observed)
+    loaded = torch.load(tmp_path / 'model/bpr.pth', weights_only=True)
+    for key, value in best_state.items():
+        torch.testing.assert_close(loaded[key], value, rtol=0, atol=0)
+
+
+@pytest.mark.integration
+def test_project_validation_ndcg_matches_shared_ranking(split_dir, tmp_path):
+    from recbole.config import Config
+    from recbole.data import create_dataset
+    from recbole.model.general_recommender.bpr import BPR
+    from recsysedu.adapters.recbole import _validation_ndcg
+    from recsysedu.evaluation.metrics import metrics_at_k
+    from recsysedu.evaluation.ranking import rank_candidates
+
+    atomic = tmp_path / 'atomic'
+    exported = export_atomic_files(split_dir, atomic)
+    config = Config(model='BPR', dataset='recsysedu', config_dict={
+        'data_path': str(atomic), 'benchmark_filename': ['train', 'valid', 'test'],
+        'use_gpu': False, 'embedding_size': 8})
+    dataset = create_dataset(config)
+    train, valid, _ = dataset.build()
+    users = {str(token): int(index) for token, index in dataset.field2token_id['user_id'].items()
+             if index}
+    items = {item: int(dataset.token2id('item_id', item)) for item in exported['candidate_ids']}
+    model = BPR(config, train)
+    actual = _validation_ndcg(model, train, valid, exported['candidate_ids'], users, items)
+    scorer = BPRScorer(model.user_embedding.weight.detach().numpy(),
+                       model.item_embedding.weight.detach().numpy(), users, items)
+    histories = {}
+    for row in pq.read_table(split_dir / 'train.parquet').to_pylist():
+        histories.setdefault(row['user_id'], []).append(row['course_id'])
+    scores = []
+    for row in pq.read_table(split_dir / 'valid_cohort.parquet').to_pylist():
+        ranked = rank_candidates(scorer.score(row['user_id'], exported['candidate_ids']),
+                                 histories[row['user_id']], k=10)
+        scores.append(metrics_at_k([r.course_id for r in ranked], [row['course_id']],
+                                   len(items), k=10)['NDCG@10'])
+    assert actual == pytest.approx(np.mean(scores))
