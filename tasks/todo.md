@@ -9,10 +9,10 @@ Các mục ngày 09/10 bên dưới là nhật ký lịch sử; dùng bảng nà
 
 | Task | Trạng thái và đầu ra | Bằng chứng / bước còn lại |
 | --- | --- | --- |
-| 0–10 | Đã triển khai, kiểm thử và review từng task: contract, prepare/split, evaluator, bốn model, runner, snapshot exporter | Fixture/integration đã chạy; không đồng nghĩa demo thật và test cuối đã nghiệm thu |
-| 11 | Đã chạy pilot 10.000 người, bốn model và năm alpha; khóa cấu hình sau audit | [Dữ liệu](../results/pilot/dataset_report.md), [validation](../results/pilot/validation_report.md), [core manifest](../results/pilot/core_manifest.json); 9.909 warm valid, 2.586 candidate; chưa mở test |
+| 0–10 | Đã triển khai, kiểm thử và review từng task: contract, prepare/split, evaluator, bốn model, runner, snapshot exporter | Fixture/integration và Task13 xác nhận dữ liệu thật; giữ phân biệt mức bằng chứng |
+| 11 | Đã chạy pilot 10.000 người, bốn model và năm alpha; khóa cấu hình sau audit | [Dữ liệu](../results/pilot/dataset_report.md), [validation](../results/pilot/validation_report.md), [core manifest](../results/pilot/core_manifest.json); 9.909 warm valid, 2.586 candidate; test sau freeze ở Task13 |
 | 12 | Đã triển khai công cụ audit; dữ liệu graph thật chưa chạy vì thiếu cả ba nguồn | [Quyết định P1_STOP_INSUFFICIENT_EVIDENCE](../results/graph_audit.md); không bật rerank/path |
-| 13 | Chưa chạy; freeze Task 11 đã sẵn sàng để review | Test cuối, snapshot thật, xem trình duyệt, môi trường sạch và báo cáo bàn giao |
+| 13 | Đã chạy frozen full test đúng một lần, audit, snapshot thật, browser và clean environment | [Final](../results/final/report.md), [reproduction](../results/reproduction.md), [nghiệm thu P0](../reports/acceptance.md); 9.858 warm test; 262 test pass; chờ review Task13/toàn nhánh |
 | GitHub | Chờ kiểm tra cuối toàn nhánh | Sau khi xong, đưa về main và push remote người dùng đã chỉ định |
 
 Phân biệt: code đã viết, fixture chạy được, dữ liệu thật đã chạy và hiệu quả
@@ -64,34 +64,36 @@ tuần chỉ vì thư viện và bộ kiểm thử đã chạy.
 
 ## Triển khai theo lịch
 
-Lịch công việc hằng ngày ở [six_week_schedule](six_week_schedule.md). Các cổng G dưới đây là mục tiêu chưa đạt.
+Lịch công việc hằng ngày ở [six_week_schedule](six_week_schedule.md). Cổng G dưới
+đây phản ánh bằng chứng hiện tại; tuần/ngày là kế hoạch, không phải thời gian
+thực tế đã trôi qua. Nhật ký09/10 phía trên giữ nguyên trạng thái lịch sử.
 
-- [ ] G1 cuối tuần 1 — Dataset/split v1; thử môi trường BPR nhỏ.
-- [ ] G2 cuối tuần 2 — Hai baseline có validation và evaluator đúng.
-- [ ] G3 cuối tuần 3 — Bốn model cùng protocol, checkpoint load được.
-- [ ] G4 cuối tuần 4 — Xác định P1 graph/path đạt hay thiếu dữ liệu.
-- [ ] G5 cuối tuần 5 — Demo thật và khóa cấu hình; hết tính năng mới.
-- [ ] G6 cuối tuần 6 — Test cuối, tái lập và bàn giao.
+- [x] G1 — Dataset/split v1; BPR integration chạy được.
+- [x] G2 — Hai baseline validation; evaluator tính tay và audit thật.
+- [x] G3 — Bốn model cùng protocol; checkpoint load khớp.
+- [x] G4 — P1 dừng thiếu ba nguồn graph; real audit chưa chạy.
+- [x] G5 — Snapshot real ba hồ sơ/bốn model; config khóa sau validation.
+- [x] G6 — Test một lần, clean environment cùng máy và tài liệu bàn giao; chờ review/tích hợp.
 
-- [ ] M0 — Môi trường và fixture SYNTHETIC.
-- [ ] M1 — Raw acquisition và data audit.
-- [ ] M2 — Chuẩn hóa, split và cohort.
-- [ ] Checkpoint A — Dataset và protocol hợp lệ.
-- [ ] M3 — MostPopular và evaluator chung.
-- [ ] M4 — Content TF-IDF tên/mô tả + cosine.
-- [ ] Checkpoint B — Hai baseline cùng protocol.
-- [ ] M5 — Feature concept nếu đủ dữ liệu; có thể hoãn với lý do.
-- [ ] M6 — BPR/RecBole, ID map và reload checkpoint.
-- [ ] M7 — Hybrid tune validation.
-- [ ] Checkpoint C — Bốn model có kết quả tái lập.
-- [ ] M8 — Graph audit và coverage.
-- [ ] M9a — Prerequisite reranking.
-- [ ] M9b — Learning path concept.
-- [ ] Checkpoint D — Graph/path có bằng chứng và giới hạn.
-- [ ] M10 — Demo đọc artifact.
-- [ ] M11 — Thực nghiệm cuối và phân tích.
-- [ ] M12 — Tái lập trong môi trường sạch.
-- [ ] Checkpoint E — Bàn giao theo yêu cầu và trạng thái thật.
+- [x] M0 — Môi trường/fixture SYNTHETIC và BPR integration.
+- [x] M1 — Raw acquisition/audit; timezone là giả định versioned.
+- [x] M2 — Chuẩn hóa, split và warm/cold cohort.
+- [x] Checkpoint A — Dataset/protocol có manifest/hash hợp lệ.
+- [x] M3 — MostPopular và evaluator chung.
+- [x] M4 — Content TF-IDF tên/mô tả + cosine.
+- [x] Checkpoint B — Hai baseline cùng protocol.
+- [ ] M5 — Hoãn feature concept do thiếu nguồn; không thuộc P0 bắt buộc.
+- [x] M6 — BPR/RecBole, ID map và checkpoint reload.
+- [x] M7 — Hybrid chọn alpha bằng validation.
+- [x] Checkpoint C — Bốn model có run tương thích và frozen test.
+- [x] M8 — Công cụ audit/fixture và quyết định thiếu nguồn; real audit chưa chạy.
+- [ ] M9a — Hoãn prerequisite reranking theo P1 gate.
+- [ ] M9b — Hoãn learning path concept theo P1 gate.
+- [ ] Checkpoint D — Chưa đạt dữ liệu graph/path; không ngăn nghiệm thu P0.
+- [x] M10 — Demo snapshot thật, browser12 tổ hợp và CSV/error states.
+- [x] M11 — Test cuối và phân tích low/high-history/failure cases.
+- [x] M12 — Clean environment từ lock cùng máy Windows; chưa kiểm máy khác.
+- [ ] Checkpoint E — Đủ bằng chứng P0; chờ review toàn nhánh và push GitHub.
 
 ## Cách cập nhật sau mỗi task
 

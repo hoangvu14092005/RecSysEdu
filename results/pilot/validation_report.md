@@ -5,6 +5,9 @@ Ngày đo: 16/10/2026. Dữ liệu, cách chọn 10.000 người và split đư�
 test cuối và chưa chứng minh hiệu quả học tập. Task 13 mới được mở test sau
 khi kiểm tra cấu hình đã khóa.
 
+Các câu “chưa test/chưa snapshot” bên dưới là trạng thái tại thời điểm freeze
+Task11. Kết quả sau đó ở [Task13 — final report](../final/report.md).
+
 **Trạng thái: đã khóa cấu hình P0 sau validation và audit.** Đây là khóa dữ
 liệu/protocol/model để mở test; chưa phải nghiệm thu toàn bộ P0.
 
@@ -32,7 +35,9 @@ Khai báo trước ba cấu hình, dưới mức tối đa sáu của kế hoạ
 sau khi xem test. Cùng seed 17, CPU, batch 2.048, tối đa 10 epoch,
 early stopping theo warm validation NDCG@10, stopping_step=2. Adapter dùng
 chính ranking/metric/policy của dự án để chọn tensor tốt nhất rồi lưu checkpoint.
-Điều kiện dừng của RecBole là quá 2 lần giảm liên tiếp; bằng điểm đặt lại bộ đếm.
+RecBole đếm các lần đánh giá thấp hơn điểm tốt nhất đã đạt, không phải chỉ
+các lần giảm so với epoch ngay trước. Quá 2 lần như vậy thì dừng; bằng điểm
+tốt nhất đặt lại bộ đếm.
 
 | Lần | Embedding | Learning rate | Epoch tốt nhất / đã chạy | NDCG@10 | Thời gian CLI (giây) | RSS lấy mẫu (byte) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
