@@ -154,6 +154,27 @@ def test_runner_requires_distinct_test_output_root(tmp_path, experiment_case):
         run_experiment(_freeze(experiment_case, _batch(root)), split='test', output_root=root)
 
 
+@pytest.mark.integration
+@pytest.mark.parametrize('nested', [False, True])
+def test_runner_protects_actual_validation_batch_after_it_is_moved(
+        tmp_path, experiment_case, nested):
+    original_root = tmp_path / 'valid'
+    run_experiment(experiment_case, split='valid', output_root=original_root)
+    moved_batch = tmp_path / 'moved-validation-batch'
+    _batch(original_root).rename(moved_batch)
+    frozen = _freeze(experiment_case, moved_batch)
+    before = {p.relative_to(moved_batch): p.read_bytes()
+              for p in moved_batch.rglob('*') if p.is_file()}
+    output_root = moved_batch / 'test-output' if nested else moved_batch
+    with pytest.raises(ValueError, match='distinct'):
+        run_experiment(frozen, split='test', output_root=output_root)
+    after = {p.relative_to(moved_batch): p.read_bytes()
+             for p in moved_batch.rglob('*') if p.is_file()}
+    assert after == before
+    assert not (moved_batch / 'test-output').exists()
+    assert not list(moved_batch.glob('test-*'))
+
+
 @pytest.mark.parametrize('field', ['dataset_hash', 'split_hash', 'protocol_id'])
 def test_runner_rejects_cross_dataset_or_cross_protocol_model_artifacts(
         tmp_path, experiment_case, field):

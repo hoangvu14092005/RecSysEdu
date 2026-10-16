@@ -214,8 +214,10 @@ def _frozen_validation(config, base, identity, config_hash, output_root):
     if set(valid.get('runs', {})) != {'popularity', 'content', 'bpr', 'hybrid'}:
         raise ValueError('freeze requires a complete four-model validation experiment')
     valid_root = Path(valid['output_root']).resolve()
-    # Also reject nested test roots: they would mutate the immutable validation batch.
-    if output_root == valid_root or output_root.is_relative_to(valid_root):
+    # Protect both the recorded output root and the batch's actual location:
+    # the batch may have been moved since its immutable manifest was published.
+    protected_roots = (valid_root, validation_dir.resolve())
+    if any(output_root == root or output_root.is_relative_to(root) for root in protected_roots):
         raise ValueError('test requires a distinct output root outside validation output')
     _verify_files(validation_dir, valid.get('output_hashes'))
     return validation_dir, valid
