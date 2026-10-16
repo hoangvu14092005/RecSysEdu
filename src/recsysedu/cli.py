@@ -35,6 +35,12 @@ def main(argv=None) -> int:
     demo_actions = demo.add_subparsers(dest='action', required=True)
     validate = demo_actions.add_parser('validate')
     validate.add_argument('--bundle', default='tests/fixtures/demo_bundle.json')
+    export = demo_actions.add_parser('export', help='Xuất snapshot từ run offline đã hoàn tất')
+    export.add_argument('--run-dir', action='append', required=True,
+                        help='Thư mục run; lặp lại cho từng model đã chọn')
+    export.add_argument('--user-id', action='append', required=True,
+                        help='ID hồ sơ trong cohort; lặp lại để chọn nhiều hồ sơ')
+    export.add_argument('--output', required=True, help='File snapshot nằm ngoài batch kết quả')
     train = commands.add_parser('train', help='Huấn luyện BPR trên split đã phát hành')
     train.add_argument('--model', choices=('bpr',), required=True)
     train.add_argument('--config', default='configs/bpr.yaml')
@@ -51,6 +57,15 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == 'demo':
+            if args.action == 'export':
+                from recsysedu.demo.export import export_demo_bundle
+
+                bundle = export_demo_bundle([Path(path) for path in args.run_dir],
+                                            args.user_id, Path(args.output))
+                print(f"Đã xuất snapshot offline: {len(bundle['users'])} hồ sơ, "
+                      f"{len(bundle['runs'])} model; dataset: {bundle['meta']['dataset_version']}; "
+                      f"file: {Path(args.output).resolve()}")
+                return 0
             bundle = load_bundle(Path(args.bundle))
             print(f"Snapshot hợp lệ: {bundle['meta']['data_mode']}, "
                   f"{len(bundle['users'])} hồ sơ; không phải kết quả train thật nếu synthetic.")

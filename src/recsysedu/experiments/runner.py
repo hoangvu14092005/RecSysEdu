@@ -317,6 +317,19 @@ def _run(config, *, split, output_root, model_ids):
         stage = Path(temporary) / batch_id
         artifacts = stage / 'artifacts'
         artifacts.mkdir(parents=True)
+        # Small hash-bound copies let the snapshot exporter work after the source
+        # dataset has moved. Raw interactions and personal metadata are excluded.
+        inputs = stage / 'snapshot_inputs'
+        inputs.mkdir()
+        snapshot_inputs = {}
+        for name, path in (
+                ('dataset_manifest', prepared / 'dataset_manifest.json'),
+                ('split_manifest', split_dir / 'split_manifest.json'),
+                ('courses', prepared / 'courses.parquet'),
+                ('train', split_dir / 'train.parquet'),
+                ('valid', split_dir / 'valid.parquet')):
+            shutil.copyfile(path, inputs / path.name)
+            snapshot_inputs[name] = f'snapshot_inputs/{path.name}'
         content, bpr = None, None
         if validation is None:
             if need_content:
@@ -443,6 +456,7 @@ def _run(config, *, split, output_root, model_ids):
             git_status='revision_available' if revision else 'no_revision',
             git_dirty=dirty, versions=versions, duration_seconds=perf_counter() - started,
             output_root=str(output_root), runs=paths, alpha_trials=trials,
+            snapshot_inputs=snapshot_inputs,
             selected_alpha=selected_alpha, component_hashes=components,
             freeze_candidate=dict(dataset_hash=dataset_hash, split_hash=identity.split_hash,
                                   config_hash=config_hash),

@@ -49,6 +49,10 @@ def validate_bundle(bundle: dict) -> dict:
              'schema_version chưa hỗ trợ')
     _require(meta.get('data_mode') in ('synthetic', 'real'), 'data_mode không hợp lệ')
     _require(meta.get('history_mode') in ('offline', 'demo'), 'history_mode không hợp lệ')
+    real = meta['data_mode'] == 'real'
+    if real:
+        _require(meta.get('evidence_level') == 'offline_run' and meta['history_mode'] == 'offline',
+                 'Snapshot thật P0 cần mức kiểm chứng offline_run và history offline')
     for key in ('snapshot_id', 'dataset_version', 'dataset_hash', 'split_hash',
                 'protocol_id', 'generated_at'):
         _require(isinstance(meta.get(key), str) and bool(meta[key]), f'meta thiếu {key}')
@@ -69,6 +73,8 @@ def validate_bundle(bundle: dict) -> dict:
             _require(len(values) == len(set(values)), f'{field} có ID trùng')
         _require(set(user['profile_course_ids']) <= set(user['observed_course_ids']),
                  'Profile chứa khóa chưa quan sát')
+    common_real = None
+    real_models = set()
     for run in runs.values():
         _require(isinstance(run.get('model_id'), str) and run['model_id'] in MODEL_LABELS,
                  'model_id chưa hỗ trợ')
@@ -90,6 +96,23 @@ def validate_bundle(bundle: dict) -> dict:
                      and all(_number(value) for value in metrics.values()), 'Metric không hữu hạn')
         if meta['history_mode'] == 'demo' or run['evaluation_split'] == 'demo':
             _require(status == 'not_available', 'Demo live không có metric offline')
+        if real:
+            _require(run.get('evidence_level') == 'offline_run'
+                     and run.get('history_mode') == 'offline'
+                     and run.get('profile_policy') == 'train_only',
+                     'Run thật thiếu mức kiểm chứng hoặc sai history/profile policy')
+            split = run['evaluation_split']
+            _require(split in ('valid', 'test')
+                     and run['candidate_policy'] == 'full_train_universe'
+                     and run['seen_policy'] == ('train' if split == 'valid' else 'train_plus_valid'),
+                     'Run thật sai evaluation policy')
+            current = tuple(run.get(key) for key in (
+                'evaluation_split', 'cohort', 'cohort_size', 'candidate_policy', 'seen_policy',
+                'config_hash'))
+            _require(common_real is None or current == common_real, 'Các run thật không tương thích')
+            common_real = current
+            _require(run['model_id'] not in real_models, 'Một model có nhiều run không rõ lựa chọn')
+            real_models.add(run['model_id'])
     recommendations = bundle.get('recommendations')
     _require(isinstance(recommendations, list), 'recommendations phải là array')
     keys = set()
@@ -121,6 +144,10 @@ def validate_bundle(bundle: dict) -> dict:
             for field in ('reason_codes', 'evidence'):
                 _require(isinstance(item.get(field), list)
                          and all(isinstance(x, str) for x in item[field]), f'{field} phải là array')
+    if real:
+        _require(bool(users) and bool(runs), 'Snapshot thật cần hồ sơ và run')
+        _require(keys == {(user, model) for user in users for model in real_models},
+                 'Snapshot thật thiếu ranking của user/model')
     _require(isinstance(bundle.get('paths', []), list), 'paths phải là array')
     _require(not bundle.get('paths'), 'Base chưa hỗ trợ paths; để [] cho đến P1')
     return bundle

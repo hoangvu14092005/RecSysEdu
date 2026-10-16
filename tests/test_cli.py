@@ -9,6 +9,18 @@ from recsysedu.cli import main
 from recsysedu.data.prepare import prepare_dataset
 
 
+def test_demo_export_cli_writes_a_loadable_real_snapshot(demo_runs, tmp_path, capsys):
+    from recsysedu.demo.artifacts import load_bundle
+
+    path = tmp_path / 'cli-snapshot.json'
+    arguments = ['demo', 'export', '--output', str(path), '--user-id', 'U_0', '--user-id', 'U_3']
+    for run in demo_runs:
+        arguments.extend(['--run-dir', str(run)])
+    assert main(arguments) == 0
+    assert 'offline' in capsys.readouterr().out
+    assert len(load_bundle(path)['recommendations']) == 4
+
+
 def _cli_environment():
     # The shared venv may be editable-installed from the primary checkout.
     # Subprocess checks must exercise the checkout containing these tests.

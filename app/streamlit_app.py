@@ -23,7 +23,10 @@ st.caption('Gợi ý khóa học và xem kết quả mô hình')
 if meta['data_mode'] == 'synthetic':
     st.warning('DỮ LIỆU MẪU — ranking và lý do minh họa để dựng UI; chưa huấn luyện mô hình thật.')
 else:
-    st.info('KẾT QUẢ THẬT — đọc từ snapshot được cung cấp, không huấn luyện khi bấm giao diện.')
+    st.info('KẾT QUẢ TỪ PIPELINE — mức kiểm chứng: chạy offline trên dataset ghi bên dưới. '
+            'Snapshot này chưa xác nhận pilot hoàn chỉnh hay lợi ích học tập.')
+st.caption(f"Dataset: {meta['dataset_version']} | Snapshot: {meta['snapshot_id']} | "
+           f"History: {meta['history_mode']} | Protocol: {meta['protocol_id']}")
 
 users = {user['user_id']: user for user in bundle['users']}
 courses = {course['course_id']: course for course in bundle['courses']}
@@ -49,6 +52,7 @@ if not user['observed_course_ids']:
     st.sidebar.info('Người mới: chưa có lịch sử đăng ký.')
 
 rec = next(rec for rec in options if rec['model_id'] == model_id)
+st.caption(f"Run ID: {rec['run_id']} | Mô hình: {MODEL_LABELS[model_id]}")
 portal, lab = st.tabs(['Gợi ý học tập', 'Model Lab'])
 with portal:
     st.subheader('Dành cho bạn')

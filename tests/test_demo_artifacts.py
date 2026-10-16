@@ -64,3 +64,19 @@ def test_malformed_and_ambiguous_bundles_fail_cleanly(fault):
         bundle['paths'] = [{'invalid': True}]
     with pytest.raises(ValueError):
         validate_bundle(bundle)
+
+
+@pytest.mark.parametrize('fault', ['missing_evidence', 'mixed_policy', 'missing_user_ranking'])
+def test_real_loader_requires_offline_evidence_and_complete_compatible_runs(
+        demo_runs, tmp_path, fault):
+    from recsysedu.demo.export import export_demo_bundle
+
+    bundle = export_demo_bundle(demo_runs, ['U_0', 'U_3'], tmp_path / 'bundle.json')
+    if fault == 'missing_evidence':
+        del bundle['meta']['evidence_level']
+    elif fault == 'mixed_policy':
+        bundle['runs'][1]['evaluation_split'] = 'test'
+    else:
+        bundle['recommendations'].pop()
+    with pytest.raises(ValueError):
+        validate_bundle(bundle)
