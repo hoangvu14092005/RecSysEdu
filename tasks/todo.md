@@ -1,6 +1,23 @@
 # Tiến độ RecSysEdu
 
-Ngày cập nhật: 09/10/2026. Dấu `[x]` chỉ ghi việc có bằng chứng; mã task tương ứng [plan](plan.md).
+Ngày cập nhật: 16/10/2026. Dấu `[x]` chỉ ghi việc có bằng chứng; mã task tương ứng [plan](plan.md).
+
+## Hàng đợi hiện tại — triển khai Pipeline-first
+
+Theo [kế hoạch đã duyệt](../docs/superpowers/plans/2026-10-16-recsysedu-pipeline-first.md).
+Các mục ngày 09/10 bên dưới là nhật ký lịch sử; dùng bảng này để biết trạng thái hiện tại.
+
+| Task | Trạng thái và đầu ra | Bằng chứng / bước còn lại |
+| --- | --- | --- |
+| 0–10 | Đã triển khai, kiểm thử và review từng task: contract, prepare/split, evaluator, bốn model, runner, snapshot exporter | Fixture/integration đã chạy; không đồng nghĩa demo thật và test cuối đã nghiệm thu |
+| 11 | Đã chạy pilot 10.000 người, bốn model và năm alpha; khóa cấu hình sau audit | [Dữ liệu](../results/pilot/dataset_report.md), [validation](../results/pilot/validation_report.md), [core manifest](../results/pilot/core_manifest.json); 9.909 warm valid, 2.586 candidate; chưa mở test |
+| 12 | Đã triển khai công cụ audit; dữ liệu graph thật chưa chạy vì thiếu cả ba nguồn | [Quyết định P1_STOP_INSUFFICIENT_EVIDENCE](../results/graph_audit.md); không bật rerank/path |
+| 13 | Chưa chạy; freeze Task 11 đã sẵn sàng để review | Test cuối, snapshot thật, xem trình duyệt, môi trường sạch và báo cáo bàn giao |
+| GitHub | Chờ kiểm tra cuối toàn nhánh | Sau khi xong, đưa về main và push remote người dùng đã chỉ định |
+
+Phân biệt: code đã viết, fixture chạy được, dữ liệu thật đã chạy và hiệu quả
+được chứng minh là bốn mức bằng chứng khác nhau. Không tick toàn bộ cổng sáu
+tuần chỉ vì thư viện và bộ kiểm thử đã chạy.
 
 ## Đợt khởi tạo tài liệu
 

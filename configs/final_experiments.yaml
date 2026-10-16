@@ -3,28 +3,33 @@ prepared_dir: ../data/processed/mooccubex-pilot-v1
 split_dir: ../data/splits/mooccubex-pilot-v1-split-v1
 seed: 17
 release_mode: true
-frozen: false
+frozen: true
 output_roots:
-  valid: ../results/experiments/valid
-  test: ../results/experiments/test
+  valid: ../results/local/pilot-final/valid
+  test: ../results/local/pilot-final/test
 
 # Config files are read on every invocation; their effective values are hashed.
 content:
   config_path: content.yaml
 bpr:
   config_path: bpr.yaml
-  # To evaluate an already-trained BPR (must match dataset/split/seed/parameters):
-  # manifest_path: ../artifacts/models/<run>/bpr_manifest.json
+  # Chosen from three seed-17 validation trials; reuse the exact best checkpoint.
+  epochs: 10
+  embedding_size: 32
+  learning_rate: 0.01
+  validation_early_stopping: true
+  stopping_step: 2
+  manifest_path: ../results/local/pilot-search/bpr-3/valid-cbcf720e67144f10a735e06b0a717763/artifacts/bpr/bpr_manifest.json
 hybrid:
   config_path: hybrid.yaml
 
-# After validation and manual review (Task 11), copy freeze_candidate from
-# <validation batch>/experiment_manifest.json, then add the SHA-256 of that file.
-# Keep the model settings above unchanged; test uses its exact saved checkpoint,
-# Content features and validation-selected alpha. Use a separate test output root.
-# validation_dir: ../results/experiments/valid/valid-<batch-id>
-# freeze:
-#   dataset_hash: <exact dataset manifest SHA-256>
-#   split_hash: <exact split hash>
-#   config_hash: <effective config hash from validation>
-#   validation_manifest_sha256: <SHA-256 of experiment_manifest.json>
+# Frozen after the real four-model valid batch and five-alpha grid (Task 11).
+# Carry this ignored local batch with the data when handing off the project.
+# Test reuses its exact checkpoint, Content features and selected alpha 0.25.
+# New data/config requires a separate validation run and a new freeze.
+validation_dir: ../results/local/pilot-final/valid/valid-2e93583494064297adaa556b9bc21d64
+freeze:
+  dataset_hash: 215b235068a4282a49b02ab0c0ac65608f096828d1fc97ac6c1a30b0a936720c
+  split_hash: 7285739e66981088817fd2c11419caaf36f2cf4f197798403468cd989f263617
+  config_hash: 7e895cc5d88e203cf20c597c6ff349d16b5266910d148108ca4a3f1c22f603cc
+  validation_manifest_sha256: 379b3ae18de0b2a3859f705be5ce3727284d29fa4a8ddab1326982ba597d3baf
