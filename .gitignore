@@ -8,17 +8,42 @@ __pycache__/
 .hypothesis/
 .tox/
 .nox/
-.archify/
 build/
 dist/
 .env
 .env.*
 !.env.example
-/data/
-/artifacts/
+
+# Dữ liệu lớn hoặc có thể chứa định danh người học.
+# Không chặn toàn bộ data/: vẫn có thể commit README, schema và sample nhỏ
+# ở các thư mục khác như data/samples/ hoặc data/fixtures/.
+/data/raw/*
+!/data/raw/README.md
+!/data/raw/.gitkeep
+/data/processed/*
+!/data/processed/README.md
+!/data/processed/.gitkeep
+/data/splits/*
+!/data/splits/README.md
+!/data/splits/.gitkeep
+
+# Artifact runtime riêng tư/lớn. Các manifest, schema và ví dụ nhỏ nằm ngoài
+# những đường dẫn này vẫn có thể được theo dõi bằng Git.
+/artifacts/demo/
+/artifacts/checkpoints/
+/artifacts/models/
+/artifacts/core_manifest.json
+/artifacts/**/*.parquet
+/artifacts/**/*.jsonl
+/artifacts/**/*.csv
 *.pth
 *.pt
 *.ckpt
+!tests/fixtures/**/*.pth
+!tests/fixtures/**/*.pt
+!tests/fixtures/**/*.ckpt
 *.part
-/results/local/
+/results/local/*
+!/results/local/README.md
+!/results/local/.gitkeep
 /log_tensorboard/
