@@ -99,6 +99,10 @@ def export_atomic_files(split_dir: Path, output_dir: Path) -> dict:
     return manifest
 
 
+class UnknownBPRUserError(ValueError):
+    """BPR has no train embedding for the requested source user."""
+
+
 @dataclass(frozen=True)
 class BPRScorer:
     """Dot products of the actual trained RecBole BPR embeddings, in source order.
@@ -128,7 +132,7 @@ class BPRScorer:
     def score(self, user_id: str, candidate_ids: Sequence[str]) -> ScoreResult:
         candidates = tuple(candidate_ids)
         if not _token(user_id) or user_id not in self.user_id_map:
-            raise ValueError('unknown user or padding token')
+            raise UnknownBPRUserError('unknown user or padding token')
         if (len(set(candidates)) != len(candidates)
                 or any(not _token(item) or item not in self.item_id_map for item in candidates)):
             raise ValueError('unknown, cold, duplicate or padding candidate IDs')
